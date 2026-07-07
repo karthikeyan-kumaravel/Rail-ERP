@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Indian Railways logo</title>
+  <desc id="desc">A blue and white Indian Railways inspired circular railway emblem.</desc>
+  <circle cx="256" cy="256" r="250" fill="#2e3192"/>
+  <circle cx="256" cy="256" r="178" fill="none" stroke="#fff" stroke-width="12"/>
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#fff" stroke-width="10"/>
+  <path fill="#fff" d="M99 201h314v21H99zm17 48h280v20H116zm34 48h212v20H150z"/>
+  <path fill="#2e3192" d="M161 196h64l-78 85h-46z"/>
+  <path fill="#fff" d="M144 344h224l-24 58H168zm54-171h116c32 0 58 26 58 58v52H140v-52c0-32 26-58 58-58z"/>
+  <path fill="#2e3192" d="M207 194h98c20 0 36 16 36 36v24H171v-24c0-20 16-36 36-36z"/>
+  <path fill="#fff" d="M170 258h172v73H170z"/>
+  <circle cx="209" cy="303" r="18" fill="#2e3192"/>
+  <circle cx="303" cy="303" r="18" fill="#2e3192"/>
+  <path fill="#2e3192" d="M220 350h24v24h-24zm48 0h24v24h-24zm48 0h24v24h-24zm-72 28h24v24h-24zm48 0h24v24h-24z"/>
+  <path fill="#fff" d="m256 60 8 24h25l-20 15 8 24-21-15-21 15 8-24-20-15h25zm95 35 8 23h25l-20 15 8 24-21-14-21 14 8-24-20-15h25zM161 95l8 23h25l-20 15 8 24-21-14-21 14 8-24-20-15h25zm240 116 8 23h25l-20 15 8 24-21-14-21 14 8-24-20-15h25zM111 211l8 23h25l-20 15 8 24-21-14-21 14 8-24-20-15h25zm50 143 8 23h25l-20 15 8 24-21-14-21 14 8-24-20-15h25zm190 0 8 23h25l-20 15 8 24-21-14-21 14 8-24-20-15h25z"/>
+  <path fill="#fff" d="M122 166c24-45 75-82 134-82s110 37 134 82h-32c-23-31-60-51-102-51s-79 20-102 51z"/>
+  <path fill="#2e3192" d="M144 146c26-27 65-45 112-45s86 18 112 45h-38c-21-14-46-22-74-22s-53 8-74 22z"/>
+</svg>
