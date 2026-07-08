@@ -68,7 +68,7 @@ class UserController extends Controller
     public function create(): Response
     {
         return Inertia::render('admin/users/create', [
-            'userTypes' => UserType::query()->orderBy('name')->get(['id', 'name']),
+            'userTypes' => UserType::query()->where('is_delete', false)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -86,7 +86,7 @@ class UserController extends Controller
     {
         return Inertia::render('admin/users/edit', [
             'user' => $user->only(['id', 'name', 'username', 'email', 'mobile_no', 'user_type_id']),
-            'userTypes' => UserType::query()->orderBy('name')->get(['id', 'name']),
+            'userTypes' => UserType::query()->where('is_delete', false)->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

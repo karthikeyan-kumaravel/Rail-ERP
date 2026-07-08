@@ -30,6 +30,7 @@ export default function UsersCreate({ userTypes }: CreateProps) {
     return (
         <AdminLayout
             title="Add User"
+            withBackgroundImage
             header={
                 <div className="text-sm">
                     <Link
@@ -47,7 +48,7 @@ export default function UsersCreate({ userTypes }: CreateProps) {
         >
             <form
                 onSubmit={submit}
-                className="max-w-3xl rounded-xl border border-[#e0a94a]/15 bg-[#0a1a28] p-6"
+                className="max-w-3xl rounded-xl border border-[#e0a94a]/20 bg-[#0a1a28]/75 p-6 shadow-2xl backdrop-blur-xl"
             >
                 <UserFormFields
                     data={data}

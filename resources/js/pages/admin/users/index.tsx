@@ -164,6 +164,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
     return (
         <AdminLayout
             title="User Creation"
+            withBackgroundImage
             header={
                 <div className="flex items-center justify-between print:hidden">
                     <div className="text-sm">
@@ -182,7 +183,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                 </div>
             }
         >
-            <div className="rounded-xl border border-[#e0a94a]/15 bg-[#0a1a28] p-6">
+            <div className="rounded-xl border border-[#e0a94a]/20 bg-[#0a1a28]/75 p-6 shadow-2xl backdrop-blur-xl">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-2 text-sm text-[#fdede1]">
                         {flash.success}

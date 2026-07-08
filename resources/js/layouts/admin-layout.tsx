@@ -112,7 +112,7 @@ const LogoutIcon = ({ className = 'h-4.5 w-4.5' }: { className?: string }) => (
 const adminSubItems = [
     { label: 'Users', href: usersIndex.url() },
     { label: 'User screen', href: '#' },
-    { label: 'User type', href: '#' },
+    { label: 'User type', href: '/admin/user-types' },
     { label: 'User permission', href: '#' },
 ];
 
@@ -120,12 +120,14 @@ type AdminLayoutProps = {
     children: ReactNode;
     title: string;
     header?: ReactNode;
+    withBackgroundImage?: boolean;
 };
 
 export default function AdminLayout({
     children,
     title,
     header,
+    withBackgroundImage = false,
 }: AdminLayoutProps) {
     const { props, url: currentUrl } = usePage();
     const { auth } = props;
@@ -270,13 +272,25 @@ export default function AdminLayout({
                     </div>
                 </aside>
 
-                <div className="flex flex-1 flex-col">
+                <div
+                    className={`relative flex flex-1 flex-col ${withBackgroundImage ? 'bg-cover bg-center' : ''}`}
+                    style={
+                        withBackgroundImage
+                            ? { backgroundImage: "url('/images/login-bg.jpg')" }
+                            : undefined
+                    }
+                >
+                    {withBackgroundImage && (
+                        <div className="absolute inset-0 bg-linear-to-br from-[#0f2436]/90 via-[#16324a]/70 to-[#3a2410]/80" />
+                    )}
                     {header && (
-                        <header className="border-b border-[#e0a94a]/15 px-8 py-5">
+                        <header
+                            className={`relative border-b border-[#e0a94a]/15 px-8 py-5 ${withBackgroundImage ? 'backdrop-blur-sm' : ''}`}
+                        >
                             {header}
                         </header>
                     )}
-                    <main className="flex-1 p-6">{children}</main>
+                    <main className="relative flex-1 p-6">{children}</main>
                 </div>
             </div>
         </>

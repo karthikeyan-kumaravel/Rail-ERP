@@ -34,11 +34,11 @@ export default function Login() {
         setForm((current) => ({ ...current, [field]: value }));
     };
 
-    // const switchMode = () => {
-    //     setMode((current) => (current === 'login' ? 'register' : 'login'));
-    //     setErrors({});
-    //     setMessage('');
-    // };
+    const switchMode = () => {
+        setMode((current) => (current === 'login' ? 'register' : 'login'));
+        setErrors({});
+        setMessage('');
+    };
 
     const submit: FormEventHandler = async (event) => {
         event.preventDefault();
