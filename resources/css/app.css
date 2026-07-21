@@ -9,3 +9,280 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 }
+
+/*
+ * Theme palette. Every brand/neutral color in the app is expressed through
+ * these custom properties (consumed as Tailwind arbitrary values, e.g.
+ * `bg-[var(--color-surface)]`) so switching the attributes below on <html>
+ * re-skins the whole application instantly, with no reload. The Appearance
+ * panel (resources/js/lib/appearance-panel.tsx) is the only place that
+ * writes these attributes, via resources/js/lib/use-preferences.ts.
+ *
+ * Axes, each independent:
+ *   data-theme      = light | dark            (base neutrals: bg/surface/ink/borders)
+ *   data-accent     = orange|blue|green|purple|red   (buttons, links, active states)
+ *   data-bg-style   = solid | gradient | glass (page backdrop + surface treatment)
+ *   data-gradient   = orange|blue|green|purple|red|sunset|ocean|forest|midnight|custom
+ *   data-font-size  = small | medium | large   (scales the `--text-*` scale)
+ *   data-radius     = small | medium | large   (scales the `--radius-*` scale)
+ *   data-animations = on | off                 (kills transition/animation durations)
+ */
+:root {
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    /*
+     * `--color-surface-soft` is the fill for every form input, select, and
+     * search box app-wide (~50 call sites). Kept a near-white, low-contrast
+     * tint (not a mid-gray) on purpose — a professional form reads as
+     * "white card, faintly recessed field," not "gray box."
+     */
+    --color-surface-soft: #f3f5f8;
+    --color-surface-soft-2: #fffaf1;
+    --color-ink: #0f2436;
+    --color-border: #dfe5ec;
+    --color-border-soft: #d9e0ea;
+    --color-border-softer: #e2e7ee;
+    --color-border-soft-2: #edf0f4;
+    --color-bg-soft: #f6f8fa;
+    --color-bg-soft-2: #f8fafc;
+    --color-bg-soft-3: #fbfcfd;
+    --color-status-gold-text: #8a6d10;
+    --color-status-gold-bg: #fdf3e2;
+    --color-status-gold-icon: #c18b28;
+    --color-status-orange-text: #b4572a;
+    --color-brand-cream: #f6ead2;
+}
+
+:root[data-theme='dark'] {
+    --color-bg: #0c1622;
+    --color-surface: #13202f;
+    --color-surface-soft: #1b2c3e;
+    --color-surface-soft-2: #20334a;
+    --color-ink: #e7edf3;
+    --color-border: #24384c;
+    --color-border-soft: #223449;
+    --color-border-softer: #263c52;
+    --color-border-soft-2: #22354a;
+    --color-bg-soft: #152537;
+    --color-bg-soft-2: #16283a;
+    --color-bg-soft-3: #17293c;
+    --color-status-gold-text: #f0c675;
+    --color-status-gold-bg: #33280f;
+    --color-status-gold-icon: #e0b563;
+    --color-status-orange-text: #f2a67e;
+    --color-brand-cream: #241d10;
+}
+
+/*
+ * Accent color. `--color-accent(-2)-base` is the pure, theme-independent
+ * hue picked by the user; the working `--color-accent(-2)` / `--color-gold`
+ * tokens derive from it via color-mix so dark mode automatically gets a
+ * deepened, readable variant without hand-tuning every accent x theme pair.
+ */
+:root,
+:root[data-accent='orange'] {
+    --color-accent-base: #f2905c;
+    --color-accent-2-base: #c9a227;
+}
+
+:root[data-accent='blue'] {
+    --color-accent-base: #4f8ef7;
+    --color-accent-2-base: #2f6fed;
+}
+
+:root[data-accent='green'] {
+    --color-accent-base: #34b374;
+    --color-accent-2-base: #1f8f5c;
+}
+
+:root[data-accent='purple'] {
+    --color-accent-base: #9b6bf2;
+    --color-accent-2-base: #7c4fd1;
+}
+
+:root[data-accent='red'] {
+    --color-accent-base: #ef5b5b;
+    --color-accent-2-base: #d93f3f;
+}
+
+:root {
+    --color-accent: var(--color-accent-base);
+    --color-accent-2: var(--color-accent-2-base);
+    /*
+     * `--color-gold` is the neutral hairline/label tone used for borders and
+     * uppercase field/table-header text on every admin page (~100 call
+     * sites). It's kept accent-independent (a plain neutral slate, not
+     * mixed from the accent hue) on purpose: professional admin UI reserves
+     * the accent color for interactive/primary elements only — buttons,
+     * active states, focus rings — and keeps structural chrome (borders,
+     * labels) neutral regardless of which Accent Color is selected. The name
+     * is legacy; the value is intentionally no longer gold-toned.
+     */
+    --color-gold: #94a3b8;
+}
+
+:root[data-theme='dark'] {
+    --color-accent: color-mix(in oklab, var(--color-accent-base) 78%, black 16%);
+    --color-accent-2: color-mix(in oklab, var(--color-accent-2-base) 72%, black 20%);
+    --color-gold: #64748b;
+}
+
+/*
+ * Sidebar theme. The sidebar is intentionally a premium dark panel in both
+ * light and dark app themes (a common admin-dashboard pattern) so accent
+ * changes read as rich gradient/glow variants rather than a light re-skin.
+ * It reuses the raw `--color-accent(-2)-base` hues (not the theme-adjusted
+ * `--color-accent`/`--color-accent-2`) so it stays independent of
+ * data-theme and updates automatically whenever data-accent changes.
+ */
+:root {
+    --sidebar-base: #0b1424;
+    --sidebar-base-2: #101c30;
+    --sidebar-bg-from: color-mix(in oklab, var(--color-accent-base) 16%, var(--sidebar-base) 84%);
+    --sidebar-bg-to: color-mix(in oklab, var(--color-accent-2-base) 13%, var(--sidebar-base-2) 87%);
+    --sidebar-border: color-mix(in oklab, var(--color-accent-base) 30%, white 8%);
+    --sidebar-ink: #eef2f7;
+    --sidebar-ink-soft: color-mix(in oklab, #eef2f7 72%, transparent 28%);
+    --sidebar-heading: color-mix(in oklab, #eef2f7 42%, transparent 58%);
+    --sidebar-hover-bg: color-mix(in oklab, var(--color-accent-base) 18%, transparent);
+    --sidebar-active-bg: color-mix(in oklab, var(--color-accent-base) 26%, transparent);
+    --sidebar-active-border: var(--color-accent-base);
+}
+
+/*
+ * Gradient presets. Independent of accent — this drives the decorative page
+ * backdrop (Background Style: Soft Gradient / Glassmorphism), not buttons.
+ * "Custom Gradient" is applied as an inline style override on <html> by JS,
+ * which naturally wins over these attribute-selector rules.
+ */
+:root,
+:root[data-gradient='orange'] {
+    --gradient-from: #f2905c;
+    --gradient-to: #c9a227;
+}
+
+:root[data-gradient='blue'] {
+    --gradient-from: #4f8ef7;
+    --gradient-to: #2f6fed;
+}
+
+:root[data-gradient='green'] {
+    --gradient-from: #3fd08a;
+    --gradient-to: #1f8f5c;
+}
+
+:root[data-gradient='purple'] {
+    --gradient-from: #a97bff;
+    --gradient-to: #7c4fd1;
+}
+
+:root[data-gradient='red'] {
+    --gradient-from: #ff7b7b;
+    --gradient-to: #d93f3f;
+}
+
+:root[data-gradient='sunset'] {
+    --gradient-from: #ff9a5c;
+    --gradient-to: #ff5c8a;
+}
+
+:root[data-gradient='ocean'] {
+    --gradient-from: #3fd0ff;
+    --gradient-to: #2f6fed;
+}
+
+:root[data-gradient='forest'] {
+    --gradient-from: #8ad13f;
+    --gradient-to: #1f8f5c;
+}
+
+:root[data-gradient='midnight'] {
+    --gradient-from: #6b7bff;
+    --gradient-to: #1b1f3b;
+}
+
+/* Background style: Solid (default) / Soft Gradient / Glassmorphism. */
+:root[data-bg-style='gradient'],
+:root[data-bg-style='glass'] {
+    --app-bg-image: linear-gradient(
+        135deg,
+        var(--color-bg) 0%,
+        color-mix(in oklab, var(--gradient-from) 16%, var(--color-bg)) 45%,
+        color-mix(in oklab, var(--gradient-to) 16%, var(--color-bg)) 100%
+    );
+}
+
+html {
+    background-color: var(--color-bg);
+    background-image: var(--app-bg-image, none);
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+body {
+    background-color: transparent;
+    color: var(--color-ink);
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+/*
+ * Glassmorphism: every surface in the app (cards, sidebar, topbar, dropdown
+ * panels, table containers) is painted with `bg-[var(--color-surface)]`
+ * (optionally with a Tailwind opacity modifier). Matching on that literal
+ * class substring lets us retrofit a frosted-glass treatment app-wide
+ * without editing every page.
+ */
+:root[data-bg-style='glass'] [class*='var(--color-surface)'] {
+    background-color: color-mix(in oklab, var(--color-surface) 62%, transparent) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* Font size: scales Tailwind's `--text-*` scale, so every `text-*` utility follows. */
+:root[data-font-size='small'] {
+    --text-xs: 0.6875rem;
+    --text-sm: 0.8125rem;
+    --text-base: 0.9375rem;
+    --text-lg: 1.0625rem;
+    --text-xl: 1.1875rem;
+    --text-2xl: 1.375rem;
+}
+
+:root[data-font-size='large'] {
+    --text-xs: 0.8125rem;
+    --text-sm: 0.9375rem;
+    --text-base: 1.0625rem;
+    --text-lg: 1.1875rem;
+    --text-xl: 1.375rem;
+    --text-2xl: 1.625rem;
+}
+
+/* Border radius: scales Tailwind's `--radius-*` scale app-wide; `rounded-full` is untouched. */
+:root[data-radius='small'] {
+    --radius-sm: 0.125rem;
+    --radius-md: 0.1875rem;
+    --radius-lg: 0.25rem;
+    --radius-xl: 0.375rem;
+    --radius-2xl: 0.5rem;
+    --radius-3xl: 0.75rem;
+}
+
+:root[data-radius='large'] {
+    --radius-sm: 0.375rem;
+    --radius-md: 0.625rem;
+    --radius-lg: 0.875rem;
+    --radius-xl: 1.25rem;
+    --radius-2xl: 1.75rem;
+    --radius-3xl: 2.25rem;
+}
+
+/* Animations: collapse every transition/animation to instant when disabled. */
+:root[data-animations='off'] *,
+:root[data-animations='off'] *::before,
+:root[data-animations='off'] *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    scroll-behavior: auto !important;
+}

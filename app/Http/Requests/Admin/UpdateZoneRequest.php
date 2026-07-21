@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use App\Models\Zone;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class UpdateZoneRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        $zone = $this->route('zone');
+        $zoneId = $zone instanceof Zone ? $zone->id : null;
+
+        return [
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('zones', 'name')
+                    ->where(fn ($query) => $query->where('is_delete', false))
+                    ->ignore($zoneId),
+            ],
+            'code' => [
+                'nullable',
+                'string',
+                'max:10',
+                Rule::unique('zones', 'code')
+                    ->where(fn ($query) => $query->where('is_delete', false))
+                    ->ignore($zoneId),
+            ],
+            'active_status' => ['required', 'in:0,1'],
+        ];
+    }
+}

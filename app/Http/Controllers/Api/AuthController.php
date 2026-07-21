@@ -44,7 +44,7 @@ class AuthController extends Controller
 
         $loginField = filter_var($validated['login'], FILTER_VALIDATE_EMAIL)
             ? 'email'
-            : 'name';
+            : 'username';
 
         if (! Auth::attempt([
             $loginField => $validated['login'],

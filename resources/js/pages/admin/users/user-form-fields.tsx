@@ -22,10 +22,10 @@ type UserFormFieldsProps = {
 };
 
 const labelClass =
-    'mb-1.5 block text-xs font-medium tracking-wide text-[#e0a94a] uppercase';
+    'mb-1.5 block text-xs font-medium tracking-wide text-[var(--color-gold)] uppercase';
 const inputClass =
-    'w-full rounded-lg border border-[#e0a94a]/25 bg-[#0f2436] px-4 py-2.5 text-sm text-[#fdede1] placeholder-[#fdede1]/35 outline-none transition focus:border-[#f2905c] focus:ring-2 focus:ring-[#f2905c]/40';
-const errorClass = 'mt-1.5 text-xs text-[#f2905c]';
+    'w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40';
+const errorClass = 'mt-1.5 text-xs font-bold text-red-600';
 
 export default function UserFormFields({
     data,

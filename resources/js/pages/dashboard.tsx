@@ -8,7 +8,7 @@ export default function Dashboard() {
         <AdminLayout
             title="Dashboard"
             header={
-                <h1 className="text-xl font-semibold text-[#fdede1]">
+                <h1 className="text-xl font-semibold text-[var(--color-ink)]">
                     Dashboard
                 </h1>
             }

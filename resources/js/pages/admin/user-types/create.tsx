@@ -1,10 +1,9 @@
 import { Link, useForm } from '@inertiajs/react';
 import type { FormEventHandler } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
+import { index, store } from '@/routes/admin/user-types';
 import UserTypeFormFields from './user-type-form-fields';
 import type { UserTypeFormData } from './user-type-form-fields';
-
-const userTypesUrl = '/admin/user-types';
 
 export default function UserTypesCreate() {
     const { data, setData, post, processing, errors } =
@@ -15,7 +14,7 @@ export default function UserTypesCreate() {
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        post(userTypesUrl);
+        post(store.url());
     };
 
     return (
@@ -25,13 +24,13 @@ export default function UserTypesCreate() {
             header={
                 <div className="text-sm">
                     <Link
-                        href={userTypesUrl}
-                        className="text-[#fdede1]/55 hover:text-[#f2905c]"
+                        href={index.url()}
+                        className="text-[var(--color-ink)]/55 hover:text-[var(--color-accent)]"
                     >
                         Admin / User Type
                     </Link>
-                    <span className="mx-1.5 text-[#fdede1]/40">/</span>
-                    <span className="font-semibold text-[#fdede1]">
+                    <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
                         Add New
                     </span>
                 </div>
@@ -39,7 +38,7 @@ export default function UserTypesCreate() {
         >
             <form
                 onSubmit={submit}
-                className="max-w-3xl rounded-xl border border-[#e0a94a]/20 bg-[#0a1a28]/75 p-6 shadow-2xl backdrop-blur-xl"
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6"
             >
                 <UserTypeFormFields
                     data={data}
@@ -51,13 +50,13 @@ export default function UserTypesCreate() {
                     <button
                         type="submit"
                         disabled={processing}
-                        className="rounded-lg bg-linear-to-r from-[#f2905c] to-[#c9a227] px-5 py-2.5 text-sm font-semibold text-[#0f2436] shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {processing ? 'Saving...' : 'Save'}
                     </button>
                     <Link
-                        href={userTypesUrl}
-                        className="rounded-lg border border-[#e0a94a]/25 px-5 py-2.5 text-sm font-semibold text-[#fdede1]/80 transition hover:border-[#f2905c]/50 hover:text-[#f2905c]"
+                        href={index.url()}
+                        className="rounded-lg border border-[var(--color-gold)]/25 px-5 py-2.5 text-sm font-semibold text-[var(--color-ink)]/80 transition hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"
                     >
                         Cancel
                     </Link>

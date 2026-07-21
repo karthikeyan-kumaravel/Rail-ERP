@@ -1,120 +1,180 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
-import { dashboard } from '@/routes';
-import { index as usersIndex } from '@/routes/admin/users';
+import { useEffect, useRef, useState } from 'react';
+import AppearancePanel from '@/lib/appearance-panel';
+import {
+    ChevronDownIcon,
+    IconChip,
+    LogoutIcon,
+    MenuIcon,
+    PanelCollapseIcon,
+    RailIcon,
+    XIcon,
+} from '@/lib/icons';
+import { PreferencesProvider, usePreferences } from '@/lib/use-preferences';
+import { dashboard, logout } from '@/routes';
+import type { NavigationItem } from '@/types';
 
-const RailIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <rect x="4" y="3" width="16" height="13" rx="2" />
-        <path d="M4 11h16" />
-        <path d="M8 16l-2 4" />
-        <path d="M16 16l2 4" />
-        <circle cx="8" cy="13.5" r="0.5" fill="currentColor" />
-        <circle cx="16" cy="13.5" r="0.5" fill="currentColor" />
-    </svg>
-);
+const adminBasePath = `${dashboard.url().replace(/\/dashboard\/?$/, '')}/admin`;
 
-const HomeIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="M3 11.5 12 4l9 7.5" />
-        <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
-    </svg>
-);
+function adminUrl(folderName: string): string {
+    return `${adminBasePath}/${folderName}`;
+}
 
-const AdminIcon = ({ className = 'h-5 w-5' }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" />
-        <path d="m9.5 12 1.8 1.8L14.5 10" />
-    </svg>
-);
+function isGroupActive(item: NavigationItem, currentPath: string): boolean {
+    if (item.children.length === 0) {
+        return currentPath.startsWith(adminUrl(item.folder_name));
+    }
 
-const ChevronDownIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="m6 9 6 6 6-6" />
-    </svg>
-);
+    return item.children.some((child) => isGroupActive(child, currentPath));
+}
 
-const PanelCollapseIcon = ({
-    className = 'h-4 w-4',
-}: {
-    className?: string;
-}) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <path d="M9 4v16" />
-        <path d="m14 10-2 2 2 2" />
-    </svg>
-);
+function initialOpenGroups(
+    items: NavigationItem[],
+    currentPath: string,
+): Record<string, boolean> {
+    return items.reduce<Record<string, boolean>>((open, item) => {
+        if (item.children.length === 0) {
+            return open;
+        }
 
-const LogoutIcon = ({ className = 'h-4.5 w-4.5' }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-        <path d="M16 17l5-5-5-5" />
-        <path d="M21 12H9" />
-    </svg>
-);
+        return {
+            ...open,
+            [item.folder_name]: isGroupActive(item, currentPath),
+            ...initialOpenGroups(item.children, currentPath),
+        };
+    }, {});
+}
 
-const adminSubItems = [
-    { label: 'Users', href: usersIndex.url() },
-    { label: 'User screen', href: '#' },
-    { label: 'User type', href: '/admin/user-types' },
-    { label: 'User permission', href: '#' },
-];
+const topLevelLinkClass =
+    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition';
+
+type NavItemProps = {
+    item: NavigationItem;
+    currentPath: string;
+    collapsed: boolean;
+    openGroups: Record<string, boolean>;
+    onToggleGroup: (folderName: string) => void;
+    depth: number;
+};
+
+function NavItem({
+    item,
+    currentPath,
+    collapsed,
+    openGroups,
+    onToggleGroup,
+    depth,
+}: NavItemProps) {
+    const href = adminUrl(item.folder_name);
+    const hasChildren = item.children.length > 0;
+    const isOpen = openGroups[item.folder_name] ?? false;
+    const childrenContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!hasChildren || !isOpen) {
+            return;
+        }
+
+        const activeLink = childrenContainerRef.current?.querySelector(
+            '[data-active="true"]',
+        );
+
+        activeLink?.scrollIntoView({ block: 'nearest' });
+    }, [hasChildren, isOpen, currentPath]);
+
+    if (!hasChildren) {
+        const isActive = currentPath.startsWith(href);
+        const stateClass = isActive
+            ? 'bg-[var(--sidebar-active-bg)] text-[var(--sidebar-ink)] shadow-[inset_3px_0_0_0_var(--sidebar-active-border)]'
+            : 'text-[var(--sidebar-ink-soft)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-ink)]';
+        const className =
+            depth === 0
+                ? `${topLevelLinkClass} ${stateClass}`
+                : `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${stateClass}`;
+
+        return (
+            <Link
+                href={href}
+                data-active={isActive ? 'true' : undefined}
+                className={className}
+            >
+                <IconChip
+                    name={item.icon}
+                    className={depth === 0 ? 'h-8 w-8' : 'h-7 w-7'}
+                    iconClassName={depth === 0 ? 'h-4.5 w-4.5' : 'h-4 w-4'}
+                />
+                {!collapsed && (
+                    <span className="truncate">{item.screen_name}</span>
+                )}
+            </Link>
+        );
+    }
+
+    return (
+        <div>
+            {depth === 0 && !collapsed ? (
+                <button
+                    type="button"
+                    onClick={() => onToggleGroup(item.folder_name)}
+                    className="flex w-full items-center justify-between gap-2 rounded-lg px-3 pt-4 pb-1.5 text-left text-[10.5px] font-semibold tracking-[0.14em] text-[var(--sidebar-heading)] uppercase transition hover:text-[var(--sidebar-ink-soft)]"
+                >
+                    <span>{item.screen_name}</span>
+                    <ChevronDownIcon
+                        className={`h-3.5 w-3.5 transition-transform ${
+                            isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
+                </button>
+            ) : (
+                <button
+                    type="button"
+                    onClick={() => onToggleGroup(item.folder_name)}
+                    className={`${topLevelLinkClass} w-full justify-between text-[var(--sidebar-ink-soft)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-ink)]`}
+                >
+                    <span className="flex items-center gap-3">
+                        <IconChip
+                            name={item.icon}
+                            className={depth === 0 ? 'h-8 w-8' : 'h-7 w-7'}
+                            iconClassName="h-4 w-4"
+                        />
+                        {!collapsed && <span>{item.screen_name}</span>}
+                    </span>
+                    {!collapsed && (
+                        <ChevronDownIcon
+                            className={`h-4 w-4 transition-transform ${
+                                isOpen ? 'rotate-180' : ''
+                            }`}
+                        />
+                    )}
+                </button>
+            )}
+
+            {!collapsed && isOpen && (
+                <div
+                    ref={childrenContainerRef}
+                    className={`mt-0.5 space-y-0.5 ${
+                        item.children.length > 7
+                            ? 'max-h-72 overflow-y-auto pr-1'
+                            : ''
+                    }`}
+                >
+                    {item.children.map((child) => (
+                        <NavItem
+                            key={child.folder_name}
+                            item={child}
+                            currentPath={currentPath}
+                            collapsed={collapsed}
+                            openGroups={openGroups}
+                            onToggleGroup={onToggleGroup}
+                            depth={depth + 1}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 type AdminLayoutProps = {
     children: ReactNode;
@@ -123,22 +183,35 @@ type AdminLayoutProps = {
     withBackgroundImage?: boolean;
 };
 
-export default function AdminLayout({
-    children,
-    title,
-    header,
-    withBackgroundImage = false,
-}: AdminLayoutProps) {
+export default function AdminLayout(layoutProps: AdminLayoutProps) {
+    return (
+        <PreferencesProvider>
+            <AdminLayoutContent {...layoutProps} />
+        </PreferencesProvider>
+    );
+}
+
+function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
     const { props, url: currentUrl } = usePage();
-    const { auth } = props;
+    const { auth, navigation } = props;
     const currentPath = currentUrl.split('?')[0];
-    const isAdminSection = currentPath.startsWith('/admin');
 
-    const [collapsed, setCollapsed] = useState(false);
-    const [adminOpen, setAdminOpen] = useState(isAdminSection);
+    const { preferences, updatePreference } = usePreferences();
+    const collapsed = preferences.sidebarStyle === 'compact';
+    const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+        initialOpenGroups(navigation, currentPath),
+    );
+    const [mobileOpen, setMobileOpen] = useState(false);
 
-    const logout = () => {
-        router.post('/logout');
+    const toggleGroup = (folderName: string) => {
+        setOpenGroups((current) => ({
+            ...current,
+            [folderName]: !current[folderName],
+        }));
+    };
+
+    const doLogout = () => {
+        router.post(logout.url());
     };
 
     const initials = auth.user.name
@@ -148,149 +221,153 @@ export default function AdminLayout({
         .map((part) => part[0]?.toUpperCase())
         .join('');
 
-    const navLinkClass =
-        'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition';
-
     return (
         <>
             <Head title={title} />
-            <div className="flex min-h-screen bg-[#0f2436] text-[#fdede1]">
+            <div className="flex h-dvh overflow-hidden bg-[var(--color-bg)] text-[var(--color-ink)]">
+                {mobileOpen && (
+                    <div
+                        className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                        onClick={() => setMobileOpen(false)}
+                        aria-hidden="true"
+                    />
+                )}
+
                 <aside
-                    className={`flex flex-col border-r border-[#e0a94a]/15 bg-[#0a1a28] transition-all duration-200 ${
-                        collapsed ? 'w-19' : 'w-64'
-                    }`}
+                    className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[var(--sidebar-border)] bg-linear-to-b from-[var(--sidebar-bg-from)] to-[var(--sidebar-bg-to)] text-[var(--sidebar-ink)] transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:transition-[width] ${
+                        mobileOpen ? 'translate-x-0' : '-translate-x-full'
+                    } ${collapsed ? 'lg:w-19' : 'lg:w-64'}`}
                 >
                     <div className="flex items-center justify-between gap-2 px-4 py-5">
                         <div className="flex min-w-0 items-center gap-2.5">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#f2905c] to-[#c9a227] text-[#0f2436] shadow-lg">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-white shadow-lg">
                                 <RailIcon className="h-5 w-5" />
                             </div>
                             {!collapsed && (
-                                <span className="truncate text-lg font-semibold text-[#fdede1]">
+                                <span className="truncate text-lg font-semibold text-[var(--sidebar-ink)]">
                                     Rail ERP
                                 </span>
                             )}
                         </div>
                         <button
                             type="button"
-                            onClick={() => setCollapsed((value) => !value)}
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#e0a94a]/25 text-[#e0a94a]/80 transition hover:border-[#f2905c]/50 hover:text-[#f2905c]"
+                            onClick={() => setMobileOpen(false)}
+                            aria-label="Close menu"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--sidebar-border)] text-[var(--sidebar-ink-soft)] transition hover:border-[var(--color-accent-base)]/60 hover:text-[var(--color-accent-base)] lg:hidden"
+                        >
+                            <XIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                updatePreference(
+                                    'sidebarStyle',
+                                    collapsed ? 'expanded' : 'compact',
+                                )
+                            }
+                            aria-label={
+                                collapsed
+                                    ? 'Expand sidebar'
+                                    : 'Collapse sidebar'
+                            }
+                            className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--sidebar-border)] text-[var(--sidebar-ink-soft)] transition hover:border-[var(--color-accent-base)]/60 hover:text-[var(--color-accent-base)] lg:flex"
                         >
                             <PanelCollapseIcon />
                         </button>
                     </div>
 
-                    <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2">
+                    <nav
+                        className="flex-1 space-y-1 overflow-y-auto px-3 py-2"
+                        onClick={(event) => {
+                            if ((event.target as HTMLElement).closest('a')) {
+                                setMobileOpen(false);
+                            }
+                        }}
+                    >
+                        {!collapsed && (
+                            <p className="px-3 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-[0.14em] text-[var(--sidebar-heading)] uppercase">
+                                Overview
+                            </p>
+                        )}
                         <Link
                             href={dashboard.url()}
-                            className={`${navLinkClass} ${
-                                currentPath === '/dashboard'
-                                    ? 'bg-linear-to-r from-[#f2905c] to-[#c9a227] text-[#0f2436] shadow-lg'
-                                    : 'text-[#fdede1]/85 hover:bg-[#16324a] hover:text-[#fdede1]'
+                            className={`${topLevelLinkClass} ${
+                                currentPath === dashboard.url()
+                                    ? 'bg-[var(--sidebar-active-bg)] text-[var(--sidebar-ink)] shadow-[inset_3px_0_0_0_var(--sidebar-active-border)]'
+                                    : 'text-[var(--sidebar-ink-soft)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-ink)]'
                             }`}
                         >
-                            <HomeIcon />
+                            <IconChip
+                                name="home"
+                                className="h-8 w-8"
+                                iconClassName="h-4.5 w-4.5"
+                            />
                             {!collapsed && <span>Home</span>}
                         </Link>
 
-                        <div>
-                            <button
-                                type="button"
-                                onClick={() => setAdminOpen((value) => !value)}
-                                className={`${navLinkClass} w-full justify-between text-[#fdede1]/85 hover:bg-[#16324a] hover:text-[#fdede1]`}
-                            >
-                                <span className="flex items-center gap-3">
-                                    <AdminIcon />
-                                    {!collapsed && <span>Admin</span>}
-                                </span>
-                                {!collapsed && (
-                                    <ChevronDownIcon
-                                        className={`h-4 w-4 transition-transform ${
-                                            adminOpen ? 'rotate-180' : ''
-                                        }`}
-                                    />
-                                )}
-                            </button>
-
-                            {!collapsed && adminOpen && (
-                                <div className="mt-1 ml-4.5 space-y-0.5 border-l border-[#e0a94a]/20 pl-4">
-                                    {adminSubItems.map((item) =>
-                                        item.href === '#' ? (
-                                            <span
-                                                key={item.label}
-                                                className="block cursor-not-allowed rounded-md px-3 py-2 text-sm text-[#fdede1]/40"
-                                            >
-                                                {item.label}
-                                            </span>
-                                        ) : (
-                                            <Link
-                                                key={item.label}
-                                                href={item.href}
-                                                className={`block rounded-md px-3 py-2 text-sm transition ${
-                                                    currentPath.startsWith(
-                                                        item.href,
-                                                    )
-                                                        ? 'bg-[#16324a] text-[#fdede1]'
-                                                        : 'text-[#fdede1]/70 hover:bg-[#16324a] hover:text-[#fdede1]'
-                                                }`}
-                                            >
-                                                {item.label}
-                                            </Link>
-                                        ),
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                        {navigation.map((item) => (
+                            <NavItem
+                                key={item.folder_name}
+                                item={item}
+                                currentPath={currentPath}
+                                collapsed={collapsed}
+                                openGroups={openGroups}
+                                onToggleGroup={toggleGroup}
+                                depth={0}
+                            />
+                        ))}
                     </nav>
-
-                    <div className="border-t border-[#e0a94a]/15 px-3 py-4">
-                        <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[#f2905c] to-[#c9a227] text-sm font-semibold text-[#0f2436]">
-                                {initials}
-                            </div>
-                            {!collapsed && (
-                                <>
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium text-[#fdede1]">
-                                            {auth.user.name}
-                                        </p>
-                                        <p className="truncate text-xs text-[#fdede1]/55">
-                                            {auth.user.email}
-                                        </p>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={logout}
-                                        title="Log out"
-                                        className="shrink-0 text-[#e0a94a]/70 transition hover:text-[#f2905c]"
-                                    >
-                                        <LogoutIcon />
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    </div>
                 </aside>
 
-                <div
-                    className={`relative flex flex-1 flex-col ${withBackgroundImage ? 'bg-cover bg-center' : ''}`}
-                    style={
-                        withBackgroundImage
-                            ? { backgroundImage: "url('/images/login-bg.jpg')" }
-                            : undefined
-                    }
-                >
-                    {withBackgroundImage && (
-                        <div className="absolute inset-0 bg-linear-to-br from-[#0f2436]/90 via-[#16324a]/70 to-[#3a2410]/80" />
-                    )}
-                    {header && (
-                        <header
-                            className={`relative border-b border-[#e0a94a]/15 px-8 py-5 ${withBackgroundImage ? 'backdrop-blur-sm' : ''}`}
-                        >
-                            {header}
-                        </header>
-                    )}
-                    <main className="relative flex-1 p-6">{children}</main>
+                <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                    <div
+                        className={
+                            preferences.headerStyle === 'sticky'
+                                ? 'sticky top-0 z-30'
+                                : 'relative z-30'
+                        }
+                    >
+                        <nav className="relative flex items-center gap-4 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 sm:px-8">
+                            <button
+                                type="button"
+                                onClick={() => setMobileOpen(true)}
+                                aria-label="Open menu"
+                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--color-ink)]/70 transition hover:bg-[var(--color-bg-soft)] hover:text-[var(--color-accent)] lg:hidden"
+                            >
+                                <MenuIcon />
+                            </button>
+                            <div className="ml-auto flex items-center gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-sm font-semibold text-white">
+                                    {initials}
+                                </div>
+                                <div className="min-w-0 text-right">
+                                    <p className="truncate text-sm font-medium text-[var(--color-ink)]">
+                                        {auth.user.name}
+                                    </p>
+                                    <p className="truncate text-xs text-[var(--color-ink)]/55">
+                                        {auth.user.email}
+                                    </p>
+                                </div>
+                                <AppearancePanel />
+                                <button
+                                    type="button"
+                                    onClick={doLogout}
+                                    title="Log out"
+                                    className="shrink-0 text-[var(--color-gold)]/70 transition hover:text-[var(--color-accent)]"
+                                >
+                                    <LogoutIcon />
+                                </button>
+                            </div>
+                        </nav>
+                        {header && (
+                            <header className="relative border-b border-[var(--color-border)] px-4 py-5 sm:px-8">
+                                {header}
+                            </header>
+                        )}
+                    </div>
+                    <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
+                        {children}
+                    </main>
                 </div>
             </div>
         </>

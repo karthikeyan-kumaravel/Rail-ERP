@@ -1,10 +1,14 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
+import ExportToolbar from '@/lib/export-toolbar';
+import { PencilIcon, TrashIcon } from '@/lib/icons';
+import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
+import type { PerPageValue } from '@/lib/table-pagination';
 import { create, destroy, edit, index } from '@/routes/admin/users';
 
 type UserRow = {
-    id: number;
+    unique_id: string;
     name: string;
     username: string | null;
     mobile_no: string | null;
@@ -32,7 +36,7 @@ type Filters = {
     search: string;
     sort: string;
     direction: 'asc' | 'desc';
-    per_page: number;
+    per_page: PerPageValue;
 };
 
 type UsersIndexProps = {
@@ -45,8 +49,6 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'username', label: 'User Name' },
     { key: 'mobile_no', label: 'Mobile No' },
 ];
-
-const perPageOptions = [10, 25, 50, 100];
 
 export default function UsersIndex({ users, filters }: UsersIndexProps) {
     const { flash } = usePage().props;
@@ -85,7 +87,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
         );
     };
 
-    const applyPerPage = (perPage: number) => {
+    const applyPerPage = (perPage: PerPageValue) => {
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
@@ -97,61 +99,25 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
         if (
             window.confirm(`Delete ${user.name}? This action cannot be undone.`)
         ) {
-            router.delete(destroy.url(user.id));
+            router.delete(destroy.url(user.unique_id));
         }
     };
 
-    const handleCopy = () => {
-        const header = [
-            'S.No',
-            'Staff Name',
-            'User Name',
-            'Mobile No',
-            'User Type',
-        ];
-        const rows = users.data.map((user, i) => [
-            String(users.from ? users.from + i : i + 1),
-            user.name,
-            user.username ?? '',
-            user.mobile_no ?? '',
-            user.user_type ?? '',
-        ]);
-        const text = [header, ...rows].map((row) => row.join('\t')).join('\n');
-        navigator.clipboard?.writeText(text);
-    };
+    const exportHeaders = [
+        'S.No',
+        'Staff Name',
+        'User Name',
+        'Mobile No',
+        'User Type',
+    ];
 
-    const handleCsv = () => {
-        const header = [
-            'S.No',
-            'Staff Name',
-            'User Name',
-            'Mobile No',
-            'User Type',
-        ];
-        const rows = users.data.map((user, i) => [
-            String(users.from ? users.from + i : i + 1),
-            user.name,
-            user.username ?? '',
-            user.mobile_no ?? '',
-            user.user_type ?? '',
-        ]);
-        const csv = [header, ...rows]
-            .map((row) =>
-                row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','),
-            )
-            .join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'users.csv';
-        link.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handlePrint = () => {
-        window.print();
-    };
+    const exportRows = users.data.map((user, i) => [
+        String((users.from ?? 1) + i),
+        user.name,
+        user.username ?? '',
+        user.mobile_no ?? '',
+        user.user_type ?? '',
+    ]);
 
     const sortIndicator = (column: string) => {
         if (filters.sort !== column) {
@@ -166,84 +132,53 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
             title="User Creation"
             withBackgroundImage
             header={
-                <div className="flex items-center justify-between print:hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
                     <div className="text-sm">
-                        <span className="text-[#fdede1]/55">Admin</span>
-                        <span className="mx-1.5 text-[#fdede1]/40">/</span>
-                        <span className="font-semibold text-[#fdede1]">
+                        <span className="text-[var(--color-ink)]/55">Admin</span>
+                        <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                        <span className="font-semibold text-[var(--color-ink)]">
                             User Creation
                         </span>
                     </div>
                     <Link
                         href={create.url()}
-                        className="rounded-lg bg-linear-to-r from-[#f2905c] to-[#c9a227] px-4 py-2 text-sm font-semibold text-[#0f2436] shadow-lg transition hover:brightness-110"
+                        className="rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
                     >
                         + Add New
                     </Link>
                 </div>
             }
         >
-            <div className="rounded-xl border border-[#e0a94a]/20 bg-[#0a1a28]/75 p-6 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
-                    <div className="mb-4 rounded-lg border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-2 text-sm text-[#fdede1]">
+                    <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
                         {flash.success}
                     </div>
                 )}
 
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-[#fdede1]/70">Show</span>
-                        <select
+                    <div className="flex flex-wrap items-center gap-3">
+                        <PerPageSelect
                             value={filters.per_page}
-                            onChange={(event) =>
-                                applyPerPage(Number(event.target.value))
-                            }
-                            className="rounded-md border border-[#e0a94a]/25 bg-[#0f2436] px-2 py-1.5 text-sm text-[#fdede1] outline-none focus:border-[#f2905c]"
-                        >
-                            {perPageOptions.map((option) => (
-                                <option key={option} value={option}>
-                                    {option}
-                                </option>
-                            ))}
-                        </select>
-                        <span className="text-sm text-[#fdede1]/70">
-                            entries
-                        </span>
+                            onChange={applyPerPage}
+                        />
 
-                        <div className="ml-3 flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={handleCopy}
-                                className="rounded-md border border-[#e0a94a]/25 px-3 py-1.5 text-xs font-semibold text-[#fdede1]/80 transition hover:border-[#f2905c]/50 hover:text-[#f2905c]"
-                            >
-                                Copy
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleCsv}
-                                className="rounded-md border border-[#e0a94a]/25 px-3 py-1.5 text-xs font-semibold text-[#fdede1]/80 transition hover:border-[#f2905c]/50 hover:text-[#f2905c]"
-                            >
-                                CSV
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handlePrint}
-                                className="rounded-md border border-[#e0a94a]/25 px-3 py-1.5 text-xs font-semibold text-[#fdede1]/80 transition hover:border-[#f2905c]/50 hover:text-[#f2905c]"
-                            >
-                                Print
-                            </button>
-                        </div>
+                        <ExportToolbar
+                            headers={exportHeaders}
+                            rows={exportRows}
+                            filename="users.csv"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-[#fdede1]/70">
+                        <span className="text-sm text-[var(--color-ink)]/70">
                             Search:
                         </span>
                         <input
                             type="text"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            className="w-56 rounded-md border border-[#e0a94a]/25 bg-[#0f2436] px-3 py-1.5 text-sm text-[#fdede1] outline-none focus:border-[#f2905c]"
+                            className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
                         />
                     </div>
                 </div>
@@ -251,7 +186,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[720px] text-left text-sm">
                         <thead>
-                            <tr className="border-b border-[#e0a94a]/20 text-xs tracking-wide text-[#e0a94a] uppercase">
+                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs font-semibold tracking-wide text-[var(--color-ink)]/60 uppercase">
                                 <th className="px-3 py-3">S.No</th>
                                 {sortableColumns.map((column) => (
                                     <th
@@ -260,7 +195,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                                         onClick={() => applySort(column.key)}
                                     >
                                         {column.label}{' '}
-                                        <span className="text-[#fdede1]/40">
+                                        <span className="text-[var(--color-ink)]/40">
                                             {sortIndicator(column.key)}
                                         </span>
                                     </th>
@@ -276,7 +211,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                                 <tr>
                                     <td
                                         colSpan={6}
-                                        className="px-3 py-6 text-center text-[#fdede1]/55"
+                                        className="px-3 py-6 text-center text-[var(--color-ink)]/55"
                                     >
                                         No users found.
                                     </td>
@@ -284,8 +219,8 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                             )}
                             {users.data.map((user, i) => (
                                 <tr
-                                    key={user.id}
-                                    className="border-b border-[#e0a94a]/10 text-[#fdede1]/85 hover:bg-[#16324a]/50"
+                                    key={user.unique_id}
+                                    className="border-b border-[var(--color-border-softer)] text-[var(--color-ink)]/85 transition-colors hover:bg-[var(--color-bg-soft)]"
                                 >
                                     <td className="px-3 py-3">
                                         {(users.from ?? 1) + i}
@@ -303,11 +238,12 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                                     <td className="px-3 py-3 print:hidden">
                                         <div className="flex items-center gap-3">
                                             <Link
-                                                href={edit.url(user.id)}
+                                                href={edit.url(user.unique_id)}
                                                 title="Edit"
-                                                className="text-[#e0a94a]/80 transition hover:text-[#f2905c]"
+                                                aria-label={`Edit ${user.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
                                             >
-                                                Edit
+                                                <PencilIcon />
                                             </Link>
                                             <button
                                                 type="button"
@@ -315,9 +251,10 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                                                     handleDelete(user)
                                                 }
                                                 title="Delete"
-                                                className="text-red-400/80 transition hover:text-red-400"
+                                                aria-label={`Delete ${user.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
                                             >
-                                                Delete
+                                                <TrashIcon />
                                             </button>
                                         </div>
                                     </td>
@@ -327,29 +264,12 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                     </table>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
-                    <p className="text-sm text-[#fdede1]/60">
-                        Showing {users.from ?? 0} to {users.to ?? 0} of{' '}
-                        {users.total} entries
-                    </p>
-                    <div className="flex items-center gap-1">
-                        {users.links.map((link, i) => (
-                            <Link
-                                key={`${link.label}-${i}`}
-                                href={link.url ?? '#'}
-                                preserveState
-                                className={`rounded-md px-3 py-1.5 text-sm transition ${
-                                    link.active
-                                        ? 'bg-linear-to-r from-[#f2905c] to-[#c9a227] font-semibold text-[#0f2436]'
-                                        : link.url
-                                          ? 'text-[#fdede1]/70 hover:bg-[#16324a]'
-                                          : 'cursor-not-allowed text-[#fdede1]/30'
-                                }`}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
-                    </div>
-                </div>
+                <PaginationFooter
+                    from={users.from}
+                    to={users.to}
+                    total={users.total}
+                    links={users.links}
+                />
             </div>
         </AdminLayout>
     );

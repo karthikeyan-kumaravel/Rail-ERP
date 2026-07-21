@@ -1,11 +1,14 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
-
-const userTypesUrl = '/admin/user-types';
+import ExportToolbar from '@/lib/export-toolbar';
+import { PencilIcon, TrashIcon } from '@/lib/icons';
+import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
+import type { PerPageValue } from '@/lib/table-pagination';
+import { create, destroy, edit, index } from '@/routes/admin/user-types';
 
 type UserTypeRow = {
-    id: number;
+    unique_id: string;
     name: string;
     active_status: boolean;
     users_count: number;
@@ -33,7 +36,7 @@ type Filters = {
     search: string;
     sort: string;
     direction: 'asc' | 'desc';
-    per_page: number;
+    per_page: PerPageValue;
 };
 
 type UserTypesIndexProps = {
@@ -45,8 +48,6 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'name', label: 'User Type' },
     { key: 'created_at', label: 'Created' },
 ];
-
-const perPageOptions = [10, 25, 50, 100];
 
 export default function UserTypesIndex({
     userTypes,
@@ -65,7 +66,7 @@ export default function UserTypesIndex({
 
         const timeout = setTimeout(() => {
             router.get(
-                userTypesUrl,
+                index.url(),
                 { ...filters, search, page: 1 },
                 { preserveState: true, replace: true },
             );
@@ -82,15 +83,15 @@ export default function UserTypesIndex({
                 : 'asc';
 
         router.get(
-            userTypesUrl,
+            index.url(),
             { ...filters, sort: column, direction },
             { preserveState: true, replace: true },
         );
     };
 
-    const applyPerPage = (perPage: number) => {
+    const applyPerPage = (perPage: PerPageValue) => {
         router.get(
-            userTypesUrl,
+            index.url(),
             { ...filters, per_page: perPage, page: 1 },
             { preserveState: true, replace: true },
         );
@@ -102,9 +103,18 @@ export default function UserTypesIndex({
                 `Delete ${userType.name}? This action cannot be undone.`,
             )
         ) {
-            router.delete(`${userTypesUrl}/${userType.id}`);
+            router.delete(destroy.url(userType.unique_id));
         }
     };
+
+    const exportHeaders = ['S.No', 'User Type', 'Created', 'Users'];
+
+    const exportRows = userTypes.data.map((userType, i) => [
+        String((userTypes.from ?? 1) + i),
+        userType.name,
+        userType.created_at ?? '',
+        userType.users_count,
+    ]);
 
     const sortIndicator = (column: string) => {
         if (filters.sort !== column) {
@@ -119,60 +129,53 @@ export default function UserTypesIndex({
             title="User Type"
             withBackgroundImage
             header={
-                <div className="flex items-center justify-between print:hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
                     <div className="text-sm">
-                        <span className="text-[#fdede1]/55">Admin</span>
-                        <span className="mx-1.5 text-[#fdede1]/40">/</span>
-                        <span className="font-semibold text-[#fdede1]">
+                        <span className="text-[var(--color-ink)]/55">Admin</span>
+                        <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                        <span className="font-semibold text-[var(--color-ink)]">
                             User Type
                         </span>
                     </div>
                     <Link
-                        href={`${userTypesUrl}/create`}
-                        className="rounded-lg bg-linear-to-r from-[#f2905c] to-[#c9a227] px-4 py-2 text-sm font-semibold text-[#0f2436] shadow-lg transition hover:brightness-110"
+                        href={create.url()}
+                        className="rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
                     >
                         + Add New
                     </Link>
                 </div>
             }
         >
-            <div className="rounded-xl border border-[#e0a94a]/20 bg-[#0a1a28]/75 p-6 shadow-2xl backdrop-blur-xl">
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
-                    <div className="mb-4 rounded-lg border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-2 text-sm text-[#fdede1]">
+                    <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
                         {flash.success}
                     </div>
                 )}
 
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-[#fdede1]/70">Show</span>
-                        <select
+                    <div className="flex flex-wrap items-center gap-3">
+                        <PerPageSelect
                             value={filters.per_page}
-                            onChange={(event) =>
-                                applyPerPage(Number(event.target.value))
-                            }
-                            className="rounded-md border border-[#e0a94a]/25 bg-[#0f2436] px-2 py-1.5 text-sm text-[#fdede1] outline-none focus:border-[#f2905c]"
-                        >
-                            {perPageOptions.map((option) => (
-                                <option key={option} value={option}>
-                                    {option}
-                                </option>
-                            ))}
-                        </select>
-                        <span className="text-sm text-[#fdede1]/70">
-                            entries
-                        </span>
+                            onChange={applyPerPage}
+                        />
+
+                        <ExportToolbar
+                            headers={exportHeaders}
+                            rows={exportRows}
+                            filename="user-types.csv"
+                        />
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-[#fdede1]/70">
+                        <span className="text-sm text-[var(--color-ink)]/70">
                             Search:
                         </span>
                         <input
                             type="text"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            className="w-56 rounded-md border border-[#e0a94a]/25 bg-[#0f2436] px-3 py-1.5 text-sm text-[#fdede1] outline-none focus:border-[#f2905c]"
+                            className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
                         />
                     </div>
                 </div>
@@ -180,7 +183,7 @@ export default function UserTypesIndex({
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[620px] text-left text-sm">
                         <thead>
-                            <tr className="border-b border-[#e0a94a]/20 text-xs tracking-wide text-[#e0a94a] uppercase">
+                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs font-semibold tracking-wide text-[var(--color-ink)]/60 uppercase">
                                 <th className="px-3 py-3">S.No</th>
                                 {sortableColumns.map((column) => (
                                     <th
@@ -189,7 +192,7 @@ export default function UserTypesIndex({
                                         onClick={() => applySort(column.key)}
                                     >
                                         {column.label}{' '}
-                                        <span className="text-[#fdede1]/40">
+                                        <span className="text-[var(--color-ink)]/40">
                                             {sortIndicator(column.key)}
                                         </span>
                                     </th>
@@ -205,7 +208,7 @@ export default function UserTypesIndex({
                                 <tr>
                                     <td
                                         colSpan={5}
-                                        className="px-3 py-6 text-center text-[#fdede1]/55"
+                                        className="px-3 py-6 text-center text-[var(--color-ink)]/55"
                                     >
                                         No user types found.
                                     </td>
@@ -213,8 +216,8 @@ export default function UserTypesIndex({
                             )}
                             {userTypes.data.map((userType, i) => (
                                 <tr
-                                    key={userType.id}
-                                    className="border-b border-[#e0a94a]/10 text-[#fdede1]/85 hover:bg-[#16324a]/50"
+                                    key={userType.unique_id}
+                                    className="border-b border-[var(--color-border-softer)] text-[var(--color-ink)]/85 transition-colors hover:bg-[var(--color-bg-soft)]"
                                 >
                                     <td className="px-3 py-3">
                                         {(userTypes.from ?? 1) + i}
@@ -231,11 +234,14 @@ export default function UserTypesIndex({
                                     <td className="px-3 py-3 print:hidden">
                                         <div className="flex items-center gap-3">
                                             <Link
-                                                href={`${userTypesUrl}/${userType.id}/edit`}
+                                                href={edit.url(
+                                                    userType.unique_id,
+                                                )}
                                                 title="Edit"
-                                                className="text-[#e0a94a]/80 transition hover:text-[#f2905c]"
+                                                aria-label={`Edit ${userType.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
                                             >
-                                                Edit
+                                                <PencilIcon />
                                             </Link>
                                             <button
                                                 type="button"
@@ -243,9 +249,10 @@ export default function UserTypesIndex({
                                                     handleDelete(userType)
                                                 }
                                                 title="Delete"
-                                                className="text-red-400/80 transition hover:text-red-400"
+                                                aria-label={`Delete ${userType.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
                                             >
-                                                Delete
+                                                <TrashIcon />
                                             </button>
                                         </div>
                                     </td>
@@ -255,29 +262,12 @@ export default function UserTypesIndex({
                     </table>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
-                    <p className="text-sm text-[#fdede1]/60">
-                        Showing {userTypes.from ?? 0} to {userTypes.to ?? 0} of{' '}
-                        {userTypes.total} entries
-                    </p>
-                    <div className="flex items-center gap-1">
-                        {userTypes.links.map((link, i) => (
-                            <Link
-                                key={`${link.label}-${i}`}
-                                href={link.url ?? '#'}
-                                preserveState
-                                className={`rounded-md px-3 py-1.5 text-sm transition ${
-                                    link.active
-                                        ? 'bg-linear-to-r from-[#f2905c] to-[#c9a227] font-semibold text-[#0f2436]'
-                                        : link.url
-                                          ? 'text-[#fdede1]/70 hover:bg-[#16324a]'
-                                          : 'cursor-not-allowed text-[#fdede1]/30'
-                                }`}
-                                dangerouslySetInnerHTML={{ __html: link.label }}
-                            />
-                        ))}
-                    </div>
-                </div>
+                <PaginationFooter
+                    from={userTypes.from}
+                    to={userTypes.to}
+                    total={userTypes.total}
+                    links={userTypes.links}
+                />
             </div>
         </AdminLayout>
     );

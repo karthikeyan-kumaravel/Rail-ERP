@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\HasPaginatedIndex;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserTypeRequest;
 use App\Http\Requests\Admin\UpdateUserTypeRequest;
@@ -13,33 +14,31 @@ use Inertia\Response;
 
 class UserTypeController extends Controller
 {
+    use HasPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = $this->resolvePerPage($request);
 
         if (! in_array($sort, ['name', 'created_at'], true)) {
             $sort = 'name';
         }
 
-        if (! in_array($perPage, [10, 25, 50, 100, 'All'], true)) {
-            $perPage = 10;
-        }
-
-        $userTypes = UserType::query()
+        $query = UserType::query()
             ->withCount('users')
             ->where('is_delete', false)
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%");
             })
-            ->orderBy($sort, $direction)
-            ->paginate($perPage)
-            ->withQueryString();
+            ->orderBy($sort, $direction);
+
+        $userTypes = $this->paginateQuery($query, $perPage);
 
         $userTypes->through(fn (UserType $userType) => [
-            'id' => $userType->id,
+            'unique_id' => $userType->unique_id,
             'name' => $userType->name,
             'active_status' => $userType->active_status,
             'users_count' => $userType->users_count,
@@ -72,7 +71,7 @@ class UserTypeController extends Controller
     public function edit(UserType $userType): Response
     {
         return Inertia::render('admin/user-types/edit', [
-            'userType' => $userType->only(['id', 'name', 'active_status']),
+            'userType' => $userType->only(['unique_id', 'name', 'active_status']),
         ]);
     }
 

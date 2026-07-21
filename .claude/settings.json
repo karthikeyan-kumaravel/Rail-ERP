@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"artisan serve\")",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //F //PID 11044)",
+      "Bash(taskkill //F //PID 7808)",
+      "Bash(node shot3.js)"
+    ]
+  }
+}

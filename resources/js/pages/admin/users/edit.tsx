@@ -8,7 +8,7 @@ import type { UserFormData } from './user-form-fields';
 type UserType = { id: number; name: string };
 
 type EditUser = {
-    id: number;
+    unique_id: string;
     name: string;
     username: string | null;
     email: string;
@@ -34,7 +34,7 @@ export default function UsersEdit({ user, userTypes }: EditProps) {
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
-        put(update.url(user.id));
+        put(update.url(user.unique_id));
     };
 
     return (
@@ -45,18 +45,18 @@ export default function UsersEdit({ user, userTypes }: EditProps) {
                 <div className="text-sm">
                     <Link
                         href={index.url()}
-                        className="text-[#fdede1]/55 hover:text-[#f2905c]"
+                        className="text-[var(--color-ink)]/55 hover:text-[var(--color-accent)]"
                     >
                         Admin / User Creation
                     </Link>
-                    <span className="mx-1.5 text-[#fdede1]/40">/</span>
-                    <span className="font-semibold text-[#fdede1]">Edit</span>
+                    <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
                 </div>
             }
         >
             <form
                 onSubmit={submit}
-                className="max-w-3xl rounded-xl border border-[#e0a94a]/20 bg-[#0a1a28]/75 p-6 shadow-2xl backdrop-blur-xl"
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6"
             >
                 <UserFormFields
                     data={data}
@@ -70,13 +70,13 @@ export default function UsersEdit({ user, userTypes }: EditProps) {
                     <button
                         type="submit"
                         disabled={processing}
-                        className="rounded-lg bg-linear-to-r from-[#f2905c] to-[#c9a227] px-5 py-2.5 text-sm font-semibold text-[#0f2436] shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {processing ? 'Saving...' : 'Save changes'}
                     </button>
                     <Link
                         href={index.url()}
-                        className="rounded-lg border border-[#e0a94a]/25 px-5 py-2.5 text-sm font-semibold text-[#fdede1]/80 transition hover:border-[#f2905c]/50 hover:text-[#f2905c]"
+                        className="rounded-lg border border-[var(--color-gold)]/25 px-5 py-2.5 text-sm font-semibold text-[var(--color-ink)]/80 transition hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"
                     >
                         Cancel
                     </Link>

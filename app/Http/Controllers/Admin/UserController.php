@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\HasPaginatedIndex;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreUserRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
@@ -15,22 +16,20 @@ use Inertia\Response;
 
 class UserController extends Controller
 {
+    use HasPaginatedIndex;
+
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
-        $perPage = (int) $request->input('per_page', 10);
+        $perPage = $this->resolvePerPage($request);
 
         if (! in_array($sort, ['name', 'username', 'mobile_no'], true)) {
             $sort = 'name';
         }
 
-        if (! in_array($perPage, [10, 25, 50, 100], true)) {
-            $perPage = 10;
-        }
-
-        $users = User::query()
+        $query = User::query()
             ->with('userType')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
@@ -42,12 +41,12 @@ class UserController extends Controller
                         });
                 });
             })
-            ->orderBy($sort, $direction)
-            ->paginate($perPage)
-            ->withQueryString();
+            ->orderBy($sort, $direction);
+
+        $users = $this->paginateQuery($query, $perPage);
 
         $users->through(fn (User $user) => [
-            'id' => $user->id,
+            'unique_id' => $user->unique_id,
             'name' => $user->name,
             'username' => $user->username,
             'mobile_no' => $user->mobile_no,
@@ -85,7 +84,7 @@ class UserController extends Controller
     public function edit(User $user): Response
     {
         return Inertia::render('admin/users/edit', [
-            'user' => $user->only(['id', 'name', 'username', 'email', 'mobile_no', 'user_type_id']),
+            'user' => $user->only(['unique_id', 'name', 'username', 'email', 'mobile_no', 'user_type_id']),
             'userTypes' => UserType::query()->where('is_delete', false)->orderBy('name')->get(['id', 'name']),
         ]);
     }

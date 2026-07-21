@@ -10,6 +10,11 @@ const getCsrfToken = () =>
         .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
         ?.getAttribute('content') ?? '';
 
+const getApiBasePath = () =>
+    document
+        .querySelector<HTMLMetaElement>('meta[name="app-base-path"]')
+        ?.getAttribute('content') ?? '';
+
 const firstError = (errors: FormErrors, field: string) => errors[field]?.[0];
 
 export default function Login() {
@@ -48,7 +53,7 @@ export default function Login() {
 
         try {
             const response = await fetch(
-                isRegistering ? '/api/register' : '/api/login',
+                `${getApiBasePath()}${isRegistering ? '/api/register' : '/api/login'}`,
                 {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -77,7 +82,7 @@ export default function Login() {
                 return;
             }
 
-            window.location.href = '/dashboard';
+            window.location.href = `${getApiBasePath()}/dashboard`;
         } catch {
             setMessage('Unable to connect. Please try again.');
         } finally {
@@ -88,51 +93,62 @@ export default function Login() {
     return (
         <>
             <Head title={title} />
-            <div
-                className="relative flex min-h-screen w-full items-center justify-center bg-cover bg-center p-6"
-                style={{ backgroundImage: "url('/images/login-bg.jpg')" }}
-            >
-                <div className="absolute inset-0 bg-linear-to-br from-[#0f2436]/85 via-[#16324a]/55 to-[#3a2410]/70" />
-
-                <div className="relative w-full max-w-sm rounded-2xl border border-[#e0a94a]/30 bg-[#0f2436]/60 p-8 shadow-2xl backdrop-blur-xl">
+            <div className="relative flex min-h-screen w-full items-center justify-center bg-[var(--color-bg)] p-6">
+                <div className="relative w-full max-w-sm rounded-2xl border border-[var(--color-gold)]/30 bg-[var(--color-surface)]/85 p-8 shadow-2xl backdrop-blur-xl">
                     <div className="mb-8 text-center">
-                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-[#f2905c] to-[#c9a227] shadow-lg">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-linear-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] shadow-lg">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
                                 fill="none"
-                                stroke="#0f2436"
+                                stroke="var(--color-ink)"
                                 strokeWidth={2}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 className="h-7 w-7"
                             >
-                                <rect x="4" y="3" width="16" height="13" rx="2" />
+                                <rect
+                                    x="4"
+                                    y="3"
+                                    width="16"
+                                    height="13"
+                                    rx="2"
+                                />
                                 <path d="M4 11h16" />
                                 <path d="M8 16l-2 4" />
                                 <path d="M16 16l2 4" />
-                                <circle cx="8" cy="13.5" r="0.5" fill="#0f2436" />
-                                <circle cx="16" cy="13.5" r="0.5" fill="#0f2436" />
+                                <circle
+                                    cx="8"
+                                    cy="13.5"
+                                    r="0.5"
+                                    fill="var(--color-ink)"
+                                />
+                                <circle
+                                    cx="16"
+                                    cy="13.5"
+                                    r="0.5"
+                                    fill="var(--color-ink)"
+                                />
                             </svg>
                         </div>
-                        <h1 className="text-xl font-semibold text-[#fdede1]">
+                        <h1 className="text-xl font-semibold text-[var(--color-ink)]">
                             Rail ERP
                         </h1>
-                        <p className="mt-1 text-sm text-[#f2905c]/90">
+                        <p className="mt-1 text-sm text-[var(--color-accent)]/90">
                             {isRegistering
                                 ? 'Create your workspace account'
                                 : 'Sign in to continue your journey'}
                         </p>
                     </div>
 
-                    {/* <div className="mb-5 grid grid-cols-2 rounded-lg border border-[#e0a94a]/25 bg-[#0a1a28]/60 p-1">
+                    {/* <div className="mb-5 grid grid-cols-2 rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/60 p-1">
                         <button
                             type="button"
                             onClick={() => setMode('login')}
                             className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
                                 !isRegistering
-                                    ? 'bg-[#f2905c] text-[#0f2436]'
-                                    : 'text-[#fdede1]/75 hover:text-[#fdede1]'
+                                    ? 'bg-[var(--color-accent)] text-[var(--color-ink)]'
+                                    : 'text-[var(--color-ink)]/75 hover:text-[var(--color-ink)]'
                             }`}
                         >
                             Login
@@ -142,8 +158,8 @@ export default function Login() {
                             onClick={() => setMode('register')}
                             className={`rounded-md px-3 py-2 text-sm font-semibold transition ${
                                 isRegistering
-                                    ? 'bg-[#f2905c] text-[#0f2436]'
-                                    : 'text-[#fdede1]/75 hover:text-[#fdede1]'
+                                    ? 'bg-[var(--color-accent)] text-[var(--color-ink)]'
+                                    : 'text-[var(--color-ink)]/75 hover:text-[var(--color-ink)]'
                             }`}
                         >
                             Register
@@ -155,7 +171,7 @@ export default function Login() {
                             <div>
                                 <label
                                     htmlFor="name"
-                                    className="mb-1.5 block text-xs font-medium tracking-wide text-[#e0a94a] uppercase"
+                                    className="mb-1.5 block text-xs font-medium tracking-wide text-[var(--color-gold)] uppercase"
                                 >
                                     Name
                                 </label>
@@ -168,10 +184,10 @@ export default function Login() {
                                         updateField('name', event.target.value)
                                     }
                                     placeholder="Enter your name"
-                                    className="w-full rounded-lg border border-[#e0a94a]/25 bg-[#0a1a28]/60 px-4 py-2.5 text-sm text-[#fdede1] placeholder-[#fdede1]/35 outline-none transition focus:border-[#f2905c] focus:ring-2 focus:ring-[#f2905c]/40"
+                                    className="w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/60 px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
                                 />
                                 {firstError(errors, 'name') && (
-                                    <p className="mt-1.5 text-xs text-[#f2905c]">
+                                    <p className="mt-1.5 text-xs font-bold text-red-600">
                                         {firstError(errors, 'name')}
                                     </p>
                                 )}
@@ -181,24 +197,30 @@ export default function Login() {
                         <div>
                             <label
                                 htmlFor="email"
-                                className="mb-1.5 block text-xs font-medium tracking-wide text-[#e0a94a] uppercase"
+                                className="mb-1.5 block text-xs font-medium tracking-wide text-[var(--color-gold)] uppercase"
                             >
-                                Email
+                                {isRegistering ? 'Email' : 'Username or Email'}
                             </label>
                             <input
                                 id="email"
-                                type="email"
-                                autoComplete="email"
+                                type={isRegistering ? 'email' : 'text'}
+                                autoComplete={
+                                    isRegistering ? 'email' : 'username'
+                                }
                                 value={form.email}
                                 onChange={(event) =>
                                     updateField('email', event.target.value)
                                 }
-                                placeholder="Enter your email"
-                                className="w-full rounded-lg border border-[#e0a94a]/25 bg-[#0a1a28]/60 px-4 py-2.5 text-sm text-[#fdede1] placeholder-[#fdede1]/35 outline-none transition focus:border-[#f2905c] focus:ring-2 focus:ring-[#f2905c]/40"
+                                placeholder={
+                                    isRegistering
+                                        ? 'Enter your email'
+                                        : 'Enter your username or email'
+                                }
+                                className="w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/60 px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
                             />
                             {(firstError(errors, 'email') ||
                                 firstError(errors, 'login')) && (
-                                <p className="mt-1.5 text-xs text-[#f2905c]">
+                                <p className="mt-1.5 text-xs font-bold text-red-600">
                                     {firstError(errors, 'email') ??
                                         firstError(errors, 'login')}
                                 </p>
@@ -208,7 +230,7 @@ export default function Login() {
                         <div>
                             <label
                                 htmlFor="password"
-                                className="mb-1.5 block text-xs font-medium tracking-wide text-[#e0a94a] uppercase"
+                                className="mb-1.5 block text-xs font-medium tracking-wide text-[var(--color-gold)] uppercase"
                             >
                                 Password
                             </label>
@@ -223,15 +245,20 @@ export default function Login() {
                                     }
                                     value={form.password}
                                     onChange={(event) =>
-                                        updateField('password', event.target.value)
+                                        updateField(
+                                            'password',
+                                            event.target.value,
+                                        )
                                     }
                                     placeholder="Enter your password"
-                                    className="w-full rounded-lg border border-[#e0a94a]/25 bg-[#0a1a28]/60 px-4 py-2.5 pr-11 text-sm text-[#fdede1] placeholder-[#fdede1]/35 outline-none transition focus:border-[#f2905c] focus:ring-2 focus:ring-[#f2905c]/40"
+                                    className="w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/60 px-4 py-2.5 pr-11 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword((value) => !value)}
-                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-[#e0a94a]/70 hover:text-[#f2905c]"
+                                    onClick={() =>
+                                        setShowPassword((value) => !value)
+                                    }
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-gold)]/70 hover:text-[var(--color-accent)]"
                                     tabIndex={-1}
                                 >
                                     {showPassword ? (
@@ -266,14 +293,14 @@ export default function Login() {
                                 </button>
                             </div>
                             {firstError(errors, 'password') && (
-                                <p className="mt-1.5 text-xs text-[#f2905c]">
+                                <p className="mt-1.5 text-xs font-bold text-red-600">
                                     {firstError(errors, 'password')}
                                 </p>
                             )}
                         </div>
 
                         {message && (
-                            <p className="rounded-lg border border-[#f2905c]/30 bg-[#f2905c]/10 px-3 py-2 text-xs text-[#fdede1]">
+                            <p className="rounded-lg border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-2 text-xs text-[var(--color-ink)]">
                                 {message}
                             </p>
                         )}
@@ -281,7 +308,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={processing}
-                            className="w-full rounded-lg bg-linear-to-r from-[#f2905c] to-[#c9a227] py-2.5 text-sm font-semibold text-[#0f2436] shadow-lg transition hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 active:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {processing ? 'Please wait...' : title}
                         </button>
@@ -290,7 +317,7 @@ export default function Login() {
                     {/* <button
                         type="button"
                         onClick={switchMode}
-                        className="mt-5 w-full text-center text-xs font-medium text-[#f2905c] hover:text-[#e0a94a]"
+                        className="mt-5 w-full text-center text-xs font-medium text-[var(--color-accent)] hover:text-[var(--color-gold)]"
                     >
                         {isRegistering
                             ? 'Already have an account? Sign in'
