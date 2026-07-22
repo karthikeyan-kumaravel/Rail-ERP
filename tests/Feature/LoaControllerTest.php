@@ -1,6 +1,9 @@
 <?php
 
+use App\Models\Bank;
 use App\Models\Division;
+use App\Models\Engineer;
+use App\Models\EngineerType;
 use App\Models\Loa;
 use App\Models\LoaItem;
 use App\Models\ScheduleName;
@@ -10,12 +13,46 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\MaskedIdentifier;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
+    Storage::fake('public');
     $this->actingAs(User::factory()->create());
 });
+
+/**
+ * @return array<string, mixed>
+ */
+function financialSecuritySectionPayload(int $bankId, array $overrides = []): array
+{
+    return array_merge([
+        'amount' => 5.5,
+        'amount_unit' => 'L',
+        'validity_start_date' => '2026-01-01',
+        'validity_end_date' => '2027-12-31',
+        'claim_period' => 90,
+        'claim_period_unit' => 'Days',
+        'bank_id' => $bankId,
+        'file' => UploadedFile::fake()->create('proof.pdf', 100, 'application/pdf'),
+    ], $overrides);
+}
+
+/**
+ * @return array<string, array<string, mixed>>
+ */
+function validFinancialSecuritiesPayload(?int $bankId = null): array
+{
+    $bankId ??= Bank::factory()->create()->id;
+
+    return [
+        'emd' => financialSecuritySectionPayload($bankId),
+        'performance_bg' => financialSecuritySectionPayload($bankId),
+        'security_bg' => financialSecuritySectionPayload($bankId),
+    ];
+}
 
 /**
  * The masked route identifier is re-encrypted (with a fresh random IV) on
@@ -33,8 +70,23 @@ function assertRedirectsToLoaEditTab(TestResponse $response, Loa $loa, string $t
         ->and(MaskedIdentifier::decode($matches[1] ?? ''))->toBe($loa->getRawOriginal('unique_id'));
 }
 
+function validTeamMemberPayload(?int $engineerTypeId = null, array $overrides = []): array
+{
+    $engineerTypeId ??= EngineerType::factory()->create()->id;
+    $engineer = Engineer::factory()->create(['engineer_type_id' => $engineerTypeId]);
+
+    return array_merge([
+        'engineer_id' => $engineer->id,
+        'engineer_type_id' => $engineerTypeId,
+        'name' => $engineer->full_name,
+        'role' => 'Project Manager',
+    ], $overrides);
+}
+
 function validLoaPayload(int $divisionId, array $overrides = []): array
 {
+    $engineerType = EngineerType::factory()->create();
+
     return array_merge([
         'loa_number' => 'RAILWAY/ABC/2026/001',
         'client' => 'Southern Railway',
@@ -47,21 +99,17 @@ function validLoaPayload(int $divisionId, array $overrides = []): array
         'start_date' => '2026-01-01',
         'end_date' => '2027-06-30',
         'total_stations' => 10,
-        'bg_amount' => 5.5,
-        'bg_amount_unit' => 'L',
-        'bg_validity' => '2027-12-31',
-        'security_deposit_amount' => 2.5,
-        'security_deposit_unit' => 'L',
         'mobilization_advance_amount' => 1.5,
         'mobilization_advance_unit' => 'L',
         'mobilization_advance_status' => 'Pending',
         'scope_of_work' => 'Renewal of track infrastructure across the division.',
         'active_status' => '1',
         'team' => [
-            ['name' => 'Alice', 'role' => 'Project Manager'],
-            ['name' => 'Bob', 'role' => 'Site Engineer'],
-            ['name' => 'Carol', 'role' => 'Billing Engineer'],
+            validTeamMemberPayload($engineerType->id, ['name' => 'Alice', 'role' => 'Project Manager']),
+            validTeamMemberPayload($engineerType->id, ['name' => 'Bob', 'role' => 'Site Engineer']),
+            validTeamMemberPayload($engineerType->id, ['name' => 'Carol', 'role' => 'Billing Engineer']),
         ],
+        'financial_securities' => validFinancialSecuritiesPayload(),
     ], $overrides);
 }
 
@@ -276,9 +324,9 @@ test('updating an loa replaces its team members', function () {
     $response = $this->put("/admin/loas/{$loa->unique_id}", validLoaPayload($division->id, [
         'loa_number' => $loa->loa_number,
         'team' => [
-            ['name' => 'New One', 'role' => 'Project Manager'],
-            ['name' => 'New Two', 'role' => 'Site Engineer'],
-            ['name' => 'New Three', 'role' => 'Quality Engineer'],
+            validTeamMemberPayload(overrides: ['name' => 'New One', 'role' => 'Project Manager']),
+            validTeamMemberPayload(overrides: ['name' => 'New Two', 'role' => 'Site Engineer']),
+            validTeamMemberPayload(overrides: ['name' => 'New Three', 'role' => 'Quality Engineer']),
         ],
     ]));
 
@@ -487,6 +535,97 @@ test('an loa item can be saved with a bid rate unit and bid percentage value', f
         ->and((float) $item->bid_percentage_value)->toBe(15.5);
 });
 
+test('an loa item can be saved with a rebate applied to the bid amount', function () {
+    $division = Division::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'items' => [
+            [
+                'item_no' => '01',
+                'item_description' => 'Supply of signalling cable',
+                'item_quantity' => 100,
+                'quantity_unit' => 'Mtr',
+                'unit_rate' => 1000,
+                'advertised_value' => 100000,
+                'bid_rate' => 1000,
+                'bid_amount' => 100000,
+                'rebate_enabled' => true,
+                'rebate_percentage' => 3,
+                'rebate_amount' => 3000,
+                'final_bid_amount' => 97000,
+            ],
+        ],
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+    $response->assertSessionDoesntHaveErrors();
+
+    $loa = Loa::query()->where('loa_number', 'RAILWAY/ABC/2026/001')->firstOrFail();
+    $item = $loa->items()->firstOrFail();
+
+    expect($item->rebate_enabled)->toBeTrue()
+        ->and((float) $item->rebate_percentage)->toBe(3.0)
+        ->and((float) $item->rebate_amount)->toBe(3000.0)
+        ->and((float) $item->final_bid_amount)->toBe(97000.0);
+});
+
+test('an loa item without a rebate defaults the final bid amount to the bid amount', function () {
+    $division = Division::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'items' => [
+            [
+                'item_no' => '01',
+                'item_description' => 'Supply of signalling cable',
+                'item_quantity' => 100,
+                'quantity_unit' => 'Mtr',
+                'unit_rate' => 10,
+                'advertised_value' => 1000,
+                'bid_rate' => 9,
+                'bid_amount' => 900,
+                'rebate_enabled' => false,
+                'rebate_percentage' => 0,
+                'rebate_amount' => 0,
+                'final_bid_amount' => 900,
+            ],
+        ],
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+
+    $loa = Loa::query()->where('loa_number', 'RAILWAY/ABC/2026/001')->firstOrFail();
+    $item = $loa->items()->firstOrFail();
+
+    expect($item->rebate_enabled)->toBeFalse()
+        ->and((float) $item->rebate_amount)->toBe(0.0)
+        ->and((float) $item->final_bid_amount)->toBe(900.0);
+});
+
+test('a rebate percentage outside 0-100 is rejected', function () {
+    $division = Division::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'items' => [
+            [
+                'item_no' => '01',
+                'item_description' => 'Supply of signalling cable',
+                'item_quantity' => 100,
+                'quantity_unit' => 'Mtr',
+                'unit_rate' => 1000,
+                'advertised_value' => 100000,
+                'bid_rate' => 1000,
+                'bid_amount' => 100000,
+                'rebate_enabled' => true,
+                'rebate_percentage' => 150,
+                'rebate_amount' => 0,
+                'final_bid_amount' => 0,
+            ],
+        ],
+    ]));
+
+    $response->assertSessionHasErrors('items.0.rebate_percentage');
+});
+
 test('an invalid inspection by or payment stage percentage is rejected', function () {
     $division = Division::factory()->create();
 
@@ -617,7 +756,7 @@ test('the details tab can be saved on its own via Save & Continue', function () 
     assertRedirectsToLoaEditTab($response, $loa, 'items');
     $response->assertSessionDoesntHaveErrors();
 
-    expect($loa->bg_amount)->toBeNull()
+    expect($loa->financialSecurities()->count())->toBe(0)
         ->and($loa->scope_of_work)->toBeNull();
     $this->assertDatabaseCount('loa_team_members', 0);
 });
@@ -731,14 +870,10 @@ test('an loa can be completed by saving progress tab by tab then finishing', fun
         'end_date' => $loa->end_date->format('Y-m-d'),
         'total_stations' => $loa->total_stations,
         'items' => $savedItems,
-        'bg_amount' => 5.5,
-        'bg_amount_unit' => 'L',
-        'bg_validity' => '2027-12-31',
-        'security_deposit_amount' => 2.5,
-        'security_deposit_unit' => 'L',
         'mobilization_advance_amount' => 1.5,
         'mobilization_advance_unit' => 'L',
         'mobilization_advance_status' => 'Pending',
+        'financial_securities' => validFinancialSecuritiesPayload(),
         'team' => [['name' => '', 'role' => '']],
         'current_step' => 'financial',
         'finish' => '0',
@@ -746,14 +881,11 @@ test('an loa can be completed by saving progress tab by tab then finishing', fun
 
     assertRedirectsToLoaEditTab($step2, $loa, 'team');
     $step2->assertSessionDoesntHaveErrors();
-    expect($loa->refresh()->bg_amount)->not->toBeNull();
+    expect($loa->refresh()->financialSecurities()->count())->toBe(3);
 
     $finish = $this->put("/admin/loas/{$loa->unique_id}", validLoaPayload($division->id, [
         'loa_number' => $loa->loa_number,
         'items' => $savedItems,
-        'bg_amount' => 5.5,
-        'bg_validity' => '2027-12-31',
-        'security_deposit_amount' => 2.5,
         'mobilization_advance_amount' => 1.5,
         'finish' => '1',
     ]));

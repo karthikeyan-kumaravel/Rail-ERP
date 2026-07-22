@@ -6,11 +6,10 @@ import UnitFormFields from './unit-form-fields';
 import type { UnitFormData } from './unit-form-fields';
 
 export default function UnitsCreate() {
-    const { data, setData, post, processing, errors } =
-        useForm<UnitFormData>({
-            name: '',
-            active_status: '1',
-        });
+    const { data, setData, post, processing, errors } = useForm<UnitFormData>({
+        name: '',
+        active_status: '1',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();

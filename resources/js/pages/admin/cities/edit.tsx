@@ -26,15 +26,14 @@ type EditProps = {
 };
 
 export default function CitiesEdit({ city, states, districts }: EditProps) {
-    const { data, setData, put, processing, errors } =
-        useForm<CityFormData>({
-            state_id: city.state_id,
-            district_id: city.district_id,
-            name: city.name,
-            city_code: city.city_code ?? '',
-            pincode: city.pincode,
-            active_status: city.active_status ? '1' : '0',
-        });
+    const { data, setData, put, processing, errors } = useForm<CityFormData>({
+        state_id: city.state_id,
+        district_id: city.district_id,
+        name: city.name,
+        city_code: city.city_code ?? '',
+        pincode: city.pincode,
+        active_status: city.active_status ? '1' : '0',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -54,7 +53,9 @@ export default function CitiesEdit({ city, states, districts }: EditProps) {
                         Admin / Settings / City
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >

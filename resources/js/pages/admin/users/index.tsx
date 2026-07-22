@@ -134,8 +134,12 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
             header={
                 <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
                     <div className="text-sm">
-                        <span className="text-[var(--color-ink)]/55">Admin</span>
-                        <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                        <span className="text-[var(--color-ink)]/55">
+                            Admin
+                        </span>
+                        <span className="mx-1.5 text-[var(--color-ink)]/40">
+                            /
+                        </span>
                         <span className="font-semibold text-[var(--color-ink)]">
                             User Creation
                         </span>
@@ -178,7 +182,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                             type="text"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
+                            className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
                         />
                     </div>
                 </div>
@@ -186,7 +190,7 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[720px] text-left text-sm">
                         <thead>
-                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs font-semibold tracking-wide text-[var(--color-ink)]/60 uppercase">
+                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-xs font-semibold tracking-wide text-[var(--color-accent)] uppercase">
                                 <th className="px-3 py-3">S.No</th>
                                 {sortableColumns.map((column) => (
                                     <th

@@ -24,10 +24,7 @@ export default function SettingsImportActions({
             >
                 Import Excel
             </ToolbarActionButton>
-            <ToolbarActionButton
-                color="#06b6d4"
-                href={template.url(module)}
-            >
+            <ToolbarActionButton color="#06b6d4" href={template.url(module)}>
                 Download Sample Template
             </ToolbarActionButton>
             <SettingsImportModal

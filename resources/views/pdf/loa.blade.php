@@ -64,10 +64,31 @@
             <td>
                 <div class="section">
                     <h2>Financial Security</h2>
+                    @php
+                        $financialSecurityLabels = [
+                            'emd' => 'EMD',
+                            'performance_bg' => 'Performance BG',
+                            'security_bg' => 'Security BG',
+                        ];
+                    @endphp
                     <table class="details">
-                        <tr><td class="label">BG Amount</td><td class="value">&#8377;{{ number_format((float) $loa->bg_amount, 2) }} {{ $loa->bg_amount_unit }}</td></tr>
-                        <tr><td class="label">BG Validity</td><td class="value">{{ optional($loa->bg_validity)->format('d M Y') ?? '—' }}</td></tr>
-                        <tr><td class="label">Security Deposit</td><td class="value">&#8377;{{ number_format((float) $loa->security_deposit_amount, 2) }} {{ $loa->security_deposit_unit }}</td></tr>
+                        @foreach ($financialSecurityLabels as $type => $label)
+                            @php $security = $financialSecurities->firstWhere('security_type', $type); @endphp
+                            <tr>
+                                <td class="label">{{ $label }}</td>
+                                <td class="value">
+                                    @if ($security)
+                                        &#8377;{{ number_format((float) $security->amount, 2) }} {{ $security->amount_unit }}
+                                        &mdash; {{ optional($security->validity_start_date)->format('d M Y') ?? '—' }}
+                                        to {{ optional($security->validity_end_date)->format('d M Y') ?? '—' }}
+                                        &mdash; {{ $security->claim_period }} {{ $security->claim_period_unit }} claim
+                                        &mdash; {{ $security->bank->name ?? '—' }}
+                                    @else
+                                        &#8212;
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
                         <tr><td class="label">Mobilization Advance</td><td class="value">&#8377;{{ number_format((float) $loa->mobilization_advance_amount, 2) }} {{ $loa->mobilization_advance_unit }}</td></tr>
                         <tr><td class="label">Mob. Advance Status</td><td class="value">{{ $loa->mobilization_advance_status }}</td></tr>
                     </table>
@@ -121,6 +142,8 @@
                         <th class="num">Advt. Value (Rs)</th>
                         <th class="num">Bid Rate/ Unit Rate</th>
                         <th class="num">Bid Amount (Rs)</th>
+                        <th class="num">Rebate %</th>
+                        <th class="num">Final Bid Amount (Rs)</th>
                         <th>Inspection By</th>
                         <th>Payment Type</th>
                     </tr>
@@ -139,7 +162,7 @@
                             <td class="num">&#8377;{{ number_format($groupAdvertisedValue, 2) }}</td>
                             <td></td>
                             <td class="num">&#8377;{{ number_format($groupBidAmount, 2) }}</td>
-                            <td colspan="2"></td>
+                            <td colspan="4"></td>
                         </tr>
                         @foreach ($groupItems as $index => $item)
                             <tr>
@@ -160,6 +183,8 @@
                                     @endif
                                 </td>
                                 <td class="num">&#8377;{{ number_format((float) $item->bid_amount, 2) }}</td>
+                                <td class="num">{{ $item->rebate_enabled ? number_format((float) $item->rebate_percentage, 2).'%' : '—' }}</td>
+                                <td class="num">&#8377;{{ number_format((float) $item->final_bid_amount, 2) }}</td>
                                 <td>{{ $item->inspection_by ?? '—' }}</td>
                                 <td>
                                     @php
@@ -179,7 +204,7 @@
                             <td class="num">&#8377;{{ number_format($groupAdvertisedValue, 2) }}</td>
                             <td></td>
                             <td class="num">&#8377;{{ number_format($groupBidAmount, 2) }}</td>
-                            <td colspan="2"></td>
+                            <td colspan="4"></td>
                         </tr>
                     @endforeach
                 </tbody>

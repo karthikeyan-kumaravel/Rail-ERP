@@ -15,15 +15,14 @@ type CreateProps = {
 };
 
 export default function CitiesCreate({ states, districts }: CreateProps) {
-    const { data, setData, post, processing, errors } =
-        useForm<CityFormData>({
-            state_id: '',
-            district_id: '',
-            name: '',
-            city_code: '',
-            pincode: '',
-            active_status: '1',
-        });
+    const { data, setData, post, processing, errors } = useForm<CityFormData>({
+        state_id: '',
+        district_id: '',
+        name: '',
+        city_code: '',
+        pincode: '',
+        active_status: '1',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();

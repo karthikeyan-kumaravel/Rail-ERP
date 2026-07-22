@@ -185,6 +185,32 @@ test('an engineer is soft deleted', function () {
     $this->assertDatabaseHas('engineers', ['id' => $engineer->id]);
 });
 
+test('the search endpoint matches by employee code or full name and excludes deleted engineers', function () {
+    $engineerType = EngineerType::factory()->create(['name' => 'Site Engineer']);
+    $match = Engineer::factory()->create([
+        'full_name' => 'Priya Sharma',
+        'employee_code' => 'ENG-00042',
+        'engineer_type_id' => $engineerType->id,
+    ]);
+    Engineer::factory()->create(['full_name' => 'Someone Else', 'employee_code' => 'ENG-00099']);
+    Engineer::factory()->create(['full_name' => 'Priya Deleted', 'is_delete' => true]);
+
+    $byName = $this->getJson('/admin/engineers/search?search=Priya');
+
+    $byName->assertOk()
+        ->assertJsonCount(1, 'engineers')
+        ->assertJsonPath('engineers.0.id', $match->id)
+        ->assertJsonPath('engineers.0.employee_code', 'ENG-00042')
+        ->assertJsonPath('engineers.0.full_name', 'Priya Sharma')
+        ->assertJsonPath('engineers.0.engineer_type', 'Site Engineer');
+
+    $byCode = $this->getJson('/admin/engineers/search?search=00042');
+
+    $byCode->assertOk()
+        ->assertJsonCount(1, 'engineers')
+        ->assertJsonPath('engineers.0.id', $match->id);
+});
+
 test('an engineer can be updated without a false validation conflict', function () {
     $engineer = Engineer::factory()->create();
 

@@ -126,7 +126,9 @@ function DetailRow({ label, value }: { label: string; value: string }) {
             <p className="text-xs font-bold tracking-wider text-[var(--color-ink)]/50 uppercase">
                 {label}
             </p>
-            <p className="mt-1 text-sm font-medium text-[var(--color-ink)]">{value}</p>
+            <p className="mt-1 text-sm font-medium text-[var(--color-ink)]">
+                {value}
+            </p>
         </div>
     );
 }
@@ -179,7 +181,10 @@ function PurchaseOrderViewModal({
                 onMouseDown={(event) => event.stopPropagation()}
             >
                 <div className="flex items-center justify-between border-b border-[var(--color-border-softer)] px-5 py-4 sm:px-6">
-                    <h2 id={titleId} className="text-lg font-bold text-[var(--color-ink)]">
+                    <h2
+                        id={titleId}
+                        className="text-lg font-bold text-[var(--color-ink)]"
+                    >
                         Purchase Order Details
                     </h2>
                     <button
@@ -204,14 +209,20 @@ function PurchaseOrderViewModal({
                 <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
                     <div className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
                         <DetailRow label="PO Number" value={order.po_number} />
-                        <DetailRow label="OEM / Supplier" value={order.supplier} />
+                        <DetailRow
+                            label="OEM / Supplier"
+                            value={order.supplier}
+                        />
                         <div className="sm:col-span-2">
                             <DetailRow
                                 label="Items Description"
                                 value={order.items_description}
                             />
                         </div>
-                        <DetailRow label="Order Date" value={order.order_date} />
+                        <DetailRow
+                            label="Order Date"
+                            value={order.order_date}
+                        />
                         <DetailRow
                             label="Amount"
                             value={formatCompactInr(order.amount)}
@@ -405,7 +416,9 @@ export default function PurchaseOrdersIndex({
             withBackgroundImage
             header={
                 <div className="text-sm print:hidden">
-                    <span className="text-[var(--color-ink)]/55">Project Setup</span>
+                    <span className="text-[var(--color-ink)]/55">
+                        Project Setup
+                    </span>
                     <span className="mx-1.5 text-[var(--color-ink)]/35">/</span>
                     <span className="font-semibold text-[var(--color-ink)]">
                         Purchase Orders
@@ -537,7 +550,7 @@ export default function PurchaseOrdersIndex({
                         )}
                         <table className="w-full min-w-360 text-left text-sm">
                             <thead>
-                                <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-[11px] tracking-wider text-[var(--color-ink)]/60 uppercase">
+                                <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-[11px] tracking-wider text-[var(--color-accent)] uppercase">
                                     {sortableColumns
                                         .slice(0, 2)
                                         .map((column) => (

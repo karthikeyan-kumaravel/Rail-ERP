@@ -43,7 +43,8 @@ const dispatchLabels: Record<DispatchStatus, string> = {
     completed: 'Completed',
 };
 
-const labelClass = 'mb-1.5 block text-sm font-medium text-[var(--color-ink)]/80';
+const labelClass =
+    'mb-1.5 block text-sm font-medium text-[var(--color-ink)]/80';
 const inputClass =
     'w-full rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-ink)] shadow-sm outline-none transition placeholder:text-[var(--color-ink)]/35 focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20';
 const errorInputClass =
@@ -146,9 +147,7 @@ export default function PurchaseOrderFormFields({
                     min="0.01"
                     step="0.01"
                     value={data.amount}
-                    onChange={(event) =>
-                        setData('amount', event.target.value)
-                    }
+                    onChange={(event) => setData('amount', event.target.value)}
                     required
                     placeholder="0.00"
                     className={`${inputClass} ${errors.amount ? errorInputClass : ''}`}

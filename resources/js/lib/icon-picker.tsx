@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useId,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import {
     ChevronDownIcon,
@@ -23,7 +30,8 @@ function matchesSearch(label: string, key: string, query: string): boolean {
     }
 
     return (
-        label.toLowerCase().includes(needle) || key.toLowerCase().includes(needle)
+        label.toLowerCase().includes(needle) ||
+        key.toLowerCase().includes(needle)
     );
 }
 
@@ -132,7 +140,7 @@ export default function IconPicker({
                 aria-haspopup="dialog"
                 aria-expanded={open}
                 aria-controls={panelId}
-                className="flex w-full items-center gap-2.5 rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
+                className="flex w-full items-center gap-2.5 rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
             >
                 {value ? (
                     <IconChip
@@ -173,7 +181,9 @@ export default function IconPicker({
                                 ref={searchRef}
                                 type="text"
                                 value={query}
-                                onChange={(event) => setQuery(event.target.value)}
+                                onChange={(event) =>
+                                    setQuery(event.target.value)
+                                }
                                 placeholder="Search icons by name…"
                                 className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/40 outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/30"
                             />
@@ -187,7 +197,10 @@ export default function IconPicker({
                             )}
 
                             {filteredCategories.map((category) => (
-                                <div key={category.label} className="mb-3 last:mb-0">
+                                <div
+                                    key={category.label}
+                                    className="mb-3 last:mb-0"
+                                >
                                     <p className="mb-1.5 px-1 text-[10.5px] font-bold tracking-wider text-[var(--color-ink)]/45 uppercase">
                                         {category.label}
                                     </p>
@@ -199,7 +212,9 @@ export default function IconPicker({
                                                 <button
                                                     key={key}
                                                     type="button"
-                                                    onClick={() => selectIcon(key)}
+                                                    onClick={() =>
+                                                        selectIcon(key)
+                                                    }
                                                     aria-pressed={active}
                                                     className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs font-medium transition ${
                                                         active

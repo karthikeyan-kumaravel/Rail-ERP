@@ -151,7 +151,10 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
 type StatColor = 'orange' | 'blue' | 'green' | 'red';
 
 const statColorMap: Record<StatColor, { border: string; bar: string }> = {
-    orange: { border: 'border-t-[var(--color-accent)]', bar: 'bg-[var(--color-accent)]' },
+    orange: {
+        border: 'border-t-[var(--color-accent)]',
+        bar: 'bg-[var(--color-accent)]',
+    },
     blue: { border: 'border-t-blue-500', bar: 'bg-blue-500' },
     green: { border: 'border-t-green-600', bar: 'bg-green-600' },
     red: { border: 'border-t-red-500', bar: 'bg-red-500' },
@@ -179,12 +182,16 @@ function StatCard({
             <p className="truncate text-[11px] font-semibold tracking-wide text-[var(--color-ink)]/50 uppercase">
                 {label}
             </p>
-            <p className="mt-1 text-xl font-bold text-[var(--color-ink)]">{value}</p>
+            <p className="mt-1 text-xl font-bold text-[var(--color-ink)]">
+                {value}
+            </p>
             {typeof percent === 'number' && (
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-soft)]">
                     <div
                         className={`h-full rounded-full ${colors.bar}`}
-                        style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+                        style={{
+                            width: `${Math.min(100, Math.max(0, percent))}%`,
+                        }}
                     />
                 </div>
             )}
@@ -272,7 +279,9 @@ export default function ProjectDashboard({
                         >
                             Admin / Project Creation
                         </Link>
-                        <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                        <span className="mx-1.5 text-[var(--color-ink)]/40">
+                            /
+                        </span>
                         <span className="font-semibold text-[var(--color-ink)]">
                             {project.name}
                         </span>
@@ -424,13 +433,11 @@ export default function ProjectDashboard({
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead>
-                                        <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs font-semibold tracking-wide text-[var(--color-ink)]/60 uppercase">
+                                        <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-xs font-semibold tracking-wide text-[var(--color-accent)] uppercase">
                                             <th className="px-3 py-2">
                                                 Bill No
                                             </th>
-                                            <th className="px-3 py-2">
-                                                Date
-                                            </th>
+                                            <th className="px-3 py-2">Date</th>
                                             <th className="px-3 py-2 text-right">
                                                 Gross
                                             </th>

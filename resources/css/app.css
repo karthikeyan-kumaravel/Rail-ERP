@@ -122,8 +122,16 @@
 }
 
 :root[data-theme='dark'] {
-    --color-accent: color-mix(in oklab, var(--color-accent-base) 78%, black 16%);
-    --color-accent-2: color-mix(in oklab, var(--color-accent-2-base) 72%, black 20%);
+    --color-accent: color-mix(
+        in oklab,
+        var(--color-accent-base) 78%,
+        black 16%
+    );
+    --color-accent-2: color-mix(
+        in oklab,
+        var(--color-accent-2-base) 72%,
+        black 20%
+    );
     --color-gold: #64748b;
 }
 
@@ -138,14 +146,34 @@
 :root {
     --sidebar-base: #0b1424;
     --sidebar-base-2: #101c30;
-    --sidebar-bg-from: color-mix(in oklab, var(--color-accent-base) 16%, var(--sidebar-base) 84%);
-    --sidebar-bg-to: color-mix(in oklab, var(--color-accent-2-base) 13%, var(--sidebar-base-2) 87%);
-    --sidebar-border: color-mix(in oklab, var(--color-accent-base) 30%, white 8%);
+    --sidebar-bg-from: color-mix(
+        in oklab,
+        var(--color-accent-base) 16%,
+        var(--sidebar-base) 84%
+    );
+    --sidebar-bg-to: color-mix(
+        in oklab,
+        var(--color-accent-2-base) 13%,
+        var(--sidebar-base-2) 87%
+    );
+    --sidebar-border: color-mix(
+        in oklab,
+        var(--color-accent-base) 30%,
+        white 8%
+    );
     --sidebar-ink: #eef2f7;
     --sidebar-ink-soft: color-mix(in oklab, #eef2f7 72%, transparent 28%);
     --sidebar-heading: color-mix(in oklab, #eef2f7 42%, transparent 58%);
-    --sidebar-hover-bg: color-mix(in oklab, var(--color-accent-base) 18%, transparent);
-    --sidebar-active-bg: color-mix(in oklab, var(--color-accent-base) 26%, transparent);
+    --sidebar-hover-bg: color-mix(
+        in oklab,
+        var(--color-accent-base) 18%,
+        transparent
+    );
+    --sidebar-active-bg: color-mix(
+        in oklab,
+        var(--color-accent-base) 26%,
+        transparent
+    );
     --sidebar-active-border: var(--color-accent-base);
 }
 
@@ -235,7 +263,11 @@ body {
  * without editing every page.
  */
 :root[data-bg-style='glass'] [class*='var(--color-surface)'] {
-    background-color: color-mix(in oklab, var(--color-surface) 62%, transparent) !important;
+    background-color: color-mix(
+        in oklab,
+        var(--color-surface) 62%,
+        transparent
+    ) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
 }

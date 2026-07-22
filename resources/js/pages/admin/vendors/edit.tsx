@@ -41,32 +41,31 @@ type EditProps = {
 };
 
 export default function VendorsEdit({ vendor, states, districts }: EditProps) {
-    const { data, setData, put, processing, errors } =
-        useForm<VendorFormData>({
-            company_name: vendor.company_name,
-            name: vendor.name,
-            contact_no: vendor.contact_no,
-            alternate_contact_no: vendor.alternate_contact_no ?? '',
-            email: vendor.email ?? '',
-            gst_no: vendor.gst_no ?? '',
-            pan_no: vendor.pan_no,
-            pan_proof: null,
-            pincode: vendor.pincode,
-            state_id: vendor.state_id ?? '',
-            district_id: vendor.district_id ?? '',
-            zone_name: vendor.zone_name ?? '',
-            bank_name: vendor.bank_name,
-            branch_name: vendor.branch_name ?? '',
-            account_no: vendor.account_no,
-            ifsc_code: vendor.ifsc_code,
-            account_holder_name: vendor.account_holder_name,
-            bank_proof: null,
-            address: vendor.address,
-            username: vendor.username ?? '',
-            password: '',
-            password_confirmation: '',
-            active_status: vendor.active_status ? '1' : '0',
-        });
+    const { data, setData, put, processing, errors } = useForm<VendorFormData>({
+        company_name: vendor.company_name,
+        name: vendor.name,
+        contact_no: vendor.contact_no,
+        alternate_contact_no: vendor.alternate_contact_no ?? '',
+        email: vendor.email ?? '',
+        gst_no: vendor.gst_no ?? '',
+        pan_no: vendor.pan_no,
+        pan_proof: null,
+        pincode: vendor.pincode,
+        state_id: vendor.state_id ?? '',
+        district_id: vendor.district_id ?? '',
+        zone_name: vendor.zone_name ?? '',
+        bank_name: vendor.bank_name,
+        branch_name: vendor.branch_name ?? '',
+        account_no: vendor.account_no,
+        ifsc_code: vendor.ifsc_code,
+        account_holder_name: vendor.account_holder_name,
+        bank_proof: null,
+        address: vendor.address,
+        username: vendor.username ?? '',
+        password: '',
+        password_confirmation: '',
+        active_status: vendor.active_status ? '1' : '0',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -86,7 +85,9 @@ export default function VendorsEdit({ vendor, states, districts }: EditProps) {
                         Admin / Settings / Vendor
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >
