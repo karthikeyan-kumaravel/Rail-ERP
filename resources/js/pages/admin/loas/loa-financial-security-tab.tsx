@@ -1,232 +1,283 @@
+import FileUploadField from '@/lib/file-upload-field';
+import SearchableSelect from '@/lib/searchable-select';
 import {
     errorClass,
+    FINANCIAL_SECURITY_LABELS,
+    FINANCIAL_SECURITY_TYPES,
     inputClass,
     labelClass,
     unitOptions,
     unitSelectClass,
 } from './loa-form-fields';
-import type { LoaFormData, LoaFormErrors, LoaSetData } from './loa-form-fields';
+import type {
+    BankOption,
+    FinancialSecuritiesExisting,
+    FinancialSecuritySectionFormData,
+    FinancialSecurityType,
+    LoaFormData,
+    LoaFormErrors,
+    LoaSetData,
+} from './loa-form-fields';
 
 type LoaFinancialSecurityTabProps = {
     data: LoaFormData;
     setData: LoaSetData;
     errors: LoaFormErrors;
+    banks: BankOption[];
+    existing?: FinancialSecuritiesExisting;
     className?: string;
 };
 
-const mobilizationAdvanceStatusOptions: Array<
-    'Pending' | 'Requested' | 'Received'
-> = ['Pending', 'Requested', 'Received'];
+const claimPeriodUnitOptions: Array<'Days' | 'Months'> = ['Days', 'Months'];
+
+function FinancialSecuritySection({
+    type,
+    section,
+    errors,
+    banks,
+    existing,
+    onChange,
+}: {
+    type: FinancialSecurityType;
+    section: FinancialSecuritySectionFormData;
+    errors: LoaFormErrors;
+    banks: BankOption[];
+    existing?: FinancialSecuritiesExisting[FinancialSecurityType];
+    onChange: <K extends keyof FinancialSecuritySectionFormData>(
+        field: K,
+        value: FinancialSecuritySectionFormData[K],
+    ) => void;
+}) {
+    const prefix = `financial_securities.${type}`;
+
+    return (
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-soft)]/40 p-4 sm:p-5">
+            <h3 className="mb-4 border-b border-[var(--color-gold)]/20 pb-3 text-base font-bold text-[var(--color-ink)]">
+                {FINANCIAL_SECURITY_LABELS[type]}
+            </h3>
+
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                    <label htmlFor={`${prefix}-amount`} className={labelClass}>
+                        Amount
+                    </label>
+                    <div className="flex items-center gap-2.5">
+                        <input
+                            id={`${prefix}-amount`}
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={section.amount}
+                            onChange={(event) =>
+                                onChange(
+                                    'amount',
+                                    event.target.value === ''
+                                        ? ''
+                                        : Number(event.target.value),
+                                )
+                            }
+                            placeholder="e.g. 5.00"
+                            className={inputClass}
+                        />
+                        <select
+                            value={section.amount_unit}
+                            onChange={(event) =>
+                                onChange(
+                                    'amount_unit',
+                                    event.target.value as 'Cr' | 'L',
+                                )
+                            }
+                            className={unitSelectClass}
+                        >
+                            {unitOptions.map((unit) => (
+                                <option key={unit} value={unit}>
+                                    {unit}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    {errors[`${prefix}.amount`] && (
+                        <p className={errorClass}>
+                            {errors[`${prefix}.amount`]}
+                        </p>
+                    )}
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`${prefix}-validity-start`}
+                        className={labelClass}
+                    >
+                        BG Validity Start Date
+                    </label>
+                    <input
+                        id={`${prefix}-validity-start`}
+                        type="date"
+                        value={section.validity_start_date}
+                        onChange={(event) =>
+                            onChange('validity_start_date', event.target.value)
+                        }
+                        className={inputClass}
+                    />
+                    {errors[`${prefix}.validity_start_date`] && (
+                        <p className={errorClass}>
+                            {errors[`${prefix}.validity_start_date`]}
+                        </p>
+                    )}
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`${prefix}-validity-end`}
+                        className={labelClass}
+                    >
+                        BG Validity End Date
+                    </label>
+                    <input
+                        id={`${prefix}-validity-end`}
+                        type="date"
+                        value={section.validity_end_date}
+                        onChange={(event) =>
+                            onChange('validity_end_date', event.target.value)
+                        }
+                        className={inputClass}
+                    />
+                    {errors[`${prefix}.validity_end_date`] && (
+                        <p className={errorClass}>
+                            {errors[`${prefix}.validity_end_date`]}
+                        </p>
+                    )}
+                </div>
+
+                <div>
+                    <label
+                        htmlFor={`${prefix}-claim-period`}
+                        className={labelClass}
+                    >
+                        Claim Period
+                    </label>
+                    <div className="flex items-center gap-2.5">
+                        <input
+                            id={`${prefix}-claim-period`}
+                            type="number"
+                            min={1}
+                            step="1"
+                            value={section.claim_period}
+                            onChange={(event) =>
+                                onChange(
+                                    'claim_period',
+                                    event.target.value === ''
+                                        ? ''
+                                        : Number(event.target.value),
+                                )
+                            }
+                            placeholder="e.g. 90"
+                            className={inputClass}
+                        />
+                        <select
+                            value={section.claim_period_unit}
+                            onChange={(event) =>
+                                onChange(
+                                    'claim_period_unit',
+                                    event.target.value as 'Days' | 'Months',
+                                )
+                            }
+                            className={unitSelectClass}
+                        >
+                            {claimPeriodUnitOptions.map((unit) => (
+                                <option key={unit} value={unit}>
+                                    {unit}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    {errors[`${prefix}.claim_period`] && (
+                        <p className={errorClass}>
+                            {errors[`${prefix}.claim_period`]}
+                        </p>
+                    )}
+                </div>
+
+                <div>
+                    <label htmlFor={`${prefix}-bank`} className={labelClass}>
+                        Bank Details
+                    </label>
+                    <SearchableSelect
+                        id={`${prefix}-bank`}
+                        value={section.bank_id}
+                        options={banks}
+                        onChange={(value) => onChange('bank_id', value)}
+                        placeholder="Search for a bank…"
+                    />
+                    {errors[`${prefix}.bank_id`] && (
+                        <p className={errorClass}>
+                            {errors[`${prefix}.bank_id`]}
+                        </p>
+                    )}
+                </div>
+
+                <div>
+                    <span className={labelClass}>Upload BG / EMD Document</span>
+                    <FileUploadField
+                        id={`${prefix}-file`}
+                        file={section.file}
+                        onChange={(file) => onChange('file', file)}
+                        existingFileUrl={existing?.existing_file_url}
+                        existingFileName={existing?.existing_file_name}
+                        removeExisting={section.remove_file}
+                        onRemoveExisting={(remove) =>
+                            onChange('remove_file', remove)
+                        }
+                    />
+                    {errors[`${prefix}.file`] && (
+                        <p className={errorClass}>{errors[`${prefix}.file`]}</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default function LoaFinancialSecurityTab({
     data,
     setData,
     errors,
+    banks,
+    existing,
     className,
 }: LoaFinancialSecurityTabProps) {
+    const updateSection = <
+        Type extends FinancialSecurityType,
+        K extends keyof FinancialSecuritySectionFormData,
+    >(
+        type: Type,
+        field: K,
+        value: FinancialSecuritySectionFormData[K],
+    ) => {
+        setData('financial_securities', {
+            ...data.financial_securities,
+            [type]: {
+                ...data.financial_securities[type],
+                [field]: value,
+            },
+        });
+    };
+
     return (
-        <div
-            className={`grid gap-5 sm:grid-cols-2 lg:grid-cols-3 ${className ?? ''}`}
-        >
-            <div>
-                <label htmlFor="bg_amount" className={labelClass}>
-                    BG Amount
-                </label>
-                <div className="flex items-center gap-2.5">
-                    <input
-                        id="bg_amount"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={data.bg_amount}
-                        onChange={(event) =>
-                            setData(
-                                'bg_amount',
-                                event.target.value === ''
-                                    ? ''
-                                    : Number(event.target.value),
-                            )
-                        }
-                        placeholder="e.g. 10.00"
-                        className={inputClass}
-                    />
-                    <select
-                        value={data.bg_amount_unit}
-                        onChange={(event) =>
-                            setData(
-                                'bg_amount_unit',
-                                event.target.value as 'Cr' | 'L',
-                            )
-                        }
-                        className={unitSelectClass}
-                    >
-                        {unitOptions.map((unit) => (
-                            <option key={unit} value={unit}>
-                                {unit}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                {errors.bg_amount && (
-                    <p className={errorClass}>{errors.bg_amount}</p>
-                )}
-                {errors.bg_amount_unit && (
-                    <p className={errorClass}>{errors.bg_amount_unit}</p>
-                )}
-            </div>
-
-            <div>
-                <label htmlFor="bg_validity" className={labelClass}>
-                    BG Validity
-                </label>
-                <input
-                    id="bg_validity"
-                    type="date"
-                    value={data.bg_validity}
-                    onChange={(event) =>
-                        setData('bg_validity', event.target.value)
+        <div className={`space-y-6 ${className ?? ''}`}>
+            {FINANCIAL_SECURITY_TYPES.map((type) => (
+                <FinancialSecuritySection
+                    key={type}
+                    type={type}
+                    section={data.financial_securities[type]}
+                    errors={errors}
+                    banks={banks}
+                    existing={existing?.[type]}
+                    onChange={(field, value) =>
+                        updateSection(type, field, value)
                     }
-                    className={inputClass}
                 />
-                {errors.bg_validity && (
-                    <p className={errorClass}>{errors.bg_validity}</p>
-                )}
-            </div>
-
-            <div>
-                <label htmlFor="security_deposit_amount" className={labelClass}>
-                    Security Deposit
-                </label>
-                <div className="flex items-center gap-2.5">
-                    <input
-                        id="security_deposit_amount"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={data.security_deposit_amount}
-                        onChange={(event) =>
-                            setData(
-                                'security_deposit_amount',
-                                event.target.value === ''
-                                    ? ''
-                                    : Number(event.target.value),
-                            )
-                        }
-                        placeholder="e.g. 5.00"
-                        className={inputClass}
-                    />
-                    <select
-                        value={data.security_deposit_unit}
-                        onChange={(event) =>
-                            setData(
-                                'security_deposit_unit',
-                                event.target.value as 'Cr' | 'L',
-                            )
-                        }
-                        className={unitSelectClass}
-                    >
-                        {unitOptions.map((unit) => (
-                            <option key={unit} value={unit}>
-                                {unit}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                {errors.security_deposit_amount && (
-                    <p className={errorClass}>
-                        {errors.security_deposit_amount}
-                    </p>
-                )}
-                {errors.security_deposit_unit && (
-                    <p className={errorClass}>{errors.security_deposit_unit}</p>
-                )}
-            </div>
-
-            <div>
-                <label
-                    htmlFor="mobilization_advance_amount"
-                    className={labelClass}
-                >
-                    Mobilization Advance
-                </label>
-                <div className="flex items-center gap-2.5">
-                    <input
-                        id="mobilization_advance_amount"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={data.mobilization_advance_amount}
-                        onChange={(event) =>
-                            setData(
-                                'mobilization_advance_amount',
-                                event.target.value === ''
-                                    ? ''
-                                    : Number(event.target.value),
-                            )
-                        }
-                        placeholder="e.g. 2.00"
-                        className={inputClass}
-                    />
-                    <select
-                        value={data.mobilization_advance_unit}
-                        onChange={(event) =>
-                            setData(
-                                'mobilization_advance_unit',
-                                event.target.value as 'Cr' | 'L',
-                            )
-                        }
-                        className={unitSelectClass}
-                    >
-                        {unitOptions.map((unit) => (
-                            <option key={unit} value={unit}>
-                                {unit}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                {errors.mobilization_advance_amount && (
-                    <p className={errorClass}>
-                        {errors.mobilization_advance_amount}
-                    </p>
-                )}
-                {errors.mobilization_advance_unit && (
-                    <p className={errorClass}>
-                        {errors.mobilization_advance_unit}
-                    </p>
-                )}
-            </div>
-
-            <div>
-                <label
-                    htmlFor="mobilization_advance_status"
-                    className={labelClass}
-                >
-                    Mob. Advance Status
-                </label>
-                <select
-                    id="mobilization_advance_status"
-                    value={data.mobilization_advance_status}
-                    onChange={(event) =>
-                        setData(
-                            'mobilization_advance_status',
-                            event.target.value as
-                                'Pending' | 'Requested' | 'Received',
-                        )
-                    }
-                    className={inputClass}
-                >
-                    {mobilizationAdvanceStatusOptions.map((status) => (
-                        <option key={status} value={status}>
-                            {status}
-                        </option>
-                    ))}
-                </select>
-                {errors.mobilization_advance_status && (
-                    <p className={errorClass}>
-                        {errors.mobilization_advance_status}
-                    </p>
-                )}
-            </div>
+            ))}
         </div>
     );
 }

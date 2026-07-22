@@ -15,8 +15,8 @@ type CreateProps = {
 };
 
 export default function VendorsCreate({ states, districts }: CreateProps) {
-    const { data, setData, post, processing, errors } =
-        useForm<VendorFormData>({
+    const { data, setData, post, processing, errors } = useForm<VendorFormData>(
+        {
             company_name: '',
             name: '',
             contact_no: '',
@@ -40,7 +40,8 @@ export default function VendorsCreate({ states, districts }: CreateProps) {
             password: '',
             password_confirmation: '',
             active_status: '1',
-        });
+        },
+    );
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();

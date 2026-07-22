@@ -5,9 +5,14 @@ import AdminLayout from '@/layouts/admin-layout';
 import { index, update } from '@/routes/admin/loas';
 import LoaDetailsTab from './loa-details-tab';
 import LoaFinancialSecurityTab from './loa-financial-security-tab';
-import { validateLoaTab } from './loa-form-fields';
+import { FINANCIAL_SECURITY_TYPES, validateLoaTab } from './loa-form-fields';
 import type {
+    BankOption,
     DivisionOption,
+    EngineerTypeOption,
+    FinancialSecuritiesExisting,
+    FinancialSecuritiesFormData,
+    FinancialSecurityType,
     LoaFormData,
     LoaItemFormData,
     LoaStationFormData,
@@ -43,17 +48,32 @@ const tabFieldPrefixes: Record<LoaTabKey, string[]> = {
     ],
     items: ['items'],
     financial: [
-        'bg_amount',
-        'bg_amount_unit',
-        'bg_validity',
-        'security_deposit_amount',
-        'security_deposit_unit',
         'mobilization_advance_amount',
         'mobilization_advance_unit',
         'mobilization_advance_status',
+        'financial_securities',
     ],
     team: ['team'],
     scope: ['scope_of_work'],
+};
+
+type EditFinancialSecurity = {
+    amount: number | null;
+    amount_unit: 'Cr' | 'L';
+    validity_start_date: string | null;
+    validity_end_date: string | null;
+    claim_period: number | null;
+    claim_period_unit: 'Days' | 'Months';
+    bank_id: number | null;
+    existing_file_url: string | null;
+    existing_file_name: string | null;
+};
+
+type EditTeamMember = {
+    engineer_id: number | null;
+    engineer_type_id: number | null;
+    name: string;
+    role: string;
 };
 
 type EditLoa = {
@@ -72,20 +92,29 @@ type EditLoa = {
     start_date: string;
     end_date: string;
     total_stations: number;
-    bg_amount: number;
-    bg_amount_unit: 'Cr' | 'L';
-    bg_validity: string;
-    security_deposit_amount: number;
-    security_deposit_unit: 'Cr' | 'L';
     mobilization_advance_amount: number;
     mobilization_advance_unit: 'Cr' | 'L';
     mobilization_advance_status: 'Pending' | 'Requested' | 'Received';
     scope_of_work: string;
     active_status: boolean;
-    team: LoaTeamMemberFormData[];
+    team: EditTeamMember[];
     items: LoaItemFormData[];
     stations: LoaStationFormData[];
+    financial_securities: Record<FinancialSecurityType, EditFinancialSecurity>;
 };
+
+function toTeamFormData(team: EditTeamMember[]): LoaTeamMemberFormData[] {
+    if (team.length === 0) {
+        return [{ engineer_id: '', engineer_type_id: '', name: '', role: '' }];
+    }
+
+    return team.map((member) => ({
+        engineer_id: member.engineer_id ?? '',
+        engineer_type_id: member.engineer_type_id ?? '',
+        name: member.name,
+        role: member.role,
+    }));
+}
 
 type EditProps = {
     loa: EditLoa;
@@ -95,8 +124,49 @@ type EditProps = {
     vendors: VendorOption[];
     stations: StationOption[];
     units: UnitOption[];
+    banks: BankOption[];
+    engineerTypes: EngineerTypeOption[];
     resumeTab: LoaTabKey | null;
 };
+
+function toFinancialSecuritiesFormData(
+    loaFinancialSecurities: EditLoa['financial_securities'],
+): FinancialSecuritiesFormData {
+    return FINANCIAL_SECURITY_TYPES.reduce((sections, type) => {
+        const record = loaFinancialSecurities[type];
+
+        return {
+            ...sections,
+            [type]: {
+                amount: record.amount ?? '',
+                amount_unit: record.amount_unit,
+                validity_start_date: record.validity_start_date ?? '',
+                validity_end_date: record.validity_end_date ?? '',
+                claim_period: record.claim_period ?? '',
+                claim_period_unit: record.claim_period_unit,
+                bank_id: record.bank_id ?? '',
+                file: null,
+                remove_file: false,
+            },
+        };
+    }, {} as FinancialSecuritiesFormData);
+}
+
+function toFinancialSecuritiesExisting(
+    loaFinancialSecurities: EditLoa['financial_securities'],
+): FinancialSecuritiesExisting {
+    return FINANCIAL_SECURITY_TYPES.reduce((sections, type) => {
+        const record = loaFinancialSecurities[type];
+
+        return {
+            ...sections,
+            [type]: {
+                existing_file_url: record.existing_file_url,
+                existing_file_name: record.existing_file_name,
+            },
+        };
+    }, {} as FinancialSecuritiesExisting);
+}
 
 export default function LoasEdit({
     loa,
@@ -106,6 +176,8 @@ export default function LoasEdit({
     vendors,
     stations,
     units,
+    banks,
+    engineerTypes,
     resumeTab,
 }: EditProps) {
     const { data, setData, put, transform, processing, errors } =
@@ -124,20 +196,22 @@ export default function LoasEdit({
             start_date: loa.start_date,
             end_date: loa.end_date,
             total_stations: loa.total_stations,
-            bg_amount: loa.bg_amount,
-            bg_amount_unit: loa.bg_amount_unit,
-            bg_validity: loa.bg_validity,
-            security_deposit_amount: loa.security_deposit_amount,
-            security_deposit_unit: loa.security_deposit_unit,
             mobilization_advance_amount: loa.mobilization_advance_amount,
             mobilization_advance_unit: loa.mobilization_advance_unit,
             mobilization_advance_status: loa.mobilization_advance_status,
             scope_of_work: loa.scope_of_work,
             active_status: loa.active_status ? '1' : '0',
-            team: loa.team.length > 0 ? loa.team : [{ name: '', role: '' }],
+            team: toTeamFormData(loa.team),
             items: loa.items ?? [],
             stations: loa.stations ?? [],
+            financial_securities: toFinancialSecuritiesFormData(
+                loa.financial_securities,
+            ),
         });
+
+    const existingFinancialSecurities = toFinancialSecuritiesExisting(
+        loa.financial_securities,
+    );
 
     const [activeTab, setActiveTab] = useState<LoaTabKey>(
         resumeTab ?? LOA_TAB_ORDER[0],
@@ -173,10 +247,26 @@ export default function LoasEdit({
     const stepErrors = attemptedTabs.has(activeTab)
         ? validateLoaTab(activeTab, data)
         : {};
-    const displayErrors = { ...errors, ...stepErrors };
+    // Server errors persist in Inertia's `errors` until the next successful
+    // round trip — once the user edits a field on the active tab, a fresh
+    // client check should supersede any now-stale server message for that
+    // same field, not just sit alongside it.
+    const activeTabPrefixes = tabFieldPrefixes[activeTab];
+    const liveServerErrors = Object.fromEntries(
+        Object.entries(errors).filter(
+            ([key]) =>
+                !activeTabPrefixes.some(
+                    (prefix) => key === prefix || key.startsWith(`${prefix}.`),
+                ),
+        ),
+    );
+    const displayErrors = { ...liveServerErrors, ...stepErrors };
 
     const addTeamMember = () => {
-        setData('team', [...data.team, { name: '', role: '' }]);
+        setData('team', [
+            ...data.team,
+            { engineer_id: '', engineer_type_id: '', name: '', role: '' },
+        ]);
     };
 
     const removeTeamMember = (index: number) => {
@@ -192,13 +282,12 @@ export default function LoasEdit({
 
     const updateTeamMember = (
         index: number,
-        field: keyof LoaTeamMemberFormData,
-        value: string,
+        patch: Partial<LoaTeamMemberFormData>,
     ) => {
         setData(
             'team',
             data.team.map((member, i) =>
-                i === index ? { ...member, [field]: value } : member,
+                i === index ? { ...member, ...patch } : member,
             ),
         );
     };
@@ -304,12 +393,15 @@ export default function LoasEdit({
                     data={data}
                     setData={setData}
                     errors={displayErrors}
+                    banks={banks}
+                    existing={existingFinancialSecurities}
                     className={activeTab === 'financial' ? '' : 'hidden'}
                 />
 
                 <LoaProjectTeamTab
                     data={data}
                     errors={displayErrors}
+                    engineerTypes={engineerTypes}
                     addTeamMember={addTeamMember}
                     removeTeamMember={removeTeamMember}
                     updateTeamMember={updateTeamMember}

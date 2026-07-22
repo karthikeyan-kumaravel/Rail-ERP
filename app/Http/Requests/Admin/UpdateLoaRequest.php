@@ -4,8 +4,11 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Admin\Concerns\AppliesStepValidation;
 use App\Models\Loa;
+use App\Models\LoaFinancialSecurity;
+use App\Support\FinancialSecurityValidation;
 use App\Support\LoaFormSteps;
 use App\Support\PaymentStages;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -75,17 +78,22 @@ class UpdateLoaRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'total_stations' => ['required', 'integer', 'min:0'],
-            'bg_amount' => ['required', 'numeric', 'min:0'],
-            'bg_amount_unit' => ['required', 'in:Cr,L'],
-            'bg_validity' => ['required', 'date'],
-            'security_deposit_amount' => ['required', 'numeric', 'min:0'],
-            'security_deposit_unit' => ['required', 'in:Cr,L'],
             'mobilization_advance_amount' => ['required', 'numeric', 'min:0'],
             'mobilization_advance_unit' => ['required', 'in:Cr,L'],
             'mobilization_advance_status' => ['required', 'in:Pending,Requested,Received'],
             'scope_of_work' => ['required', 'string'],
             'active_status' => ['required', 'in:0,1'],
             'team' => ['required', 'array', 'min:1'],
+            'team.*.engineer_id' => [
+                'required',
+                'integer',
+                Rule::exists('engineers', 'id')->where(fn ($query) => $query->where('is_delete', false)),
+            ],
+            'team.*.engineer_type_id' => [
+                'required',
+                'integer',
+                Rule::exists('engineer_types', 'id')->where(fn ($query) => $query->where('is_delete', false)),
+            ],
             'team.*.name' => ['required', 'string', 'max:255'],
             'team.*.role' => ['required', 'string', 'max:100'],
             'items' => ['sometimes', 'array'],
@@ -111,6 +119,10 @@ class UpdateLoaRequest extends FormRequest
             'items.*.bid_rate_unit' => ['nullable', Rule::in(['% Above', '% Below'])],
             'items.*.bid_percentage_value' => ['nullable', 'numeric', 'min:0'],
             'items.*.bid_amount' => ['required', 'numeric', 'min:0'],
+            'items.*.rebate_enabled' => ['nullable', 'boolean'],
+            'items.*.rebate_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'items.*.rebate_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.final_bid_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.inspection_by' => ['nullable', Rule::in(['RITES', 'RDSO', 'Consignee'])],
             'items.*.payment_stages' => ['nullable', 'array'],
             'items.*.payment_stages.*' => [Rule::in(PaymentStages::PERCENTAGES)],
@@ -119,6 +131,47 @@ class UpdateLoaRequest extends FormRequest
                 'nullable',
                 Rule::exists('stations', 'id')->where(fn ($query) => $query->where('is_delete', false)),
             ],
+            'financial_securities' => ['required', 'array'],
+            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_EMD),
+            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_PERFORMANCE_BG),
+            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_SECURITY_BG),
+        ];
+    }
+
+    /**
+     * The validation rules shared by the EMD, Performance BG, and Security BG
+     * sections of the Financial Security tab — identical shape per type, so
+     * this is generated once per type rather than copy-pasted three times.
+     *
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    private function financialSecurityRules(string $type): array
+    {
+        return [
+            "financial_securities.{$type}.amount" => [
+                'required',
+                'numeric',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if ((float) $value <= 0) {
+                        $fail('The amount must be greater than zero.');
+                    }
+                },
+            ],
+            "financial_securities.{$type}.amount_unit" => ['required', 'in:Cr,L'],
+            "financial_securities.{$type}.validity_start_date" => ['required', 'date'],
+            "financial_securities.{$type}.validity_end_date" => [
+                'required',
+                'date',
+                "after_or_equal:financial_securities.{$type}.validity_start_date",
+            ],
+            "financial_securities.{$type}.claim_period" => ['required', 'integer', 'min:1'],
+            "financial_securities.{$type}.claim_period_unit" => ['required', 'in:Days,Months'],
+            "financial_securities.{$type}.bank_id" => [
+                'required',
+                Rule::exists('banks', 'id')->where(fn ($query) => $query->where('is_delete', false)),
+            ],
+            "financial_securities.{$type}.file" => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,docx', 'max:5120'],
+            "financial_securities.{$type}.remove_file" => ['boolean'],
         ];
     }
 
@@ -129,17 +182,28 @@ class UpdateLoaRequest extends FormRequest
     {
         return [
             'end_date.after_or_equal' => 'The end date must be on or after the start date.',
+            'financial_securities.emd.validity_end_date.after_or_equal' => 'The end date must be on or after the start date.',
+            'financial_securities.performance_bg.validity_end_date.after_or_equal' => 'The end date must be on or after the start date.',
+            'financial_securities.security_bg.validity_end_date.after_or_equal' => 'The end date must be on or after the start date.',
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
-        if (! $this->boolean('finish', true) && $this->string('current_step')->toString() !== 'items') {
-            return;
+        $finishing = $this->boolean('finish', true);
+        $currentStep = $this->string('current_step')->toString();
+        $loa = $this->route('loa');
+
+        if ($finishing || $currentStep === 'items') {
+            $validator->after(function (Validator $validator) {
+                PaymentStages::validateItems($this->input('items', []), $validator);
+            });
         }
 
-        $validator->after(function (Validator $validator) {
-            PaymentStages::validateItems($this->input('items', []), $validator);
-        });
+        if ($finishing || $currentStep === 'financial') {
+            $validator->after(function (Validator $validator) use ($loa) {
+                FinancialSecurityValidation::validateDocuments($this, $loa instanceof Loa ? $loa : null, $validator);
+            });
+        }
     }
 }

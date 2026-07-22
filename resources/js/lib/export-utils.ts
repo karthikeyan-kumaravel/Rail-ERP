@@ -1,6 +1,8 @@
 export type ExportRow = Array<string | number | boolean | null | undefined>;
 
-export function normalizeCell(cell: string | number | boolean | null | undefined): string {
+export function normalizeCell(
+    cell: string | number | boolean | null | undefined,
+): string {
     return cell === null || cell === undefined ? '' : String(cell);
 }
 
@@ -10,11 +12,7 @@ export function buildDelimitedRows(
     delimiter: string,
 ): string {
     return [headers, ...rows]
-        .map((row) =>
-            row
-                .map((cell) => normalizeCell(cell))
-                .join(delimiter),
-        )
+        .map((row) => row.map((cell) => normalizeCell(cell)).join(delimiter))
         .join('\n');
 }
 
@@ -22,9 +20,7 @@ export function buildCsvRows(headers: string[], rows: ExportRow[]): string {
     return [headers, ...rows]
         .map((row) =>
             row
-                .map((cell) =>
-                    `"${normalizeCell(cell).replace(/"/g, '""')}"`,
-                )
+                .map((cell) => `"${normalizeCell(cell).replace(/"/g, '""')}"`)
                 .join(','),
         )
         .join('\r\n');
@@ -48,7 +44,11 @@ export async function copyTextToClipboard(text: string): Promise<void> {
     document.body.removeChild(textarea);
 }
 
-export function downloadCsv(filename: string, headers: string[], rows: ExportRow[]): void {
+export function downloadCsv(
+    filename: string,
+    headers: string[],
+    rows: ExportRow[],
+): void {
     const csv = buildCsvRows(headers, rows);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

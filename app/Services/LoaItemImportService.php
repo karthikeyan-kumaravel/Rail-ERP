@@ -131,7 +131,11 @@ class LoaItemImportService
      *         bid_rate: int|float,
      *         bid_rate_unit: string|null,
      *         bid_percentage_value: int|float,
-     *         bid_amount: int|float
+     *         bid_amount: int|float,
+     *         rebate_enabled: bool,
+     *         rebate_percentage: int|float,
+     *         rebate_amount: int|float,
+     *         final_bid_amount: int|float
      *     }>,
      *     summary: array{imported_rows: int, skipped_rows: int, header_row: int}
      * }
@@ -492,7 +496,11 @@ class LoaItemImportService
      *         bid_rate: int|float,
      *         bid_rate_unit: string|null,
      *         bid_percentage_value: int|float,
-     *         bid_amount: int|float
+     *         bid_amount: int|float,
+     *         rebate_enabled: bool,
+     *         rebate_percentage: int|float,
+     *         rebate_amount: int|float,
+     *         final_bid_amount: int|float
      *     }|null,
      *     array<int, string>
      * }
@@ -553,6 +561,12 @@ class LoaItemImportService
             'bid_rate_unit' => $bidRateUnit,
             'bid_percentage_value' => $bidPercentageValue,
             'bid_amount' => $bidAmount,
+            // Imported rows never carry a rebate — the sheet's Bid Amount
+            // stands as the Final Bid Amount until edited in-app.
+            'rebate_enabled' => false,
+            'rebate_percentage' => 0,
+            'rebate_amount' => 0,
+            'final_bid_amount' => $bidAmount,
         ], []];
     }
 

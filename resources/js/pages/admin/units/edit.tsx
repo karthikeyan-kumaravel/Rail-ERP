@@ -16,11 +16,10 @@ type EditProps = {
 };
 
 export default function UnitsEdit({ unit }: EditProps) {
-    const { data, setData, put, processing, errors } =
-        useForm<UnitFormData>({
-            name: unit.name,
-            active_status: unit.active_status ? '1' : '0',
-        });
+    const { data, setData, put, processing, errors } = useForm<UnitFormData>({
+        name: unit.name,
+        active_status: unit.active_status ? '1' : '0',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -40,7 +39,9 @@ export default function UnitsEdit({ unit }: EditProps) {
                         Admin / Sub Setting / Unit Creation
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >

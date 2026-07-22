@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Division;
+use App\Models\Engineer;
+use App\Models\EngineerType;
 use App\Models\Loa;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -95,6 +97,9 @@ function buildScreenshotStyleLoaItemWorkbook(array $headerOverrides = [], bool $
  */
 function validLoaPayloadForItemImportFeature(int $divisionId, array $overrides = []): array
 {
+    $engineerType = EngineerType::factory()->create();
+    $engineer = Engineer::factory()->create(['engineer_type_id' => $engineerType->id]);
+
     return array_merge([
         'loa_number' => 'RAILWAY/ITEMS/2026/001',
         'client' => 'Southern Railway',
@@ -118,7 +123,12 @@ function validLoaPayloadForItemImportFeature(int $divisionId, array $overrides =
         'scope_of_work' => 'Supply and commissioning of telecommunications equipment.',
         'active_status' => '1',
         'team' => [
-            ['name' => 'Alice', 'role' => 'Project Manager'],
+            [
+                'engineer_id' => $engineer->id,
+                'engineer_type_id' => $engineerType->id,
+                'name' => 'Alice',
+                'role' => 'Project Manager',
+            ],
         ],
         'items' => [[
             'schedule_name' => 'Schedule A-NON SOR Items (Item Directory - Not Applicable)',

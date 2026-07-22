@@ -199,7 +199,7 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[900px] text-left text-sm">
                         <thead>
-                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs font-semibold tracking-wide text-[var(--color-ink)]/60 uppercase">
+                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-xs font-semibold tracking-wide text-[var(--color-accent)] uppercase">
                                 <th className="px-3 py-3">S.No</th>
                                 <th
                                     className="cursor-pointer px-3 py-3 select-none"

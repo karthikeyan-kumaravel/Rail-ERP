@@ -12,6 +12,7 @@ use App\Models\EngineerType;
 use App\Models\State;
 use App\Support\EngineerFormSteps;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,6 +21,39 @@ use Inertia\Response;
 class EngineerController extends Controller
 {
     use HasPaginatedIndex;
+
+    /**
+     * Lightweight JSON search used by the searchable Engineer picker on the
+     * LOA Project Team tab — matches on employee code and full name, capped
+     * to a small result set since it's a typeahead, not a full listing.
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $search = $request->string('search')->trim()->toString();
+
+        $engineers = Engineer::query()
+            ->with('engineerType:id,name')
+            ->where('is_delete', false)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('full_name', 'like', "%{$search}%")
+                        ->orWhere('employee_code', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('full_name')
+            ->limit(20)
+            ->get(['id', 'employee_code', 'full_name', 'engineer_type_id']);
+
+        return response()->json([
+            'engineers' => $engineers->map(fn (Engineer $engineer) => [
+                'id' => $engineer->id,
+                'employee_code' => $engineer->employee_code,
+                'full_name' => $engineer->full_name,
+                'engineer_type_id' => $engineer->engineer_type_id,
+                'engineer_type' => $engineer->engineerType?->name,
+            ])->values(),
+        ]);
+    }
 
     public function index(Request $request): Response
     {

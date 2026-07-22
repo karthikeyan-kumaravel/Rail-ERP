@@ -12,14 +12,18 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $loa_id
+ * @property int|null $engineer_id
+ * @property int|null $engineer_type_id
  * @property string $name
  * @property string $role
  * @property int $order_no
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Loa $loa
+ * @property-read Engineer|null $engineer
+ * @property-read EngineerType|null $engineerType
  */
-#[Fillable(['loa_id', 'name', 'role', 'order_no'])]
+#[Fillable(['loa_id', 'engineer_id', 'engineer_type_id', 'name', 'role', 'order_no'])]
 class LoaTeamMember extends Model
 {
     /** @use HasFactory<LoaTeamMemberFactory> */
@@ -31,5 +35,21 @@ class LoaTeamMember extends Model
     public function loa(): BelongsTo
     {
         return $this->belongsTo(Loa::class);
+    }
+
+    /**
+     * @return BelongsTo<Engineer, $this>
+     */
+    public function engineer(): BelongsTo
+    {
+        return $this->belongsTo(Engineer::class);
+    }
+
+    /**
+     * @return BelongsTo<EngineerType, $this>
+     */
+    public function engineerType(): BelongsTo
+    {
+        return $this->belongsTo(EngineerType::class);
     }
 }

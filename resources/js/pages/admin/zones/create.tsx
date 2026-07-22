@@ -6,12 +6,11 @@ import ZoneFormFields from './zone-form-fields';
 import type { ZoneFormData } from './zone-form-fields';
 
 export default function ZonesCreate() {
-    const { data, setData, post, processing, errors } =
-        useForm<ZoneFormData>({
-            name: '',
-            code: '',
-            active_status: '1',
-        });
+    const { data, setData, post, processing, errors } = useForm<ZoneFormData>({
+        name: '',
+        code: '',
+        active_status: '1',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();

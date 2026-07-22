@@ -12,6 +12,48 @@ class SettingsMenuSeeder extends Seeder
      */
     public function run(): void
     {
+        $admin = UserScreen::query()->firstOrCreate(
+            ['folder_name' => 'admin', 'main_screen_id' => null],
+            [
+                'screen_name' => 'Admin',
+                'order_no' => 1,
+                'icon' => 'admin',
+                'description' => 'User, role, and permission administration.',
+                'status' => true,
+                'can_add' => true,
+                'can_update' => true,
+                'can_list' => true,
+                'can_delete' => true,
+                'can_view' => true,
+                'can_cancel' => true,
+            ],
+        );
+
+        $adminChildren = [
+            ['screen_name' => 'Users', 'folder_name' => 'users', 'order_no' => 1, 'icon' => 'users'],
+            ['screen_name' => 'User Types', 'folder_name' => 'user-types', 'order_no' => 2, 'icon' => 'user'],
+            ['screen_name' => 'User Screens', 'folder_name' => 'user-screens', 'order_no' => 3, 'icon' => 'screen'],
+            ['screen_name' => 'User Type Permission', 'folder_name' => 'user-type-permissions', 'order_no' => 4, 'icon' => 'key'],
+        ];
+
+        foreach ($adminChildren as $child) {
+            UserScreen::query()->firstOrCreate(
+                ['folder_name' => $child['folder_name'], 'main_screen_id' => $admin->id],
+                [
+                    'screen_name' => $child['screen_name'],
+                    'order_no' => $child['order_no'],
+                    'icon' => $child['icon'],
+                    'status' => true,
+                    'can_add' => true,
+                    'can_update' => true,
+                    'can_list' => true,
+                    'can_delete' => true,
+                    'can_view' => true,
+                    'can_cancel' => true,
+                ],
+            );
+        }
+
         $settings = UserScreen::query()->firstOrCreate(
             ['folder_name' => 'settings', 'main_screen_id' => null],
             [
@@ -38,6 +80,7 @@ class SettingsMenuSeeder extends Seeder
             ['screen_name' => 'Station', 'folder_name' => 'stations', 'order_no' => 6, 'icon' => 'train'],
             ['screen_name' => 'Customer', 'folder_name' => 'customers', 'order_no' => 7, 'icon' => 'user'],
             ['screen_name' => 'Vendor', 'folder_name' => 'vendors', 'order_no' => 8, 'icon' => 'building'],
+            ['screen_name' => 'Bank', 'folder_name' => 'banks', 'order_no' => 9, 'icon' => 'bank'],
         ];
 
         foreach ($children as $child) {

@@ -6,12 +6,11 @@ import StateFormFields from './state-form-fields';
 import type { StateFormData } from './state-form-fields';
 
 export default function StatesCreate() {
-    const { data, setData, post, processing, errors } =
-        useForm<StateFormData>({
-            name: '',
-            code: '',
-            active_status: '1',
-        });
+    const { data, setData, post, processing, errors } = useForm<StateFormData>({
+        name: '',
+        code: '',
+        active_status: '1',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();

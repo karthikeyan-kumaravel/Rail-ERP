@@ -17,12 +17,11 @@ type EditProps = {
 };
 
 export default function StatesEdit({ state }: EditProps) {
-    const { data, setData, put, processing, errors } =
-        useForm<StateFormData>({
-            name: state.name,
-            code: state.code ?? '',
-            active_status: state.active_status ? '1' : '0',
-        });
+    const { data, setData, put, processing, errors } = useForm<StateFormData>({
+        name: state.name,
+        code: state.code ?? '',
+        active_status: state.active_status ? '1' : '0',
+    });
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -42,13 +41,15 @@ export default function StatesEdit({ state }: EditProps) {
                         Admin / Settings / State
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >
             <form
                 onSubmit={submit}
-                className=" rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6"
+                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6"
             >
                 <StateFormFields
                     data={data}

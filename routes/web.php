@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\BankController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DepartmentController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserScreenController;
 use App\Http\Controllers\Admin\UserTypeController;
+use App\Http\Controllers\Admin\UserTypePermissionController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -40,6 +42,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('users', UserController::class)->except('show');
         Route::resource('user-types', UserTypeController::class)->except('show');
         Route::resource('user-screens', UserScreenController::class)->except('show');
+        Route::get('user-type-permissions', [UserTypePermissionController::class, 'index'])
+            ->name('user-type-permissions.index');
+        Route::get('user-type-permissions/{user_type}/edit', [UserTypePermissionController::class, 'edit'])
+            ->name('user-type-permissions.edit');
+        Route::put('user-type-permissions/{user_type}', [UserTypePermissionController::class, 'update'])
+            ->name('user-type-permissions.update');
         Route::resource('states', StateController::class)->except('show');
         Route::resource('districts', DistrictController::class)->except('show');
         Route::resource('cities', CityController::class)->except('show');
@@ -48,12 +56,14 @@ Route::middleware('auth')->group(function () {
         Route::resource('stations', StationController::class)->except('show');
         Route::resource('customers', CustomerController::class)->except('show');
         Route::resource('vendors', VendorController::class)->except('show');
+        Route::resource('banks', BankController::class)->except('show');
         Route::post('loas/items/import-preview', LoaItemImportController::class)
             ->name('loas.items.import-preview');
         Route::get('loas/{loa}/pdf', [LoaController::class, 'pdf'])->name('loas.pdf');
         Route::resource('loas', LoaController::class);
         Route::resource('activities', ActivityController::class)->except('show');
         Route::resource('engineer-types', EngineerTypeController::class)->except('show');
+        Route::get('engineers/search', [EngineerController::class, 'search'])->name('engineers.search');
         Route::resource('engineers', EngineerController::class)->except('show');
         Route::resource('units', UnitController::class)->except('show');
         Route::resource('departments', DepartmentController::class)->except('show');

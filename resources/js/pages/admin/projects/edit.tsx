@@ -31,8 +31,8 @@ export default function ProjectsEdit({
     divisions,
     loas,
 }: EditProps) {
-    const { data, setData, put, processing, errors } =
-        useForm<ProjectFormData>({
+    const { data, setData, put, processing, errors } = useForm<ProjectFormData>(
+        {
             name: project.name,
             customer_id: project.customer_id,
             zone_id: project.zone_id,
@@ -40,7 +40,8 @@ export default function ProjectsEdit({
             loa_id: project.loa_id,
             contract_value: project.contract_value,
             active_status: project.active_status ? '1' : '0',
-        });
+        },
+    );
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
@@ -60,7 +61,9 @@ export default function ProjectsEdit({
                         Admin / Sub Setting / Project Creation
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >

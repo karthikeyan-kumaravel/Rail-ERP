@@ -411,7 +411,15 @@ export type IconKey = keyof typeof ICONS;
 export const ICON_CATEGORIES: { label: string; icons: IconKey[] }[] = [
     {
         label: 'Overview & Navigation',
-        icons: ['dashboard', 'reports', 'screen', 'grid', 'list', 'folder', 'home'],
+        icons: [
+            'dashboard',
+            'reports',
+            'screen',
+            'grid',
+            'list',
+            'folder',
+            'home',
+        ],
     },
     {
         label: 'Railway Infrastructure',
