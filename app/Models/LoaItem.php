@@ -28,6 +28,10 @@ use Illuminate\Support\Carbon;
  * @property string|null $bid_rate_unit
  * @property string|null $bid_percentage_value
  * @property string $bid_amount
+ * @property bool $rebate_enabled
+ * @property string $rebate_percentage
+ * @property string $rebate_amount
+ * @property string $final_bid_amount
  * @property string|null $inspection_by
  * @property array<string, string>|null $payment_stages
  * @property int $order_no
@@ -55,6 +59,10 @@ use Illuminate\Support\Carbon;
     'bid_rate_unit',
     'bid_percentage_value',
     'bid_amount',
+    'rebate_enabled',
+    'rebate_percentage',
+    'rebate_amount',
+    'final_bid_amount',
     'inspection_by',
     'payment_stages',
     'order_no',
@@ -78,6 +86,10 @@ class LoaItem extends Model
             'bid_rate' => 'decimal:2',
             'bid_percentage_value' => 'decimal:4',
             'bid_amount' => 'decimal:2',
+            'rebate_enabled' => 'boolean',
+            'rebate_percentage' => 'decimal:2',
+            'rebate_amount' => 'decimal:2',
+            'final_bid_amount' => 'decimal:2',
             'payment_stages' => 'array',
         ];
     }

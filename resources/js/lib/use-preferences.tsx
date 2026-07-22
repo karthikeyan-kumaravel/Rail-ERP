@@ -74,10 +74,7 @@ export function applyPreferences(preferences: Preferences): void {
     root.setAttribute('data-gradient', preferences.gradientPreset);
     root.setAttribute('data-font-size', preferences.fontSize);
     root.setAttribute('data-radius', preferences.borderRadius);
-    root.setAttribute(
-        'data-animations',
-        preferences.animations ? 'on' : 'off',
-    );
+    root.setAttribute('data-animations', preferences.animations ? 'on' : 'off');
     root.style.colorScheme = resolvedTheme === 'dark' ? 'dark' : 'light';
 
     if (preferences.gradientPreset === 'custom') {
@@ -119,9 +116,7 @@ type PreferencesContextValue = {
     resetPreferences: () => void;
 };
 
-const PreferencesContext = createContext<PreferencesContextValue | null>(
-    null,
-);
+const PreferencesContext = createContext<PreferencesContextValue | null>(null);
 
 /**
  * Single shared source of truth for appearance preferences. Every consumer

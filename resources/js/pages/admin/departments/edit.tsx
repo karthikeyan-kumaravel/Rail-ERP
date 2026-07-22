@@ -40,7 +40,9 @@ export default function DepartmentsEdit({ department }: EditProps) {
                         Admin / Sub Setting / Department
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >

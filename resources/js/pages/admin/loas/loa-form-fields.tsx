@@ -1,6 +1,8 @@
 import type { LoaTabKey } from './loa-tabs';
 
 export type LoaTeamMemberFormData = {
+    engineer_id: number | '';
+    engineer_type_id: number | '';
     name: string;
     role: string;
 };
@@ -106,9 +108,77 @@ export type LoaItemFormData = {
     bid_rate_unit: BidRateUnit | null;
     bid_percentage_value: number | string | null;
     bid_amount: number | string;
+    rebate_enabled: boolean;
+    rebate_percentage: number | string;
+    rebate_amount: number | string;
+    final_bid_amount: number | string;
     inspection_by: InspectionBy | null;
     payment_stages: PaymentStages | null;
 };
+
+export type FinancialSecurityType = 'emd' | 'performance_bg' | 'security_bg';
+
+export const FINANCIAL_SECURITY_TYPES: FinancialSecurityType[] = [
+    'emd',
+    'performance_bg',
+    'security_bg',
+];
+
+export const FINANCIAL_SECURITY_LABELS: Record<FinancialSecurityType, string> =
+    {
+        emd: 'EMD Details',
+        performance_bg: 'Performance Bank Guarantee',
+        security_bg: 'Security Bank Guarantee',
+    };
+
+export type FinancialSecuritySectionFormData = {
+    amount: number | '';
+    amount_unit: 'Cr' | 'L';
+    validity_start_date: string;
+    validity_end_date: string;
+    claim_period: number | '';
+    claim_period_unit: 'Days' | 'Months';
+    bank_id: number | '';
+    file: File | null;
+    remove_file: boolean;
+};
+
+export type FinancialSecuritiesFormData = Record<
+    FinancialSecurityType,
+    FinancialSecuritySectionFormData
+>;
+
+export type FinancialSecurityExisting = {
+    existing_file_url: string | null;
+    existing_file_name: string | null;
+};
+
+export type FinancialSecuritiesExisting = Record<
+    FinancialSecurityType,
+    FinancialSecurityExisting
+>;
+
+export function defaultFinancialSecuritySection(): FinancialSecuritySectionFormData {
+    return {
+        amount: '',
+        amount_unit: 'L',
+        validity_start_date: '',
+        validity_end_date: '',
+        claim_period: '',
+        claim_period_unit: 'Days',
+        bank_id: '',
+        file: null,
+        remove_file: false,
+    };
+}
+
+export function defaultFinancialSecurities(): FinancialSecuritiesFormData {
+    return {
+        emd: defaultFinancialSecuritySection(),
+        performance_bg: defaultFinancialSecuritySection(),
+        security_bg: defaultFinancialSecuritySection(),
+    };
+}
 
 export type LoaFormData = {
     loa_number: string;
@@ -125,11 +195,6 @@ export type LoaFormData = {
     start_date: string;
     end_date: string;
     total_stations: number | '';
-    bg_amount: number | '';
-    bg_amount_unit: 'Cr' | 'L';
-    bg_validity: string;
-    security_deposit_amount: number | '';
-    security_deposit_unit: 'Cr' | 'L';
     mobilization_advance_amount: number | '';
     mobilization_advance_unit: 'Cr' | 'L';
     mobilization_advance_status: 'Pending' | 'Requested' | 'Received';
@@ -138,11 +203,14 @@ export type LoaFormData = {
     team: LoaTeamMemberFormData[];
     items: LoaItemFormData[];
     stations: LoaStationFormData[];
+    financial_securities: FinancialSecuritiesFormData;
 };
 
 export type DivisionOption = { id: number; name: string };
 export type VendorOption = { id: number; name: string };
 export type UnitOption = { id: number; name: string };
+export type BankOption = { id: number; name: string };
+export type EngineerTypeOption = { id: number; name: string };
 export type ScheduleNameOption = { id: number; name: string };
 export type ScheduleTypeOption = {
     id: number;
@@ -206,15 +274,7 @@ const REQUIRED_FIELDS_BY_TAB: Record<
         { field: 'total_stations', label: 'Total Stations' },
     ],
     items: [],
-    financial: [
-        { field: 'bg_amount', label: 'BG Amount' },
-        { field: 'bg_validity', label: 'BG Validity' },
-        { field: 'security_deposit_amount', label: 'Security Deposit' },
-        {
-            field: 'mobilization_advance_amount',
-            label: 'Mobilization Advance',
-        },
-    ],
+    financial: [],
     team: [],
     scope: [{ field: 'scope_of_work', label: 'Scope of Work' }],
 };
@@ -234,16 +294,48 @@ export function validateLoaTab(
 
     if (tab === 'team') {
         data.team.forEach((member, index) => {
-            if (!member.name.trim()) {
-                errors[`team.${index}.name`] = 'Name is required.';
+            if (member.engineer_id === '') {
+                errors[`team.${index}.engineer_id`] = 'Name is required.';
             }
 
-            if (!member.role.trim()) {
-                errors[`team.${index}.role`] = 'Role is required.';
+            if (member.engineer_type_id === '') {
+                errors[`team.${index}.engineer_type_id`] = 'Role is required.';
             }
         });
 
         return errors;
+    }
+
+    if (tab === 'financial') {
+        FINANCIAL_SECURITY_TYPES.forEach((type) => {
+            const section = data.financial_securities[type];
+            const label = FINANCIAL_SECURITY_LABELS[type];
+
+            if (section.amount === '') {
+                errors[`financial_securities.${type}.amount`] =
+                    `${label}: amount is required.`;
+            }
+
+            if (!section.validity_start_date) {
+                errors[`financial_securities.${type}.validity_start_date`] =
+                    `${label}: BG validity start date is required.`;
+            }
+
+            if (!section.validity_end_date) {
+                errors[`financial_securities.${type}.validity_end_date`] =
+                    `${label}: BG validity end date is required.`;
+            }
+
+            if (section.claim_period === '') {
+                errors[`financial_securities.${type}.claim_period`] =
+                    `${label}: claim period is required.`;
+            }
+
+            if (section.bank_id === '') {
+                errors[`financial_securities.${type}.bank_id`] =
+                    `${label}: bank is required.`;
+            }
+        });
     }
 
     REQUIRED_FIELDS_BY_TAB[tab].forEach(({ field, label }) => {
@@ -273,18 +365,14 @@ export function defaultLoaFormData(): LoaFormData {
         start_date: '',
         end_date: '',
         total_stations: '',
-        bg_amount: '',
-        bg_amount_unit: 'L',
-        bg_validity: '',
-        security_deposit_amount: '',
-        security_deposit_unit: 'L',
-        mobilization_advance_amount: '',
+        mobilization_advance_amount: 0,
         mobilization_advance_unit: 'L',
         mobilization_advance_status: 'Pending',
         scope_of_work: '',
         active_status: '1',
-        team: [{ name: '', role: '' }],
+        team: [{ engineer_id: '', engineer_type_id: '', name: '', role: '' }],
         items: [],
         stations: [],
+        financial_securities: defaultFinancialSecurities(),
     };
 }

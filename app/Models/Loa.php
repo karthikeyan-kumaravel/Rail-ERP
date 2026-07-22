@@ -29,11 +29,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
  * @property int|null $total_stations
- * @property string|null $bg_amount
- * @property string $bg_amount_unit
- * @property Carbon|null $bg_validity
- * @property string|null $security_deposit_amount
- * @property string $security_deposit_unit
  * @property string|null $mobilization_advance_amount
  * @property string $mobilization_advance_unit
  * @property string $mobilization_advance_status
@@ -58,6 +53,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, LoaTeamMember> $teamMembers
  * @property-read Collection<int, LoaItem> $items
  * @property-read Collection<int, LoaStation> $stations
+ * @property-read Collection<int, LoaFinancialSecurity> $financialSecurities
  */
 #[Fillable([
     'loa_number',
@@ -74,11 +70,6 @@ use Illuminate\Support\Carbon;
     'start_date',
     'end_date',
     'total_stations',
-    'bg_amount',
-    'bg_amount_unit',
-    'bg_validity',
-    'security_deposit_amount',
-    'security_deposit_unit',
     'mobilization_advance_amount',
     'mobilization_advance_unit',
     'mobilization_advance_status',
@@ -99,10 +90,7 @@ class Loa extends Model
         return [
             'start_date' => 'date',
             'end_date' => 'date',
-            'bg_validity' => 'date',
             'contract_value_amount' => 'decimal:2',
-            'bg_amount' => 'decimal:2',
-            'security_deposit_amount' => 'decimal:2',
             'mobilization_advance_amount' => 'decimal:2',
             'active_status' => 'boolean',
             'is_delete' => 'boolean',
@@ -165,5 +153,13 @@ class Loa extends Model
     public function stations(): HasMany
     {
         return $this->hasMany(LoaStation::class)->orderBy('order_no');
+    }
+
+    /**
+     * @return HasMany<LoaFinancialSecurity, $this>
+     */
+    public function financialSecurities(): HasMany
+    {
+        return $this->hasMany(LoaFinancialSecurity::class);
     }
 }

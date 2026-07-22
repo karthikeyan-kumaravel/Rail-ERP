@@ -5,11 +5,13 @@ import AdminLayout from '@/layouts/admin-layout';
 import { edit, index, pdf } from '@/routes/admin/loas';
 import {
     bidRateUnitTextClass,
+    FINANCIAL_SECURITY_LABELS,
+    FINANCIAL_SECURITY_TYPES,
     PAYMENT_STAGE_KEYS,
     PAYMENT_STAGE_SHORT_LABELS,
     PAYMENT_STAGE_TONE_CLASS,
 } from './loa-form-fields';
-import type { LoaItemFormData } from './loa-form-fields';
+import type { FinancialSecurityType, LoaItemFormData } from './loa-form-fields';
 
 type LoaTeamMember = { name: string; role: string };
 
@@ -41,11 +43,6 @@ type LoaShow = {
     start_date: string;
     end_date: string;
     total_stations: number;
-    bg_amount: number;
-    bg_amount_unit: 'Cr' | 'L';
-    bg_validity: string;
-    security_deposit_amount: number;
-    security_deposit_unit: 'Cr' | 'L';
     mobilization_advance_amount: number;
     mobilization_advance_unit: 'Cr' | 'L';
     mobilization_advance_status: 'Pending' | 'Requested' | 'Received';
@@ -54,6 +51,22 @@ type LoaShow = {
     team: LoaTeamMember[];
     items: LoaShowItem[];
     stations: (string | null)[];
+    financial_securities: Record<
+        FinancialSecurityType,
+        LoaShowFinancialSecurity
+    >;
+};
+
+type LoaShowFinancialSecurity = {
+    amount: number | null;
+    amount_unit: 'Cr' | 'L' | null;
+    validity_start_date: string | null;
+    validity_end_date: string | null;
+    claim_period: number | null;
+    claim_period_unit: 'Days' | 'Months' | null;
+    bank: string | null;
+    file_url: string | null;
+    file_name: string | null;
 };
 
 type ShowProps = {
@@ -305,34 +318,82 @@ export default function LoasShow({ loa }: ShowProps) {
                     </Card>
 
                     <div className="space-y-6">
-                        <Card title="Financial Security">
+                        {FINANCIAL_SECURITY_TYPES.map((type) => {
+                            const security = loa.financial_securities[type];
+
+                            return (
+                                <Card
+                                    key={type}
+                                    title={FINANCIAL_SECURITY_LABELS[type]}
+                                >
+                                    <DetailRow
+                                        label="Amount"
+                                        value={
+                                            security.amount !== null &&
+                                            security.amount_unit
+                                                ? formatCurrency(
+                                                      security.amount,
+                                                      security.amount_unit,
+                                                  )
+                                                : '—'
+                                        }
+                                    />
+                                    <DetailRow
+                                        label="BG Validity Start"
+                                        value={formatDate(
+                                            security.validity_start_date,
+                                        )}
+                                    />
+                                    <DetailRow
+                                        label="BG Validity End"
+                                        value={formatDate(
+                                            security.validity_end_date,
+                                        )}
+                                    />
+                                    <DetailRow
+                                        label="Claim Period"
+                                        value={
+                                            security.claim_period !== null
+                                                ? `${security.claim_period} ${security.claim_period_unit ?? ''}`
+                                                : '—'
+                                        }
+                                    />
+                                    <DetailRow
+                                        label="Bank"
+                                        value={security.bank ?? '—'}
+                                    />
+                                    <DetailRow
+                                        label="Document"
+                                        value={
+                                            security.file_url ? (
+                                                <a
+                                                    href={security.file_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-[var(--color-gold)] hover:text-[var(--color-accent)]"
+                                                >
+                                                    {security.file_name ??
+                                                        'View / Download'}
+                                                </a>
+                                            ) : (
+                                                '—'
+                                            )
+                                        }
+                                    />
+                                </Card>
+                            );
+                        })}
+
+                        <Card title="Mobilization Advance">
                             <DetailRow
-                                label="BG Amount"
-                                value={formatCurrency(
-                                    loa.bg_amount,
-                                    loa.bg_amount_unit,
-                                )}
-                            />
-                            <DetailRow
-                                label="BG Validity"
-                                value={formatDate(loa.bg_validity)}
-                            />
-                            <DetailRow
-                                label="Security Deposit"
-                                value={formatCurrency(
-                                    loa.security_deposit_amount,
-                                    loa.security_deposit_unit,
-                                )}
-                            />
-                            <DetailRow
-                                label="Mobilization Advance"
+                                label="Amount"
                                 value={formatCurrency(
                                     loa.mobilization_advance_amount,
                                     loa.mobilization_advance_unit,
                                 )}
                             />
                             <DetailRow
-                                label="Mob. Advance Status"
+                                label="Status"
                                 value={loa.mobilization_advance_status}
                             />
                         </Card>
@@ -391,21 +452,15 @@ export default function LoasShow({ loa }: ShowProps) {
                             <table className="w-full min-w-[1500px] text-left text-xs">
                                 <thead className="bg-[var(--color-ink)] text-white">
                                     <tr>
-                                        <th className="px-3 py-3">
-                                            Item S.no
-                                        </th>
+                                        <th className="px-3 py-3">Item S.no</th>
                                         <th className="min-w-64 px-3 py-3">
                                             Item Desc
                                         </th>
-                                        <th className="px-3 py-3">
-                                            Item Code
-                                        </th>
+                                        <th className="px-3 py-3">Item Code</th>
                                         <th className="px-3 py-3 text-right">
                                             Item Qty
                                         </th>
-                                        <th className="px-3 py-3">
-                                            Qty Unit
-                                        </th>
+                                        <th className="px-3 py-3">Qty Unit</th>
                                         <th className="px-3 py-3 text-right">
                                             Unit Rate (Rs)
                                         </th>
@@ -418,6 +473,12 @@ export default function LoasShow({ loa }: ShowProps) {
                                         </th>
                                         <th className="px-3 py-3 text-right">
                                             Bid Amount (Rs)
+                                        </th>
+                                        <th className="px-3 py-3 text-right">
+                                            Rebate %
+                                        </th>
+                                        <th className="px-3 py-3 text-right">
+                                            Final Bid Amount (Rs)
                                         </th>
                                         <th className="px-3 py-3">
                                             Inspection By
@@ -449,7 +510,7 @@ export default function LoasShow({ loa }: ShowProps) {
                                                             group.totalBidAmount,
                                                         )}
                                                     </td>
-                                                    <td colSpan={2} />
+                                                    <td colSpan={4} />
                                                 </tr>
                                                 {group.items.map(
                                                     (item, index) => (
@@ -524,6 +585,16 @@ export default function LoasShow({ loa }: ShowProps) {
                                                                     item.bid_amount,
                                                                 )}
                                                             </td>
+                                                            <td className="px-3 py-3 text-right">
+                                                                {item.rebate_enabled
+                                                                    ? `${formatNumber(item.rebate_percentage)}%`
+                                                                    : '—'}
+                                                            </td>
+                                                            <td className="px-3 py-3 text-right">
+                                                                {formatMoney(
+                                                                    item.final_bid_amount,
+                                                                )}
+                                                            </td>
                                                             <td className="px-3 py-3">
                                                                 {item.inspection_by ??
                                                                     '—'}
@@ -556,7 +627,7 @@ export default function LoasShow({ loa }: ShowProps) {
                                                             group.totalBidAmount,
                                                         )}
                                                     </td>
-                                                    <td colSpan={2} />
+                                                    <td colSpan={4} />
                                                 </tr>
                                             </Fragment>
                                         ),

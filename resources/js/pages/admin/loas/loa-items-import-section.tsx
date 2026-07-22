@@ -42,6 +42,8 @@ type ManualItemDraft = {
     bid_rate: string;
     bid_amount: string;
     bid_entry_mode: BidEntryMode;
+    rebate_enabled: boolean;
+    rebate_percentage: string;
     inspection_by: InspectionBy | '';
     payment_stages: PaymentStages | null;
 };
@@ -60,6 +62,8 @@ function emptyManualDraft(): ManualItemDraft {
         bid_rate: '',
         bid_amount: '',
         bid_entry_mode: 'rate',
+        rebate_enabled: false,
+        rebate_percentage: '',
         inspection_by: '',
         payment_stages: null,
     };
@@ -226,6 +230,28 @@ function deriveBidRateUnit(
     return null;
 }
 
+/** Rebate Amount = (Bid Amount × Rebate %) / 100. */
+function calculateRebateAmount(
+    bidAmount: number | string,
+    rebatePercentage: number | string,
+): number {
+    return roundMoney((toNumber(bidAmount) * toNumber(rebatePercentage)) / 100);
+}
+
+/** Final Bid Amount = Bid Amount − Rebate Amount, floored at zero. */
+function calculateFinalBidAmount(
+    bidAmount: number | string,
+    rebatePercentage: number | string,
+): number {
+    return Math.max(
+        0,
+        roundMoney(
+            toNumber(bidAmount) -
+                calculateRebateAmount(bidAmount, rebatePercentage),
+        ),
+    );
+}
+
 /**
  * Color cue for the read-only Bid % Value box: green for a favorable "%
  * Below" bid, red for a "% Above" bid, muted when the bid is at par.
@@ -385,6 +411,16 @@ export default function LoaItemsImportSection({
             manualDraft.unit_rate,
             manualDraft.escalation,
         );
+        const rebateEnabled = manualDraft.rebate_enabled;
+        const rebatePercentage = rebateEnabled
+            ? toNumber(manualDraft.rebate_percentage)
+            : 0;
+        const rebateAmount = rebateEnabled
+            ? calculateRebateAmount(manualDraft.bid_amount, rebatePercentage)
+            : 0;
+        const finalBidAmount = rebateEnabled
+            ? calculateFinalBidAmount(manualDraft.bid_amount, rebatePercentage)
+            : toNumber(manualDraft.bid_amount);
 
         const newItem: LoaItemFormData = {
             schedule_name_id: manualDraft.schedule_name_id,
@@ -424,6 +460,10 @@ export default function LoaItemsImportSection({
                 manualDraft.bid_amount === ''
                     ? 0
                     : Number(manualDraft.bid_amount),
+            rebate_enabled: rebateEnabled,
+            rebate_percentage: rebatePercentage,
+            rebate_amount: rebateAmount,
+            final_bid_amount: finalBidAmount,
             inspection_by: manualDraft.inspection_by || null,
             payment_stages: manualDraft.payment_stages,
         };
@@ -622,16 +662,28 @@ export default function LoaItemsImportSection({
             draft.escalation,
         );
 
+        const bidAmount = toNumber(draft.bid_amount);
+        const rebatePercentage = draft.rebate_enabled
+            ? toNumber(draft.rebate_percentage)
+            : 0;
+
         const finalizedDraft: LoaItemFormData = {
             ...draft,
             advertised_value: advertisedValue,
             bid_rate: toNumber(draft.bid_rate),
-            bid_amount: toNumber(draft.bid_amount),
+            bid_amount: bidAmount,
             bid_rate_unit: deriveBidRateUnit(advertisedValue, draft.bid_amount),
             bid_percentage_value: calculatePercentageValue(
                 advertisedValue,
                 draft.bid_amount,
             ),
+            rebate_percentage: rebatePercentage,
+            rebate_amount: draft.rebate_enabled
+                ? calculateRebateAmount(bidAmount, rebatePercentage)
+                : 0,
+            final_bid_amount: draft.rebate_enabled
+                ? calculateFinalBidAmount(bidAmount, rebatePercentage)
+                : bidAmount,
         };
 
         onItemsChange(
@@ -679,6 +731,10 @@ export default function LoaItemsImportSection({
     const manualPercentageValue = calculatePercentageValue(
         manualAdvertisedValue,
         manualDraft.bid_amount,
+    );
+    const manualFinalBidAmount = calculateFinalBidAmount(
+        manualDraft.bid_amount,
+        manualDraft.rebate_percentage,
     );
 
     return (
@@ -1023,6 +1079,23 @@ export default function LoaItemsImportSection({
                             />
                         </div>
 
+                        <div className="flex items-end">
+                            <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                                <input
+                                    type="checkbox"
+                                    checked={manualDraft.rebate_enabled}
+                                    onChange={(event) =>
+                                        updateManualDraft(
+                                            'rebate_enabled',
+                                            event.target.checked,
+                                        )
+                                    }
+                                    className="h-4 w-4 rounded border-[var(--color-gold)]/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]/40"
+                                />
+                                Rebate
+                            </label>
+                        </div>
+
                         <div>
                             <label
                                 htmlFor="manual_bid_rate"
@@ -1065,6 +1138,32 @@ export default function LoaItemsImportSection({
                             />
                         </div>
 
+                        {manualDraft.rebate_enabled && (
+                            <div>
+                                <label
+                                    htmlFor="manual_rebate_percentage"
+                                    className={labelClass}
+                                >
+                                    Rebate %
+                                </label>
+                                <input
+                                    id="manual_rebate_percentage"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    step="0.01"
+                                    value={manualDraft.rebate_percentage}
+                                    onChange={(event) =>
+                                        updateManualDraft(
+                                            'rebate_percentage',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className={inputClass}
+                                />
+                            </div>
+                        )}
+
                         <div>
                             <label
                                 htmlFor="manual_bid_amount"
@@ -1096,6 +1195,24 @@ export default function LoaItemsImportSection({
                                 className={inputClass}
                             />
                         </div>
+
+                        {manualDraft.rebate_enabled && (
+                            <div>
+                                <label
+                                    htmlFor="manual_final_bid_amount"
+                                    className={labelClass}
+                                >
+                                    Final Bid Amount (Rs)
+                                </label>
+                                <input
+                                    id="manual_final_bid_amount"
+                                    type="text"
+                                    disabled
+                                    value={formatMoney(manualFinalBidAmount)}
+                                    className={inputClass}
+                                />
+                            </div>
+                        )}
 
                         <div>
                             <label
@@ -1184,11 +1301,20 @@ export default function LoaItemsImportSection({
                             <th className="w-32 px-3 py-3 text-right">
                                 Bid Rate (Rs)
                             </th>
+                            <th className="w-20 px-3 py-3 text-center">
+                                Rebate
+                            </th>
                             <th className="w-36 px-3 py-3 text-right">
                                 Bid % Value
                             </th>
+                            <th className="w-28 px-3 py-3 text-right">
+                                Rebate %
+                            </th>
                             <th className="w-40 px-3 py-3 text-right">
                                 Bid Amount (Rs)
+                            </th>
+                            <th className="w-40 px-3 py-3 text-right">
+                                Final Bid Amount (Rs)
                             </th>
                             <th className="w-32 px-3 py-3">Inspection by</th>
                             <th className="min-w-64 px-3 py-3">Payment Type</th>
@@ -1201,7 +1327,7 @@ export default function LoaItemsImportSection({
                         {items.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={16}
+                                    colSpan={19}
                                     className="px-4 py-8 text-center text-sm text-[var(--color-ink)]/55"
                                 >
                                     No item details imported yet.
@@ -1242,6 +1368,11 @@ export default function LoaItemsImportSection({
                                         editedAdvertisedValue,
                                         editedItem.bid_amount,
                                     );
+                                const editedFinalBidAmount =
+                                    calculateFinalBidAmount(
+                                        editedItem.bid_amount,
+                                        editedItem.rebate_percentage,
+                                    );
 
                                 return (
                                     <Fragment
@@ -1260,7 +1391,7 @@ export default function LoaItemsImportSection({
                                                         item.schedule_advertised_value,
                                                     )}
                                                 </td>
-                                                <td colSpan={6} />
+                                                <td colSpan={9} />
                                             </tr>
                                         )}
                                         <tr className="border-t border-[var(--color-gold)]/15 align-top text-[var(--color-ink)]/85 even:bg-[var(--color-surface-soft)]/25">
@@ -1626,6 +1757,24 @@ export default function LoaItemsImportSection({
                                                     formatMoney(item.bid_rate)
                                                 )}
                                             </td>
+                                            <td className="px-3 py-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={
+                                                        editedItem.rebate_enabled
+                                                    }
+                                                    disabled={!isEditing}
+                                                    onChange={(event) =>
+                                                        updateDraft(
+                                                            'rebate_enabled',
+                                                            event.target
+                                                                .checked,
+                                                        )
+                                                    }
+                                                    aria-label={`Enable rebate for item ${item.item_no}`}
+                                                    className="h-4 w-4 rounded border-[var(--color-gold)]/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]/40 disabled:cursor-not-allowed disabled:opacity-60"
+                                                />
+                                            </td>
                                             <td className="px-3 py-3 text-right">
                                                 {isEditing ? (
                                                     <input
@@ -1649,6 +1798,35 @@ export default function LoaItemsImportSection({
                                                         }
                                                         className={`${bidPercentageSmallBoxClass} ${bidPercentageToneClass(item.bid_rate_unit)}`}
                                                     />
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-3 text-right">
+                                                {editedItem.rebate_enabled ? (
+                                                    isEditing ? (
+                                                        <input
+                                                            type="number"
+                                                            min={0}
+                                                            max={100}
+                                                            step="0.01"
+                                                            value={
+                                                                editedItem.rebate_percentage
+                                                            }
+                                                            onChange={(event) =>
+                                                                updateDraft(
+                                                                    'rebate_percentage',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className={
+                                                                smallInputClass
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        `${formatNumber(item.rebate_percentage)}%`
+                                                    )
+                                                ) : (
+                                                    '—'
                                                 )}
                                             </td>
                                             <td className="px-3 py-3 text-right">
@@ -1690,6 +1868,17 @@ export default function LoaItemsImportSection({
                                                 ) : (
                                                     formatMoney(item.bid_amount)
                                                 )}
+                                            </td>
+                                            <td className="px-3 py-3 text-right">
+                                                {editedItem.rebate_enabled
+                                                    ? formatMoney(
+                                                          isEditing
+                                                              ? editedFinalBidAmount
+                                                              : item.final_bid_amount,
+                                                      )
+                                                    : formatMoney(
+                                                          item.bid_amount,
+                                                      )}
                                             </td>
                                             <td className="px-3 py-3">
                                                 {isEditing ? (
@@ -1801,7 +1990,7 @@ export default function LoaItemsImportSection({
                                         {additionalRowErrors.length > 0 && (
                                             <tr className="border-t border-red-500/10 bg-red-500/5">
                                                 <td
-                                                    colSpan={16}
+                                                    colSpan={19}
                                                     className="px-3 py-2 text-xs text-red-600"
                                                 >
                                                     {additionalRowErrors.join(

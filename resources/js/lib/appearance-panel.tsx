@@ -52,13 +52,7 @@ const GRADIENT_SWATCHES: {
     { value: 'midnight', label: 'Midnight', from: '#6b7bff', to: '#1b1f3b' },
 ];
 
-function Section({
-    title,
-    children,
-}: {
-    title: string;
-    children: ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
     return (
         <div className="border-t border-[var(--color-border)]/60 px-4 py-3.5 first:border-t-0">
             <p className="mb-2.5 text-xs font-bold tracking-wider text-[var(--color-ink)]/50 uppercase">
@@ -185,12 +179,15 @@ const FONT_SIZE_OPTIONS: { value: FontSize; label: string; sample: string }[] =
         { value: 'large', label: 'Large', sample: 'text-base' },
     ];
 
-const RADIUS_OPTIONS: { value: BorderRadius; label: string; className: string }[] =
-    [
-        { value: 'small', label: 'Small', className: 'rounded-xs' },
-        { value: 'medium', label: 'Medium', className: 'rounded-lg' },
-        { value: 'large', label: 'Large', className: 'rounded-2xl' },
-    ];
+const RADIUS_OPTIONS: {
+    value: BorderRadius;
+    label: string;
+    className: string;
+}[] = [
+    { value: 'small', label: 'Small', className: 'rounded-xs' },
+    { value: 'medium', label: 'Medium', className: 'rounded-lg' },
+    { value: 'large', label: 'Large', className: 'rounded-2xl' },
+];
 
 function AppearancePreview() {
     return (
@@ -312,293 +309,304 @@ export default function AppearancePanel() {
                         style={{ top: coords.top, right: coords.right }}
                         className="fixed z-50 max-h-[85vh] w-96 origin-top-right overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_18px_45px_rgba(15,36,54,0.22)]"
                     >
-                    <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-                        <p className="text-sm font-bold text-[var(--color-ink)]">
-                            Appearance
-                        </p>
-                        <button
-                            type="button"
-                            onClick={() => setOpen(false)}
-                            aria-label="Close appearance preferences"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ink)]/45 transition hover:bg-red-50 hover:text-red-500"
-                        >
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                className="h-5 w-5"
-                                aria-hidden="true"
-                            >
-                                <path d="m6 6 12 12M18 6 6 18" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <div className="px-4 py-3.5">
-                        <AppearancePreview />
-                    </div>
-
-                    <Section title="Theme">
-                        <SegmentedControl
-                            options={THEME_OPTIONS}
-                            value={preferences.theme}
-                            onChange={(value) =>
-                                updatePreference('theme', value)
-                            }
-                        />
-                    </Section>
-
-                    <Section title="Accent Color">
-                        <div className="flex items-center gap-2.5">
-                            {ACCENT_SWATCHES.map((swatch) => {
-                                const active =
-                                    preferences.accent === swatch.value;
-
-                                return (
-                                    <button
-                                        key={swatch.value}
-                                        type="button"
-                                        title={swatch.label}
-                                        aria-label={swatch.label}
-                                        aria-pressed={active}
-                                        onClick={() =>
-                                            updatePreference(
-                                                'accent',
-                                                swatch.value,
-                                            )
-                                        }
-                                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 transition ${
-                                            active
-                                                ? 'ring-[var(--color-ink)]/70'
-                                                : 'ring-transparent hover:ring-[var(--color-ink)]/25'
-                                        }`}
-                                        style={{
-                                            backgroundColor: swatch.hex,
-                                        }}
-                                    >
-                                        {active && (
-                                            <CheckIcon className="h-4 w-4 text-white" />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </Section>
-
-                    <Section title="Background Style">
-                        <SegmentedControl
-                            options={BACKGROUND_OPTIONS}
-                            value={preferences.backgroundStyle}
-                            onChange={(value) =>
-                                updatePreference('backgroundStyle', value)
-                            }
-                        />
-                    </Section>
-
-                    <Section title="Gradient Preset">
-                        <div className="grid grid-cols-5 gap-2">
-                            {GRADIENT_SWATCHES.map((swatch) => {
-                                const active =
-                                    preferences.gradientPreset ===
-                                    swatch.value;
-
-                                return (
-                                    <button
-                                        key={swatch.value}
-                                        type="button"
-                                        title={swatch.label}
-                                        aria-label={swatch.label}
-                                        aria-pressed={active}
-                                        onClick={() =>
-                                            updatePreference(
-                                                'gradientPreset',
-                                                swatch.value,
-                                            )
-                                        }
-                                        className={`h-8 rounded-lg ring-2 transition ${
-                                            active
-                                                ? 'ring-[var(--color-ink)]/70'
-                                                : 'ring-transparent hover:ring-[var(--color-ink)]/25'
-                                        }`}
-                                        style={{
-                                            backgroundImage: `linear-gradient(135deg, ${swatch.from}, ${swatch.to})`,
-                                        }}
-                                    />
-                                );
-                            })}
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+                            <p className="text-sm font-bold text-[var(--color-ink)]">
+                                Appearance
+                            </p>
                             <button
                                 type="button"
-                                title="Custom Gradient"
-                                aria-label="Custom Gradient"
-                                aria-pressed={
-                                    preferences.gradientPreset === 'custom'
-                                }
-                                onClick={() =>
-                                    updatePreference('gradientPreset', 'custom')
-                                }
-                                className={`flex h-8 items-center justify-center rounded-lg ring-2 transition ${
-                                    preferences.gradientPreset === 'custom'
-                                        ? 'ring-[var(--color-ink)]/70'
-                                        : 'ring-transparent hover:ring-[var(--color-ink)]/25'
-                                }`}
-                                style={{
-                                    backgroundImage: `linear-gradient(135deg, ${preferences.customGradient.from}, ${preferences.customGradient.to})`,
-                                }}
+                                onClick={() => setOpen(false)}
+                                aria-label="Close appearance preferences"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--color-ink)]/45 transition hover:bg-red-50 hover:text-red-500"
                             >
-                                <SparklesIcon className="h-4 w-4 text-white" />
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    className="h-5 w-5"
+                                    aria-hidden="true"
+                                >
+                                    <path d="m6 6 12 12M18 6 6 18" />
+                                </svg>
                             </button>
                         </div>
 
-                        {preferences.gradientPreset === 'custom' && (
-                            <div className="mt-2.5 flex items-center gap-3 rounded-lg bg-[var(--color-surface-soft)] p-2.5">
-                                <label className="flex flex-1 items-center gap-2 text-xs font-medium text-[var(--color-ink)]/70">
-                                    From
-                                    <input
-                                        type="color"
-                                        value={preferences.customGradient.from}
-                                        onChange={(event) =>
-                                            updatePreference(
-                                                'customGradient',
-                                                {
-                                                    ...preferences.customGradient,
-                                                    from: event.target.value,
-                                                },
-                                            )
-                                        }
-                                        className="h-7 w-full cursor-pointer rounded border border-[var(--color-border)]"
-                                    />
-                                </label>
-                                <label className="flex flex-1 items-center gap-2 text-xs font-medium text-[var(--color-ink)]/70">
-                                    To
-                                    <input
-                                        type="color"
-                                        value={preferences.customGradient.to}
-                                        onChange={(event) =>
-                                            updatePreference(
-                                                'customGradient',
-                                                {
-                                                    ...preferences.customGradient,
-                                                    to: event.target.value,
-                                                },
-                                            )
-                                        }
-                                        className="h-7 w-full cursor-pointer rounded border border-[var(--color-border)]"
-                                    />
-                                </label>
+                        <div className="px-4 py-3.5">
+                            <AppearancePreview />
+                        </div>
+
+                        <Section title="Theme">
+                            <SegmentedControl
+                                options={THEME_OPTIONS}
+                                value={preferences.theme}
+                                onChange={(value) =>
+                                    updatePreference('theme', value)
+                                }
+                            />
+                        </Section>
+
+                        <Section title="Accent Color">
+                            <div className="flex items-center gap-2.5">
+                                {ACCENT_SWATCHES.map((swatch) => {
+                                    const active =
+                                        preferences.accent === swatch.value;
+
+                                    return (
+                                        <button
+                                            key={swatch.value}
+                                            type="button"
+                                            title={swatch.label}
+                                            aria-label={swatch.label}
+                                            aria-pressed={active}
+                                            onClick={() =>
+                                                updatePreference(
+                                                    'accent',
+                                                    swatch.value,
+                                                )
+                                            }
+                                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-2 transition ${
+                                                active
+                                                    ? 'ring-[var(--color-ink)]/70'
+                                                    : 'ring-transparent hover:ring-[var(--color-ink)]/25'
+                                            }`}
+                                            style={{
+                                                backgroundColor: swatch.hex,
+                                            }}
+                                        >
+                                            {active && (
+                                                <CheckIcon className="h-4 w-4 text-white" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        )}
-                    </Section>
+                        </Section>
 
-                    <Section title="Sidebar Style">
-                        <SegmentedControl
-                            options={SIDEBAR_OPTIONS}
-                            value={preferences.sidebarStyle}
-                            onChange={(value) =>
-                                updatePreference('sidebarStyle', value)
-                            }
-                        />
-                    </Section>
+                        <Section title="Background Style">
+                            <SegmentedControl
+                                options={BACKGROUND_OPTIONS}
+                                value={preferences.backgroundStyle}
+                                onChange={(value) =>
+                                    updatePreference('backgroundStyle', value)
+                                }
+                            />
+                        </Section>
 
-                    <Section title="Header Style">
-                        <SegmentedControl
-                            options={HEADER_OPTIONS}
-                            value={preferences.headerStyle}
-                            onChange={(value) =>
-                                updatePreference('headerStyle', value)
-                            }
-                        />
-                    </Section>
+                        <Section title="Gradient Preset">
+                            <div className="grid grid-cols-5 gap-2">
+                                {GRADIENT_SWATCHES.map((swatch) => {
+                                    const active =
+                                        preferences.gradientPreset ===
+                                        swatch.value;
 
-                    <Section title="Font Size">
-                        <div className="grid grid-cols-3 gap-1.5">
-                            {FONT_SIZE_OPTIONS.map((option) => {
-                                const active =
-                                    preferences.fontSize === option.value;
-
-                                return (
-                                    <button
-                                        key={option.value}
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={active}
-                                        onClick={() =>
-                                            updatePreference(
-                                                'fontSize',
-                                                option.value,
-                                            )
-                                        }
-                                        className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition ${
-                                            active
-                                                ? 'border-transparent bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white shadow-md'
-                                                : 'border-[var(--color-border)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-ink)]'
-                                        }`}
-                                    >
-                                        <TypeIcon className={option.sample} />
-                                        {option.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </Section>
-
-                    <Section title="Border Radius">
-                        <div className="grid grid-cols-3 gap-1.5">
-                            {RADIUS_OPTIONS.map((option) => {
-                                const active =
-                                    preferences.borderRadius === option.value;
-
-                                return (
-                                    <button
-                                        key={option.value}
-                                        type="button"
-                                        role="radio"
-                                        aria-checked={active}
-                                        onClick={() =>
-                                            updatePreference(
-                                                'borderRadius',
-                                                option.value,
-                                            )
-                                        }
-                                        className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-semibold transition ${
-                                            active
-                                                ? 'border-transparent bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white shadow-md'
-                                                : 'border-[var(--color-border)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-ink)]'
-                                        }`}
-                                    >
-                                        <SquareIcon
-                                            className={`h-4 w-4 ${option.className}`}
+                                    return (
+                                        <button
+                                            key={swatch.value}
+                                            type="button"
+                                            title={swatch.label}
+                                            aria-label={swatch.label}
+                                            aria-pressed={active}
+                                            onClick={() =>
+                                                updatePreference(
+                                                    'gradientPreset',
+                                                    swatch.value,
+                                                )
+                                            }
+                                            className={`h-8 rounded-lg ring-2 transition ${
+                                                active
+                                                    ? 'ring-[var(--color-ink)]/70'
+                                                    : 'ring-transparent hover:ring-[var(--color-ink)]/25'
+                                            }`}
+                                            style={{
+                                                backgroundImage: `linear-gradient(135deg, ${swatch.from}, ${swatch.to})`,
+                                            }}
                                         />
-                                        {option.label}
-                                    </button>
-                                );
-                            })}
+                                    );
+                                })}
+                                <button
+                                    type="button"
+                                    title="Custom Gradient"
+                                    aria-label="Custom Gradient"
+                                    aria-pressed={
+                                        preferences.gradientPreset === 'custom'
+                                    }
+                                    onClick={() =>
+                                        updatePreference(
+                                            'gradientPreset',
+                                            'custom',
+                                        )
+                                    }
+                                    className={`flex h-8 items-center justify-center rounded-lg ring-2 transition ${
+                                        preferences.gradientPreset === 'custom'
+                                            ? 'ring-[var(--color-ink)]/70'
+                                            : 'ring-transparent hover:ring-[var(--color-ink)]/25'
+                                    }`}
+                                    style={{
+                                        backgroundImage: `linear-gradient(135deg, ${preferences.customGradient.from}, ${preferences.customGradient.to})`,
+                                    }}
+                                >
+                                    <SparklesIcon className="h-4 w-4 text-white" />
+                                </button>
+                            </div>
+
+                            {preferences.gradientPreset === 'custom' && (
+                                <div className="mt-2.5 flex items-center gap-3 rounded-lg bg-[var(--color-surface-soft)] p-2.5">
+                                    <label className="flex flex-1 items-center gap-2 text-xs font-medium text-[var(--color-ink)]/70">
+                                        From
+                                        <input
+                                            type="color"
+                                            value={
+                                                preferences.customGradient.from
+                                            }
+                                            onChange={(event) =>
+                                                updatePreference(
+                                                    'customGradient',
+                                                    {
+                                                        ...preferences.customGradient,
+                                                        from: event.target
+                                                            .value,
+                                                    },
+                                                )
+                                            }
+                                            className="h-7 w-full cursor-pointer rounded border border-[var(--color-border)]"
+                                        />
+                                    </label>
+                                    <label className="flex flex-1 items-center gap-2 text-xs font-medium text-[var(--color-ink)]/70">
+                                        To
+                                        <input
+                                            type="color"
+                                            value={
+                                                preferences.customGradient.to
+                                            }
+                                            onChange={(event) =>
+                                                updatePreference(
+                                                    'customGradient',
+                                                    {
+                                                        ...preferences.customGradient,
+                                                        to: event.target.value,
+                                                    },
+                                                )
+                                            }
+                                            className="h-7 w-full cursor-pointer rounded border border-[var(--color-border)]"
+                                        />
+                                    </label>
+                                </div>
+                            )}
+                        </Section>
+
+                        <Section title="Sidebar Style">
+                            <SegmentedControl
+                                options={SIDEBAR_OPTIONS}
+                                value={preferences.sidebarStyle}
+                                onChange={(value) =>
+                                    updatePreference('sidebarStyle', value)
+                                }
+                            />
+                        </Section>
+
+                        <Section title="Header Style">
+                            <SegmentedControl
+                                options={HEADER_OPTIONS}
+                                value={preferences.headerStyle}
+                                onChange={(value) =>
+                                    updatePreference('headerStyle', value)
+                                }
+                            />
+                        </Section>
+
+                        <Section title="Font Size">
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {FONT_SIZE_OPTIONS.map((option) => {
+                                    const active =
+                                        preferences.fontSize === option.value;
+
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            onClick={() =>
+                                                updatePreference(
+                                                    'fontSize',
+                                                    option.value,
+                                                )
+                                            }
+                                            className={`flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-xs font-semibold transition ${
+                                                active
+                                                    ? 'border-transparent bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white shadow-md'
+                                                    : 'border-[var(--color-border)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-ink)]'
+                                            }`}
+                                        >
+                                            <TypeIcon
+                                                className={option.sample}
+                                            />
+                                            {option.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </Section>
+
+                        <Section title="Border Radius">
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {RADIUS_OPTIONS.map((option) => {
+                                    const active =
+                                        preferences.borderRadius ===
+                                        option.value;
+
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            onClick={() =>
+                                                updatePreference(
+                                                    'borderRadius',
+                                                    option.value,
+                                                )
+                                            }
+                                            className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-xs font-semibold transition ${
+                                                active
+                                                    ? 'border-transparent bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] text-white shadow-md'
+                                                    : 'border-[var(--color-border)] text-[var(--color-ink)]/70 hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-ink)]'
+                                            }`}
+                                        >
+                                            <SquareIcon
+                                                className={`h-4 w-4 ${option.className}`}
+                                            />
+                                            {option.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </Section>
+
+                        <Section title="Motion">
+                            <ToggleSwitch
+                                checked={preferences.animations}
+                                onChange={(value) =>
+                                    updatePreference('animations', value)
+                                }
+                                label="Enable UI animations"
+                            />
+                        </Section>
+
+                        <div className="border-t border-[var(--color-border)] px-4 py-3.5">
+                            <button
+                                type="button"
+                                onClick={resetPreferences}
+                                className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2 text-sm font-semibold text-[var(--color-ink)]/75 transition hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"
+                            >
+                                <RefreshIcon className="h-4 w-4" />
+                                Reset to Default
+                            </button>
                         </div>
-                    </Section>
-
-                    <Section title="Motion">
-                        <ToggleSwitch
-                            checked={preferences.animations}
-                            onChange={(value) =>
-                                updatePreference('animations', value)
-                            }
-                            label="Enable UI animations"
-                        />
-                    </Section>
-
-                    <div className="border-t border-[var(--color-border)] px-4 py-3.5">
-                        <button
-                            type="button"
-                            onClick={resetPreferences}
-                            className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2 text-sm font-semibold text-[var(--color-ink)]/75 transition hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"
-                        >
-                            <RefreshIcon className="h-4 w-4" />
-                            Reset to Default
-                        </button>
-                    </div>
-                </div>,
-                document.body,
-            )}
+                    </div>,
+                    document.body,
+                )}
         </div>
     );
 }

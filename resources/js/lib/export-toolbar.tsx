@@ -47,12 +47,7 @@ export default function ExportToolbar({
     };
 
     return (
-        <div
-            className={cn(
-                'flex flex-wrap items-center gap-2',
-                className,
-            )}
-        >
+        <div className={cn('flex flex-wrap items-center gap-2', className)}>
             <ToolbarActionButton
                 color="#3b82f6"
                 onClick={handleCopy}

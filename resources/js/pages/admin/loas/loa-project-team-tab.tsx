@@ -1,5 +1,8 @@
-import { errorClass, inputClass, labelClass } from './loa-form-fields';
+import EngineerCombobox from '@/lib/engineer-combobox';
+import type { EngineerSearchResult } from '@/lib/engineer-combobox';
+import { errorClass, labelClass } from './loa-form-fields';
 import type {
+    EngineerTypeOption,
     LoaFormData,
     LoaFormErrors,
     LoaTeamMemberFormData,
@@ -8,12 +11,12 @@ import type {
 type LoaProjectTeamTabProps = {
     data: LoaFormData;
     errors: LoaFormErrors;
+    engineerTypes: EngineerTypeOption[];
     addTeamMember: () => void;
     removeTeamMember: (index: number) => void;
     updateTeamMember: (
         index: number,
-        field: keyof LoaTeamMemberFormData,
-        value: string,
+        patch: Partial<LoaTeamMemberFormData>,
     ) => void;
     className?: string;
 };
@@ -21,11 +24,35 @@ type LoaProjectTeamTabProps = {
 export default function LoaProjectTeamTab({
     data,
     errors,
+    engineerTypes,
     addTeamMember,
     removeTeamMember,
     updateTeamMember,
     className,
 }: LoaProjectTeamTabProps) {
+    const handleEngineerSelect = (
+        index: number,
+        engineer: EngineerSearchResult,
+    ) => {
+        updateTeamMember(index, {
+            engineer_id: engineer.id,
+            name: engineer.full_name,
+            engineer_type_id: engineer.engineer_type_id ?? '',
+            role: engineer.engineer_type ?? '',
+        });
+    };
+
+    const handleRoleChange = (index: number, engineerTypeId: number | '') => {
+        const engineerType = engineerTypes.find(
+            (type) => type.id === engineerTypeId,
+        );
+
+        updateTeamMember(index, {
+            engineer_type_id: engineerTypeId,
+            role: engineerType?.name ?? '',
+        });
+    };
+
     return (
         <div className={className}>
             <div className="space-y-4">
@@ -41,23 +68,18 @@ export default function LoaProjectTeamTab({
                             >
                                 Name
                             </label>
-                            <input
+                            <EngineerCombobox
                                 id={`team-${index}-name`}
-                                type="text"
-                                value={member.name}
-                                onChange={(event) =>
-                                    updateTeamMember(
-                                        index,
-                                        'name',
-                                        event.target.value,
-                                    )
+                                value={member.engineer_id}
+                                displayLabel={member.name}
+                                onSelect={(engineer) =>
+                                    handleEngineerSelect(index, engineer)
                                 }
-                                placeholder="e.g. Ramesh Kumar"
-                                className={inputClass}
+                                placeholder="Search engineer…"
                             />
-                            {errors[`team.${index}.name`] && (
+                            {errors[`team.${index}.engineer_id`] && (
                                 <p className={errorClass}>
-                                    {errors[`team.${index}.name`]}
+                                    {errors[`team.${index}.engineer_id`]}
                                 </p>
                             )}
                         </div>
@@ -69,23 +91,32 @@ export default function LoaProjectTeamTab({
                             >
                                 Role
                             </label>
-                            <input
+                            <select
                                 id={`team-${index}-role`}
-                                type="text"
-                                value={member.role}
+                                value={member.engineer_type_id}
                                 onChange={(event) =>
-                                    updateTeamMember(
+                                    handleRoleChange(
                                         index,
-                                        'role',
-                                        event.target.value,
+                                        event.target.value
+                                            ? Number(event.target.value)
+                                            : '',
                                     )
                                 }
-                                placeholder="e.g. Project Manager"
-                                className={inputClass}
-                            />
-                            {errors[`team.${index}.role`] && (
+                                className="w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-4 py-2.5 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
+                            >
+                                <option value="">Select role…</option>
+                                {engineerTypes.map((engineerType) => (
+                                    <option
+                                        key={engineerType.id}
+                                        value={engineerType.id}
+                                    >
+                                        {engineerType.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors[`team.${index}.engineer_type_id`] && (
                                 <p className={errorClass}>
-                                    {errors[`team.${index}.role`]}
+                                    {errors[`team.${index}.engineer_type_id`]}
                                 </p>
                             )}
                         </div>

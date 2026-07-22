@@ -45,7 +45,9 @@ export default function DivisionsEdit({ division, zones }: EditProps) {
                         Admin / Settings / Division
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >

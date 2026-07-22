@@ -1,5 +1,9 @@
 import { useRef, useState } from 'react';
-import { preview as previewRoute, store as storeRoute, template } from '@/routes/admin/imports';
+import {
+    preview as previewRoute,
+    store as storeRoute,
+    template,
+} from '@/routes/admin/imports';
 
 export type SettingsImportModule =
     | 'states'
@@ -544,7 +548,9 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
             <p className="text-xs font-medium tracking-wide text-[var(--color-gold)] uppercase">
                 {label}
             </p>
-            <p className="mt-1 text-xl font-semibold text-[var(--color-ink)]">{value}</p>
+            <p className="mt-1 text-xl font-semibold text-[var(--color-ink)]">
+                {value}
+            </p>
         </div>
     );
 }

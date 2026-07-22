@@ -40,7 +40,9 @@ export default function EngineerTypesEdit({ engineerType }: EditProps) {
                         Admin / Sub Setting / Engineer Types
                     </Link>
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
-                    <span className="font-semibold text-[var(--color-ink)]">Edit</span>
+                    <span className="font-semibold text-[var(--color-ink)]">
+                        Edit
+                    </span>
                 </div>
             }
         >

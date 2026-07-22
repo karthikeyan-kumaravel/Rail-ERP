@@ -147,7 +147,9 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                         <span className="text-[var(--color-ink)]/55">
                             Admin / Settings
                         </span>
-                        <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+                        <span className="mx-1.5 text-[var(--color-ink)]/40">
+                            /
+                        </span>
                         <span className="font-semibold text-[var(--color-ink)]">
                             City
                         </span>
@@ -190,7 +192,7 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                             type="text"
                             value={search}
                             onChange={(event) => setSearch(event.target.value)}
-                            className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
+                            className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
                         />
                         <SettingsImportActions module="cities" title="City" />
                     </div>
@@ -199,7 +201,7 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                 <div className="overflow-x-auto">
                     <table className="w-full min-w-[880px] text-left text-sm">
                         <thead>
-                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-soft)] text-xs font-semibold tracking-wide text-[var(--color-ink)]/60 uppercase">
+                            <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-xs font-semibold tracking-wide text-[var(--color-accent)] uppercase">
                                 <th className="px-3 py-3">S.No</th>
                                 {sortableColumns.map((column) => (
                                     <th
@@ -274,9 +276,7 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                                     <td className="px-3 py-3 print:hidden">
                                         <div className="flex items-center gap-3">
                                             <Link
-                                                href={edit.url(
-                                                    city.unique_id,
-                                                )}
+                                                href={edit.url(city.unique_id)}
                                                 title="Edit"
                                                 aria-label={`Edit ${city.name}`}
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"

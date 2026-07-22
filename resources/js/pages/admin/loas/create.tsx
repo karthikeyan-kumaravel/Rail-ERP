@@ -7,7 +7,9 @@ import LoaDetailsTab from './loa-details-tab';
 import LoaFinancialSecurityTab from './loa-financial-security-tab';
 import { defaultLoaFormData, validateLoaTab } from './loa-form-fields';
 import type {
+    BankOption,
     DivisionOption,
+    EngineerTypeOption,
     LoaFormData,
     LoaTeamMemberFormData,
     ScheduleNameOption,
@@ -22,6 +24,26 @@ import LoaScopeOfWorkTab from './loa-scope-of-work-tab';
 import LoaTabs, { LOA_TAB_ORDER } from './loa-tabs';
 import type { LoaTabKey } from './loa-tabs';
 
+// Only 'details' is ever active on the create page (every later tab is
+// locked until the record exists on the edit page) — this is the field
+// surface whose stale server errors get cleared once the user edits them.
+const DETAILS_TAB_FIELD_PREFIXES = [
+    'loa_number',
+    'client',
+    'vendor_id',
+    'division_id',
+    'work_type',
+    'contract_value_amount',
+    'contract_value_unit',
+    'completion_period_months',
+    'defect_liability_months',
+    'start_date',
+    'end_date',
+    'total_stations',
+    'active_status',
+    'stations',
+];
+
 type CreateProps = {
     divisions: DivisionOption[];
     scheduleNames: ScheduleNameOption[];
@@ -29,6 +51,8 @@ type CreateProps = {
     vendors: VendorOption[];
     stations: StationOption[];
     units: UnitOption[];
+    banks: BankOption[];
+    engineerTypes: EngineerTypeOption[];
 };
 
 export default function LoasCreate({
@@ -38,6 +62,8 @@ export default function LoasCreate({
     vendors,
     stations,
     units,
+    banks,
+    engineerTypes,
 }: CreateProps) {
     const { data, setData, post, transform, processing, errors, reset } =
         useForm<LoaFormData>(defaultLoaFormData());
@@ -59,10 +85,31 @@ export default function LoasCreate({
     const stepErrors = attemptedTabs.has(activeTab)
         ? validateLoaTab(activeTab, data)
         : {};
-    const displayErrors = { ...errors, ...stepErrors };
+    // Server errors persist in Inertia's `errors` until the next successful
+    // round trip — once the user edits a field on the active tab, a fresh
+    // client check should supersede any now-stale server message for that
+    // same field, not just sit alongside it. Only 'details' is ever active
+    // on this page, so its own field list is all that needs stripping.
+    const liveServerErrors =
+        activeTab === 'details'
+            ? Object.fromEntries(
+                  Object.entries(errors).filter(
+                      ([key]) =>
+                          !DETAILS_TAB_FIELD_PREFIXES.some(
+                              (prefix) =>
+                                  key === prefix ||
+                                  key.startsWith(`${prefix}.`),
+                          ),
+                  ),
+              )
+            : errors;
+    const displayErrors = { ...liveServerErrors, ...stepErrors };
 
     const addTeamMember = () => {
-        setData('team', [...data.team, { name: '', role: '' }]);
+        setData('team', [
+            ...data.team,
+            { engineer_id: '', engineer_type_id: '', name: '', role: '' },
+        ]);
     };
 
     const removeTeamMember = (index: number) => {
@@ -78,13 +125,12 @@ export default function LoasCreate({
 
     const updateTeamMember = (
         index: number,
-        field: keyof LoaTeamMemberFormData,
-        value: string,
+        patch: Partial<LoaTeamMemberFormData>,
     ) => {
         setData(
             'team',
             data.team.map((member, i) =>
-                i === index ? { ...member, [field]: value } : member,
+                i === index ? { ...member, ...patch } : member,
             ),
         );
     };
@@ -173,12 +219,14 @@ export default function LoasCreate({
                     data={data}
                     setData={setData}
                     errors={displayErrors}
+                    banks={banks}
                     className={activeTab === 'financial' ? '' : 'hidden'}
                 />
 
                 <LoaProjectTeamTab
                     data={data}
                     errors={displayErrors}
+                    engineerTypes={engineerTypes}
                     addTeamMember={addTeamMember}
                     removeTeamMember={removeTeamMember}
                     updateTeamMember={updateTeamMember}

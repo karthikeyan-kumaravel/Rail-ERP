@@ -2,7 +2,15 @@ import { Link } from '@inertiajs/react';
 
 export type PerPageValue = 10 | 25 | 50 | 100 | 250 | 500 | 'All';
 
-export const PER_PAGE_OPTIONS: PerPageValue[] = [10, 25, 50, 100, 250, 500, 'All'];
+export const PER_PAGE_OPTIONS: PerPageValue[] = [
+    10,
+    25,
+    50,
+    100,
+    250,
+    500,
+    'All',
+];
 
 type PerPageSelectProps = {
     value: PerPageValue;
@@ -17,7 +25,9 @@ export function PerPageSelect({ value, onChange }: PerPageSelectProps) {
                 value={value}
                 onChange={(event) => {
                     const raw = event.target.value;
-                    onChange(raw === 'All' ? 'All' : (Number(raw) as PerPageValue));
+                    onChange(
+                        raw === 'All' ? 'All' : (Number(raw) as PerPageValue),
+                    );
                 }}
                 className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-2 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
             >
