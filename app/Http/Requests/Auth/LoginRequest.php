@@ -22,18 +22,26 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'email' => ['required', 'string', 'email'],
+        $rules = [
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
-            'h_captcha_response' => ['required', new HCaptcha],
+            'captcha_answer' => ['required', 'string'],
         ];
+
+        if ($this->captchaEnabled()) {
+            $rules['h_captcha_response'] = ['required', new HCaptcha];
+        }
+
+        return $rules;
     }
 
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->credentials();
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -42,6 +50,45 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if ($validator->errors()->hasAny(['captcha_answer', 'h_captcha_response'])) {
+                return;
+            }
+
+            $expected = (string) $this->session()->get('login_captcha.answer');
+            $provided = trim((string) $this->input('captcha_answer'));
+
+            if ($expected === '' || $provided !== $expected) {
+                $validator->errors()->add('captcha_answer', 'Please check the captcha verification.');
+            }
+        });
+    }
+
+    protected function credentials(): array
+    {
+        $login = trim((string) $this->string('email'));
+
+        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
+            return [
+                'email' => $login,
+                'password' => $this->string('password')->toString(),
+            ];
+        }
+
+        return [
+            'username' => $login,
+            'password' => $this->string('password')->toString(),
+        ];
+    }
+
+    protected function captchaEnabled(): bool
+    {
+        return filled(config('services.hcaptcha.site_key'))
+            && filled(config('services.hcaptcha.secret_key'));
     }
 
     protected function ensureIsNotRateLimited(): void
