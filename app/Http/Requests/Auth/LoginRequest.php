@@ -25,6 +25,7 @@ class LoginRequest extends FormRequest
         $rules = [
             'email' => ['required', 'string'],
             'password' => ['required', 'string'],
+            'remember' => ['nullable', 'boolean'],
             'captcha_answer' => ['required', 'string'],
         ];
 
