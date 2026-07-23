@@ -5,7 +5,11 @@ import AdminLayout from '@/layouts/admin-layout';
 import { index, update } from '@/routes/admin/loas';
 import LoaDetailsTab from './loa-details-tab';
 import LoaFinancialSecurityTab from './loa-financial-security-tab';
-import { FINANCIAL_SECURITY_TYPES, validateLoaTab } from './loa-form-fields';
+import {
+    FINANCIAL_SECURITY_TYPES,
+    scrollToFirstError,
+    validateLoaTab,
+} from './loa-form-fields';
 import type {
     BankOption,
     DivisionOption,
@@ -14,6 +18,7 @@ import type {
     FinancialSecuritiesFormData,
     FinancialSecurityType,
     LoaFormData,
+    LoaFormErrors,
     LoaItemFormData,
     LoaStationFormData,
     LoaTeamMemberFormData,
@@ -47,12 +52,7 @@ const tabFieldPrefixes: Record<LoaTabKey, string[]> = {
         'stations',
     ],
     items: ['items'],
-    financial: [
-        'mobilization_advance_amount',
-        'mobilization_advance_unit',
-        'mobilization_advance_status',
-        'financial_securities',
-    ],
+    financial: ['financial_securities'],
     team: ['team'],
     scope: ['scope_of_work'],
 };
@@ -79,6 +79,7 @@ type EditTeamMember = {
 type EditLoa = {
     unique_id: string;
     loa_number: string;
+    loa_date: string | null;
     client: string;
     vendor_id: number | null;
     division_id: number;
@@ -92,9 +93,8 @@ type EditLoa = {
     start_date: string;
     end_date: string;
     total_stations: number;
-    mobilization_advance_amount: number;
-    mobilization_advance_unit: 'Cr' | 'L';
-    mobilization_advance_status: 'Pending' | 'Requested' | 'Received';
+    completion_date: string | null;
+    extension_date: string | null;
     scope_of_work: string;
     active_status: boolean;
     team: EditTeamMember[];
@@ -180,9 +180,10 @@ export default function LoasEdit({
     engineerTypes,
     resumeTab,
 }: EditProps) {
-    const { data, setData, put, transform, processing, errors } =
+    const { data, setData, post, transform, processing, errors } =
         useForm<LoaFormData>({
             loa_number: loa.loa_number,
+            loa_date: loa.loa_date ?? '',
             client: loa.client,
             vendor_id: loa.vendor_id ?? '',
             division_id: loa.division_id,
@@ -196,9 +197,8 @@ export default function LoasEdit({
             start_date: loa.start_date,
             end_date: loa.end_date,
             total_stations: loa.total_stations,
-            mobilization_advance_amount: loa.mobilization_advance_amount,
-            mobilization_advance_unit: loa.mobilization_advance_unit,
-            mobilization_advance_status: loa.mobilization_advance_status,
+            completion_date: loa.completion_date ?? '',
+            extension_date: loa.extension_date ?? '',
             scope_of_work: loa.scope_of_work,
             active_status: loa.active_status ? '1' : '0',
             team: toTeamFormData(loa.team),
@@ -247,20 +247,14 @@ export default function LoasEdit({
     const stepErrors = attemptedTabs.has(activeTab)
         ? validateLoaTab(activeTab, data)
         : {};
-    // Server errors persist in Inertia's `errors` until the next successful
-    // round trip — once the user edits a field on the active tab, a fresh
-    // client check should supersede any now-stale server message for that
-    // same field, not just sit alongside it.
-    const activeTabPrefixes = tabFieldPrefixes[activeTab];
-    const liveServerErrors = Object.fromEntries(
-        Object.entries(errors).filter(
-            ([key]) =>
-                !activeTabPrefixes.some(
-                    (prefix) => key === prefix || key.startsWith(`${prefix}.`),
-                ),
-        ),
-    );
-    const displayErrors = { ...liveServerErrors, ...stepErrors };
+    // `stepErrors` is spread after `errors` so a fresh client check for a
+    // field supersedes a now-stale server message for that *same* field —
+    // without discarding every other server error under the active tab's
+    // prefix. Blanket-stripping by prefix (the previous approach) silently
+    // dropped server-only rules the client can't replicate (e.g. the
+    // Financial Security document requirement): the red dot still lit up
+    // from the raw `errors`, but no message ever reached the screen.
+    const displayErrors: LoaFormErrors = { ...errors, ...stepErrors };
 
     const addTeamMember = () => {
         setData('team', [
@@ -292,21 +286,61 @@ export default function LoasEdit({
         );
     };
 
+    /**
+     * Jumps to the earliest tab (in wizard order) that a server error
+     * belongs to, so a `finish()` failure never leaves the user stranded on
+     * a tab whose content doesn't include the field that actually failed.
+     */
+    const revealServerErrors = (formErrors: LoaFormErrors) => {
+        const erroredTab = LOA_TAB_ORDER.find((tab) =>
+            tabFieldPrefixes[tab].some((prefix) =>
+                Object.keys(formErrors).some(
+                    (key) => key === prefix || key.startsWith(`${prefix}.`),
+                ),
+            ),
+        );
+
+        if (erroredTab) {
+            setAttemptedTabs((tabs) => new Set(tabs).add(erroredTab));
+            setFurthestUnlockedIndex((current) =>
+                Math.max(current, LOA_TAB_ORDER.indexOf(erroredTab)),
+            );
+            setActiveTab(erroredTab);
+        }
+
+        console.warn('LOA save failed validation:', formErrors);
+        window.setTimeout(() => scrollToFirstError(formErrors), 50);
+    };
+
     const saveAndContinue = () => {
         setAttemptedTabs((tabs) => new Set(tabs).add(activeTab));
 
-        if (Object.keys(validateLoaTab(activeTab, data)).length > 0) {
+        const clientErrors = validateLoaTab(activeTab, data);
+
+        if (Object.keys(clientErrors).length > 0) {
+            window.setTimeout(() => scrollToFirstError(clientErrors), 50);
+
             return;
         }
 
         const nextIndex = LOA_TAB_ORDER.indexOf(activeTab) + 1;
 
+        // Laravel/PHP never populates $_POST/$_FILES for a literal PUT
+        // request, even when its body is multipart/form-data — only POST
+        // gets parsed that way. Inertia doesn't auto-spoof this (unlike a
+        // plain HTML form with @method('PUT')), so a real `put()` call here
+        // would silently ship an empty body the instant any Financial
+        // Security file input holds a File, and every `required` rule fails
+        // at once. Sending as `post()` with `_method: 'put'` is the
+        // documented Inertia/Laravel pattern for this exact situation —
+        // Laravel treats it as the PUT route, PHP parses the body normally.
         transform((formData) => ({
             ...formData,
             current_step: activeTab,
             finish: false,
+            _method: 'put',
         }));
-        put(update.url(loa.unique_id), {
+        post(update.url(loa.unique_id), {
             preserveScroll: true,
             preserveState: true,
             onSuccess: () => {
@@ -315,12 +349,19 @@ export default function LoasEdit({
                 );
                 setActiveTab(LOA_TAB_ORDER[nextIndex]);
             },
+            onError: revealServerErrors,
         });
     };
 
     const finish = () => {
-        transform((formData) => ({ ...formData, finish: true }));
-        put(update.url(loa.unique_id));
+        transform((formData) => ({
+            ...formData,
+            finish: true,
+            _method: 'put',
+        }));
+        post(update.url(loa.unique_id), {
+            onError: revealServerErrors,
+        });
     };
 
     const submit: FormEventHandler = (event) => {

@@ -4,13 +4,13 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Admin\Concerns\AppliesStepValidation;
 use App\Models\LoaFinancialSecurity;
-use App\Support\FinancialSecurityValidation;
 use App\Support\LoaFormSteps;
 use App\Support\PaymentStages;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class StoreLoaRequest extends FormRequest
@@ -23,6 +23,18 @@ class StoreLoaRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'loa_date' => $this->filled('loa_date') ? $this->input('loa_date') : null,
+            'completion_date' => $this->filled('completion_date') ? $this->input('completion_date') : null,
+            'extension_date' => $this->filled('extension_date') ? $this->input('extension_date') : null,
+        ]);
     }
 
     /**
@@ -47,6 +59,7 @@ class StoreLoaRequest extends FormRequest
                 'max:100',
                 Rule::unique('loas', 'loa_number')->where(fn ($query) => $query->where('is_delete', false)),
             ],
+            'loa_date' => ['nullable', 'date'],
             'client' => ['required', 'string', 'max:255'],
             'vendor_id' => [
                 'nullable',
@@ -72,9 +85,8 @@ class StoreLoaRequest extends FormRequest
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'total_stations' => ['required', 'integer', 'min:0'],
-            'mobilization_advance_amount' => ['required', 'numeric', 'min:0'],
-            'mobilization_advance_unit' => ['required', 'in:Cr,L'],
-            'mobilization_advance_status' => ['required', 'in:Pending,Requested,Received'],
+            'completion_date' => ['nullable', 'date'],
+            'extension_date' => ['nullable', 'date'],
             'scope_of_work' => ['required', 'string'],
             'active_status' => ['required', 'in:0,1'],
             'team' => ['required', 'array', 'min:1'],
@@ -127,8 +139,8 @@ class StoreLoaRequest extends FormRequest
             ],
             'financial_securities' => ['required', 'array'],
             ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_EMD),
-            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_PERFORMANCE_BG),
-            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_SECURITY_BG),
+            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_PERFORMANCE_BG, required: false),
+            ...$this->financialSecurityRules(LoaFinancialSecurity::TYPE_SECURITY_BG, required: false),
         ];
     }
 
@@ -136,14 +148,18 @@ class StoreLoaRequest extends FormRequest
      * The validation rules shared by the EMD, Performance BG, and Security BG
      * sections of the Financial Security tab — identical shape per type, so
      * this is generated once per type rather than copy-pasted three times.
+     * Performance BG and Security BG are optional, so their fields are
+     * validated as `nullable` rather than `required`.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
-    private function financialSecurityRules(string $type): array
+    private function financialSecurityRules(string $type, bool $required = true): array
     {
+        $presence = $required ? 'required' : 'nullable';
+
         return [
             "financial_securities.{$type}.amount" => [
-                'required',
+                $presence,
                 'numeric',
                 function (string $attribute, mixed $value, Closure $fail): void {
                     if ((float) $value <= 0) {
@@ -151,20 +167,20 @@ class StoreLoaRequest extends FormRequest
                     }
                 },
             ],
-            "financial_securities.{$type}.amount_unit" => ['required', 'in:Cr,L'],
-            "financial_securities.{$type}.validity_start_date" => ['required', 'date'],
+            "financial_securities.{$type}.amount_unit" => [$presence, 'in:Cr,L'],
+            "financial_securities.{$type}.validity_start_date" => [$presence, 'date'],
             "financial_securities.{$type}.validity_end_date" => [
-                'required',
+                $presence,
                 'date',
                 "after_or_equal:financial_securities.{$type}.validity_start_date",
             ],
-            "financial_securities.{$type}.claim_period" => ['required', 'integer', 'min:1'],
-            "financial_securities.{$type}.claim_period_unit" => ['required', 'in:Days,Months'],
+            "financial_securities.{$type}.claim_period" => [$presence, 'integer', 'min:1'],
+            "financial_securities.{$type}.claim_period_unit" => [$presence, 'in:Days,Months'],
             "financial_securities.{$type}.bank_id" => [
-                'required',
+                $presence,
                 Rule::exists('banks', 'id')->where(fn ($query) => $query->where('is_delete', false)),
             ],
-            "financial_securities.{$type}.file" => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,docx', 'max:5120'],
+            "financial_securities.{$type}.file" => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx', 'max:5120'],
             "financial_securities.{$type}.remove_file" => ['boolean'],
         ];
     }
@@ -192,11 +208,23 @@ class StoreLoaRequest extends FormRequest
                 PaymentStages::validateItems($this->input('items', []), $validator);
             });
         }
+    }
 
-        if ($finishing || $currentStep === 'financial') {
-            $validator->after(function (Validator $validator) {
-                FinancialSecurityValidation::validateDocuments($this, null, $validator);
-            });
-        }
+    /**
+     * Logs which field(s)/rule(s) rejected the request before the usual
+     * redirect-back-with-errors response — the wizard posts the entire form
+     * on every step, so without this it's not obvious from the response
+     * alone whether a failure came from the current step or a stale field
+     * belonging to a different tab.
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        Log::debug('LOA store request failed validation', [
+            'current_step' => $this->string('current_step')->toString(),
+            'finish' => $this->boolean('finish', true),
+            'errors' => $validator->errors()->toArray(),
+        ]);
+
+        parent::failedValidation($validator);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Alert;
 use App\Models\UserScreen;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -43,6 +44,9 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'navigation' => $request->user() ? UserScreen::navigationTree() : [],
+            'alertsCount' => $request->user()
+                ? Alert::query()->where('is_delete', false)->count()
+                : null,
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

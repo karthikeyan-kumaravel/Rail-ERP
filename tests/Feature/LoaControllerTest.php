@@ -99,9 +99,6 @@ function validLoaPayload(int $divisionId, array $overrides = []): array
         'start_date' => '2026-01-01',
         'end_date' => '2027-06-30',
         'total_stations' => 10,
-        'mobilization_advance_amount' => 1.5,
-        'mobilization_advance_unit' => 'L',
-        'mobilization_advance_status' => 'Pending',
         'scope_of_work' => 'Renewal of track infrastructure across the division.',
         'active_status' => '1',
         'team' => [
@@ -136,6 +133,64 @@ test('an loa can be created with team members', function () {
         ->and($members[1]->order_no)->toBe(1)
         ->and($members[2]->name)->toBe('Carol')
         ->and($members[2]->order_no)->toBe(2);
+});
+
+test('an loa can be created with a loa date, completion date, and extension date', function () {
+    $division = Division::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'loa_date' => '2026-01-05',
+        'completion_date' => '2027-07-01',
+        'extension_date' => '2027-09-01',
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+
+    $loa = Loa::query()->where('loa_number', 'RAILWAY/ABC/2026/001')->firstOrFail();
+
+    expect($loa->loa_date->format('Y-m-d'))->toBe('2026-01-05')
+        ->and($loa->completion_date->format('Y-m-d'))->toBe('2027-07-01')
+        ->and($loa->extension_date->format('Y-m-d'))->toBe('2027-09-01');
+});
+
+test('loa date, completion date, and extension date are optional', function () {
+    $division = Division::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id));
+
+    $response->assertRedirect('/admin/loas');
+    $response->assertSessionDoesntHaveErrors();
+
+    $loa = Loa::query()->where('loa_number', 'RAILWAY/ABC/2026/001')->firstOrFail();
+
+    expect($loa->loa_date)->toBeNull()
+        ->and($loa->completion_date)->toBeNull()
+        ->and($loa->extension_date)->toBeNull();
+});
+
+test('the edit page formats every loa date field as Y-m-d for the date inputs', function () {
+    $this->withoutVite();
+    $division = Division::factory()->create();
+
+    $loa = Loa::factory()->create([
+        'division_id' => $division->id,
+        'loa_date' => '2026-01-05',
+        'start_date' => '2026-02-01',
+        'end_date' => '2027-02-01',
+        'completion_date' => '2027-03-01',
+        'extension_date' => '2027-04-01',
+    ]);
+
+    $response = $this->get("/admin/loas/{$loa->unique_id}/edit");
+
+    $response->assertOk();
+    $response->assertInertia(fn (Assert $page) => $page
+        ->where('loa.loa_date', '2026-01-05')
+        ->where('loa.start_date', '2026-02-01')
+        ->where('loa.end_date', '2027-02-01')
+        ->where('loa.completion_date', '2027-03-01')
+        ->where('loa.extension_date', '2027-04-01')
+    );
 });
 
 test('an loa can be created with a vendor, schedule name, and schedule type', function () {
@@ -870,9 +925,6 @@ test('an loa can be completed by saving progress tab by tab then finishing', fun
         'end_date' => $loa->end_date->format('Y-m-d'),
         'total_stations' => $loa->total_stations,
         'items' => $savedItems,
-        'mobilization_advance_amount' => 1.5,
-        'mobilization_advance_unit' => 'L',
-        'mobilization_advance_status' => 'Pending',
         'financial_securities' => validFinancialSecuritiesPayload(),
         'team' => [['name' => '', 'role' => '']],
         'current_step' => 'financial',
@@ -886,7 +938,6 @@ test('an loa can be completed by saving progress tab by tab then finishing', fun
     $finish = $this->put("/admin/loas/{$loa->unique_id}", validLoaPayload($division->id, [
         'loa_number' => $loa->loa_number,
         'items' => $savedItems,
-        'mobilization_advance_amount' => 1.5,
         'finish' => '1',
     ]));
 

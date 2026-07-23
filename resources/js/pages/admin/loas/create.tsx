@@ -5,12 +5,17 @@ import AdminLayout from '@/layouts/admin-layout';
 import { index, store } from '@/routes/admin/loas';
 import LoaDetailsTab from './loa-details-tab';
 import LoaFinancialSecurityTab from './loa-financial-security-tab';
-import { defaultLoaFormData, validateLoaTab } from './loa-form-fields';
+import {
+    defaultLoaFormData,
+    scrollToFirstError,
+    validateLoaTab,
+} from './loa-form-fields';
 import type {
     BankOption,
     DivisionOption,
     EngineerTypeOption,
     LoaFormData,
+    LoaFormErrors,
     LoaTeamMemberFormData,
     ScheduleNameOption,
     ScheduleTypeOption,
@@ -24,25 +29,32 @@ import LoaScopeOfWorkTab from './loa-scope-of-work-tab';
 import LoaTabs, { LOA_TAB_ORDER } from './loa-tabs';
 import type { LoaTabKey } from './loa-tabs';
 
-// Only 'details' is ever active on the create page (every later tab is
-// locked until the record exists on the edit page) — this is the field
-// surface whose stale server errors get cleared once the user edits them.
-const DETAILS_TAB_FIELD_PREFIXES = [
-    'loa_number',
-    'client',
-    'vendor_id',
-    'division_id',
-    'work_type',
-    'contract_value_amount',
-    'contract_value_unit',
-    'completion_period_months',
-    'defect_liability_months',
-    'start_date',
-    'end_date',
-    'total_stations',
-    'active_status',
-    'stations',
-];
+// The field surface each tab renders — mirrored from edit.tsx — used to
+// tell whether a server error belongs to a given tab (only 'details' is
+// ever reachable on this page today, but every tab is listed for parity
+// with edit.tsx and in case that changes).
+const tabFieldPrefixes: Record<LoaTabKey, string[]> = {
+    details: [
+        'loa_number',
+        'client',
+        'vendor_id',
+        'division_id',
+        'work_type',
+        'contract_value_amount',
+        'contract_value_unit',
+        'completion_period_months',
+        'defect_liability_months',
+        'start_date',
+        'end_date',
+        'total_stations',
+        'active_status',
+        'stations',
+    ],
+    items: ['items'],
+    financial: ['financial_securities'],
+    team: ['team'],
+    scope: ['scope_of_work'],
+};
 
 type CreateProps = {
     divisions: DivisionOption[];
@@ -78,32 +90,30 @@ export default function LoasCreate({
     // the edit page) and each preceding tab has been saved.
     const isLocked = (tab: LoaTabKey) => LOA_TAB_ORDER.indexOf(tab) > 0;
 
-    const hasError = (tab: LoaTabKey) =>
-        attemptedTabs.has(tab) &&
-        Object.keys(validateLoaTab(tab, data)).length > 0;
+    const hasError = (tab: LoaTabKey) => {
+        const prefixes = tabFieldPrefixes[tab];
+        const hasServerError = Object.keys(errors).some((key) =>
+            prefixes.some(
+                (prefix) => key === prefix || key.startsWith(`${prefix}.`),
+            ),
+        );
+        const hasClientError =
+            attemptedTabs.has(tab) &&
+            Object.keys(validateLoaTab(tab, data)).length > 0;
+
+        return hasServerError || hasClientError;
+    };
 
     const stepErrors = attemptedTabs.has(activeTab)
         ? validateLoaTab(activeTab, data)
         : {};
-    // Server errors persist in Inertia's `errors` until the next successful
-    // round trip — once the user edits a field on the active tab, a fresh
-    // client check should supersede any now-stale server message for that
-    // same field, not just sit alongside it. Only 'details' is ever active
-    // on this page, so its own field list is all that needs stripping.
-    const liveServerErrors =
-        activeTab === 'details'
-            ? Object.fromEntries(
-                  Object.entries(errors).filter(
-                      ([key]) =>
-                          !DETAILS_TAB_FIELD_PREFIXES.some(
-                              (prefix) =>
-                                  key === prefix ||
-                                  key.startsWith(`${prefix}.`),
-                          ),
-                  ),
-              )
-            : errors;
-    const displayErrors = { ...liveServerErrors, ...stepErrors };
+    // `stepErrors` is spread after `errors` so a fresh client check for a
+    // field supersedes a now-stale server message for that *same* field,
+    // without discarding every other server error under the active tab's
+    // prefix (blanket-stripping by prefix silently drops server-only rules
+    // the client can't replicate, e.g. the Financial Security document
+    // requirement — see edit.tsx for the full explanation).
+    const displayErrors: LoaFormErrors = { ...errors, ...stepErrors };
 
     const addTeamMember = () => {
         setData('team', [
@@ -140,7 +150,11 @@ export default function LoasCreate({
 
         setAttemptedTabs((tabs) => new Set(tabs).add(activeTab));
 
-        if (Object.keys(validateLoaTab(activeTab, data)).length > 0) {
+        const clientErrors = validateLoaTab(activeTab, data);
+
+        if (Object.keys(clientErrors).length > 0) {
+            window.setTimeout(() => scrollToFirstError(clientErrors), 50);
+
             return;
         }
 
@@ -149,7 +163,13 @@ export default function LoasCreate({
             current_step: activeTab,
             finish: false,
         }));
-        post(store.url(), { preserveScroll: true });
+        post(store.url(), {
+            preserveScroll: true,
+            onError: (formErrors) => {
+                console.warn('LOA save failed validation:', formErrors);
+                window.setTimeout(() => scrollToFirstError(formErrors), 50);
+            },
+        });
     };
 
     const handleReset = () => {

@@ -31,6 +31,7 @@ type ScheduleGroup = {
 type LoaShow = {
     unique_id: string;
     loa_number: string;
+    loa_date: string | null;
     client: string;
     division: string;
     schedule_name: string | null;
@@ -43,9 +44,8 @@ type LoaShow = {
     start_date: string;
     end_date: string;
     total_stations: number;
-    mobilization_advance_amount: number;
-    mobilization_advance_unit: 'Cr' | 'L';
-    mobilization_advance_status: 'Pending' | 'Requested' | 'Received';
+    completion_date: string | null;
+    extension_date: string | null;
     scope_of_work: string;
     active_status: boolean;
     team: LoaTeamMember[];
@@ -91,8 +91,26 @@ function formatDate(value: string | null | undefined): string {
     });
 }
 
+function daysUntil(value: string | null | undefined): number | null {
+    if (!value) {
+        return null;
+    }
+
+    const target = new Date(value);
+
+    if (Number.isNaN(target.getTime())) {
+        return null;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    target.setHours(0, 0, 0, 0);
+
+    return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
 function formatCurrency(amount: number, unit: 'Cr' | 'L'): string {
-    return `₹${Number(amount).toFixed(2)} ${unit}`;
+    return `₹${formatNumber(amount)} ${unit}`;
 }
 
 function formatNumber(
@@ -203,16 +221,20 @@ function PaymentStagesBadges({
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
     return (
-        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
-            <h2 className="mb-3 border-b border-[var(--color-gold)]/20 pb-3 text-base font-bold text-[var(--color-ink)]">
+        <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+            <h2 className="bg-[var(--color-ink)] px-4 py-2.5 text-xs font-bold tracking-wide text-white uppercase sm:px-6">
                 {title}
             </h2>
-            {children}
+            <div className="p-4 sm:p-6">{children}</div>
         </div>
     );
 }
 
 export default function LoasShow({ loa }: ShowProps) {
+    const daysToCompletion = daysUntil(loa.completion_date);
+    const completionUrgent =
+        daysToCompletion !== null && daysToCompletion <= 30;
+
     return (
         <AdminLayout
             title="View LOA / PO"
@@ -257,9 +279,39 @@ export default function LoasShow({ loa }: ShowProps) {
             }
         >
             <div className="space-y-6">
+                <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+                    <div className="h-1.5 bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)]" />
+                    <div className="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-6">
+                        <div>
+                            <p className="text-xs font-semibold tracking-wide text-[var(--color-ink)]/50 uppercase">
+                                Letter of Acceptance / Purchase Order
+                            </p>
+                            <h1 className="mt-1 text-2xl font-bold text-[var(--color-ink)]">
+                                {loa.loa_number}
+                            </h1>
+                            <p className="mt-1 text-sm text-[var(--color-ink)]/60">
+                                {loa.client}
+                            </p>
+                        </div>
+                        <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                loa.active_status
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-red-50 text-red-600'
+                            }`}
+                        >
+                            {loa.active_status ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                    </div>
+                </div>
+
                 <div className="grid gap-6 lg:grid-cols-2">
                     <Card title="LOA Details">
                         <DetailRow label="LOA Number" value={loa.loa_number} />
+                        <DetailRow
+                            label="LOA Date"
+                            value={formatDate(loa.loa_date)}
+                        />
                         <DetailRow label="Client" value={loa.client} />
                         <DetailRow
                             label="Division"
@@ -294,25 +346,37 @@ export default function LoasShow({ loa }: ShowProps) {
                             value={`${loa.total_stations} Stations`}
                         />
                         <DetailRow
+                            label="Completion Date"
+                            value={
+                                <span
+                                    className={
+                                        completionUrgent
+                                            ? 'text-[#8b0000]'
+                                            : undefined
+                                    }
+                                >
+                                    {formatDate(loa.completion_date)}
+                                    {completionUrgent && (
+                                        <span className="ml-2 rounded-full bg-[#8b0000] px-2 py-0.5 text-[0.65rem] font-bold text-white">
+                                            {daysToCompletion !== null &&
+                                            daysToCompletion < 0
+                                                ? 'OVERDUE'
+                                                : 'DUE SOON'}
+                                        </span>
+                                    )}
+                                </span>
+                            }
+                        />
+                        <DetailRow
+                            label="Extension Date"
+                            value={formatDate(loa.extension_date)}
+                        />
+                        <DetailRow
                             label="Station Names"
                             value={
                                 loa.stations.filter(Boolean).length > 0
                                     ? loa.stations.filter(Boolean).join(', ')
                                     : '—'
-                            }
-                        />
-                        <DetailRow
-                            label="Status"
-                            value={
-                                <span
-                                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                        loa.active_status
-                                            ? 'bg-emerald-50 text-emerald-700'
-                                            : 'bg-red-50 text-red-600'
-                                    }`}
-                                >
-                                    {loa.active_status ? 'Active' : 'Inactive'}
-                                </span>
                             }
                         />
                     </Card>
@@ -384,20 +448,6 @@ export default function LoasShow({ loa }: ShowProps) {
                             );
                         })}
 
-                        <Card title="Mobilization Advance">
-                            <DetailRow
-                                label="Amount"
-                                value={formatCurrency(
-                                    loa.mobilization_advance_amount,
-                                    loa.mobilization_advance_unit,
-                                )}
-                            />
-                            <DetailRow
-                                label="Status"
-                                value={loa.mobilization_advance_status}
-                            />
-                        </Card>
-
                         <Card title="Project Team">
                             {loa.team.length === 0 ? (
                                 <p className="text-sm text-[var(--color-ink)]/55">
@@ -437,7 +487,7 @@ export default function LoasShow({ loa }: ShowProps) {
 
                 <Card title="LOA Item Details">
                     {(loa.schedule_name || loa.schedule_type) && (
-                        <div className="mb-4 rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-4 py-2.5 text-sm font-semibold text-[var(--color-ink)]">
+                        <div className="mb-4 rounded-lg border-l-4 border-[var(--color-status-gold-icon)] bg-[var(--color-brand-cream)] px-4 py-2.5 text-sm font-semibold text-[var(--color-status-gold-text)]">
                             {[loa.schedule_name, loa.schedule_type]
                                 .filter(Boolean)
                                 .join('-')}
@@ -492,7 +542,7 @@ export default function LoasShow({ loa }: ShowProps) {
                                     {groupItemsBySchedule(loa.items).map(
                                         (group) => (
                                             <Fragment key={group.key}>
-                                                <tr className="border-t border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] font-semibold text-[var(--color-ink)]">
+                                                <tr className="border-t border-[var(--color-status-gold-icon)]/40 bg-[var(--color-brand-cream)] font-semibold text-[var(--color-status-gold-text)]">
                                                     <td
                                                         colSpan={7}
                                                         className="px-3 py-2.5"
@@ -609,7 +659,7 @@ export default function LoasShow({ loa }: ShowProps) {
                                                         </tr>
                                                     ),
                                                 )}
-                                                <tr className="border-t border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/70 font-semibold text-[var(--color-ink)]">
+                                                <tr className="border-t border-[var(--color-status-gold-icon)]/50 bg-[var(--color-brand-cream)]/70 font-semibold text-[var(--color-ink)]">
                                                     <td
                                                         colSpan={7}
                                                         className="px-3 py-2.5"
