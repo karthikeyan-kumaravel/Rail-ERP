@@ -28,11 +28,13 @@ use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Auth\CaptchaController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
     Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::get('captcha', [CaptchaController::class, 'image'])->name('captcha');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 });
 
