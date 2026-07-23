@@ -58,12 +58,12 @@ function FinancialSecuritySection({
 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                    <label htmlFor={`${prefix}-amount`} className={labelClass}>
+                    <label htmlFor={`${prefix}.amount`} className={labelClass}>
                         Amount
                     </label>
                     <div className="flex items-center gap-2.5">
                         <input
-                            id={`${prefix}-amount`}
+                            id={`${prefix}.amount`}
                             type="number"
                             min={0}
                             step="0.01"
@@ -105,13 +105,13 @@ function FinancialSecuritySection({
 
                 <div>
                     <label
-                        htmlFor={`${prefix}-validity-start`}
+                        htmlFor={`${prefix}.validity_start_date`}
                         className={labelClass}
                     >
                         BG Validity Start Date
                     </label>
                     <input
-                        id={`${prefix}-validity-start`}
+                        id={`${prefix}.validity_start_date`}
                         type="date"
                         value={section.validity_start_date}
                         onChange={(event) =>
@@ -128,13 +128,13 @@ function FinancialSecuritySection({
 
                 <div>
                     <label
-                        htmlFor={`${prefix}-validity-end`}
+                        htmlFor={`${prefix}.validity_end_date`}
                         className={labelClass}
                     >
                         BG Validity End Date
                     </label>
                     <input
-                        id={`${prefix}-validity-end`}
+                        id={`${prefix}.validity_end_date`}
                         type="date"
                         value={section.validity_end_date}
                         onChange={(event) =>
@@ -151,14 +151,14 @@ function FinancialSecuritySection({
 
                 <div>
                     <label
-                        htmlFor={`${prefix}-claim-period`}
+                        htmlFor={`${prefix}.claim_period`}
                         className={labelClass}
                     >
                         Claim Period
                     </label>
                     <div className="flex items-center gap-2.5">
                         <input
-                            id={`${prefix}-claim-period`}
+                            id={`${prefix}.claim_period`}
                             type="number"
                             min={1}
                             step="1"
@@ -199,11 +199,11 @@ function FinancialSecuritySection({
                 </div>
 
                 <div>
-                    <label htmlFor={`${prefix}-bank`} className={labelClass}>
+                    <label htmlFor={`${prefix}.bank_id`} className={labelClass}>
                         Bank Details
                     </label>
                     <SearchableSelect
-                        id={`${prefix}-bank`}
+                        id={`${prefix}.bank_id`}
                         value={section.bank_id}
                         options={banks}
                         onChange={(value) => onChange('bank_id', value)}
@@ -219,7 +219,7 @@ function FinancialSecuritySection({
                 <div>
                     <span className={labelClass}>Upload BG / EMD Document</span>
                     <FileUploadField
-                        id={`${prefix}-file`}
+                        id={`${prefix}.file`}
                         file={section.file}
                         onChange={(file) => onChange('file', file)}
                         existingFileUrl={existing?.existing_file_url}

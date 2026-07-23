@@ -45,7 +45,7 @@ deleted).
 **Tendering / contracts**
 `loas` (Letter of Acceptance — the central contract record: contract value,
 completion/defect-liability periods, BG amount/validity, security deposit,
-mobilization advance, scope of work), `loa_items` (schedule/BOQ line items:
+scope of work), `loa_items` (schedule/BOQ line items:
 quantity, unit rate, escalation, bid rate/amount), `loa_team_members`,
 `loa_stations`
 

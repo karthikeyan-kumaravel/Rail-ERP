@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityController;
+use App\Http\Controllers\Admin\AlertController;
 use App\Http\Controllers\Admin\BankController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Admin\UserTypePermissionController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\CaptchaController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,9 +40,10 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
         Route::resource('users', UserController::class)->except('show');
         Route::resource('user-types', UserTypeController::class)->except('show');
         Route::resource('user-screens', UserScreenController::class)->except('show');

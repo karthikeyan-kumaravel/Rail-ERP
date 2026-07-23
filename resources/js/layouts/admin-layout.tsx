@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import AppearancePanel from '@/lib/appearance-panel';
 import {
+    BellIcon,
     ChevronDownIcon,
     IconChip,
     LogoutIcon,
@@ -13,6 +14,7 @@ import {
 } from '@/lib/icons';
 import { PreferencesProvider, usePreferences } from '@/lib/use-preferences';
 import { dashboard, logout } from '@/routes';
+import { index as alertsIndex } from '@/routes/admin/alerts';
 import type { NavigationItem } from '@/types';
 
 const adminBasePath = `${dashboard.url().replace(/\/dashboard\/?$/, '')}/admin`;
@@ -193,7 +195,7 @@ export default function AdminLayout(layoutProps: AdminLayoutProps) {
 
 function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
     const { props, url: currentUrl } = usePage();
-    const { auth, navigation } = props;
+    const { auth, navigation, alertsCount } = props;
     const currentPath = currentUrl.split('?')[0];
 
     const { preferences, updatePreference } = usePreferences();
@@ -337,6 +339,25 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                                 <MenuIcon />
                             </button>
                             <div className="ml-auto flex items-center gap-3">
+                                <Link
+                                    href={alertsIndex.url()}
+                                    title="Alerts & Reminders"
+                                    aria-label={
+                                        alertsCount
+                                            ? `Alerts & Reminders, ${alertsCount} active`
+                                            : 'Alerts & Reminders'
+                                    }
+                                    className="relative shrink-0 text-[var(--color-ink)]/70 transition hover:text-[var(--color-accent)]"
+                                >
+                                    <BellIcon />
+                                    {!!alertsCount && (
+                                        <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                                            {alertsCount > 99
+                                                ? '99+'
+                                                : alertsCount}
+                                        </span>
+                                    )}
+                                </Link>
                                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-sm font-semibold text-white">
                                     {initials}
                                 </div>
