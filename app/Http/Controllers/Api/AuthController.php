@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\HCaptcha;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,10 +38,16 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $rules = [
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
-        ]);
+        ];
+
+        if (filled(config('services.hcaptcha.site_key')) && filled(config('services.hcaptcha.secret_key'))) {
+            $rules['h_captcha_response'] = ['required', new HCaptcha];
+        }
+
+        $validated = $request->validate($rules);
 
         $loginField = filter_var($validated['login'], FILTER_VALIDATE_EMAIL)
             ? 'email'
