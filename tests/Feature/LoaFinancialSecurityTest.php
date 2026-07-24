@@ -37,6 +37,38 @@ test('an loa can be created with emd, performance bg, and security bg records', 
     Storage::disk('public')->assertExists($emd->file_path);
 });
 
+test('an loa can be created without a performance bg or security bg', function () {
+    $division = Division::factory()->create();
+    $bank = Bank::factory()->create();
+
+    $blankSection = [
+        'amount' => '',
+        'amount_unit' => 'L',
+        'validity_start_date' => '',
+        'validity_end_date' => '',
+        'claim_period' => '',
+        'claim_period_unit' => 'Days',
+        'bank_id' => '',
+        'file' => null,
+    ];
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'financial_securities' => [
+            'emd' => financialSecuritySectionPayload($bank->id),
+            'performance_bg' => $blankSection,
+            'security_bg' => $blankSection,
+        ],
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+    $response->assertSessionDoesntHaveErrors();
+
+    $loa = Loa::query()->where('loa_number', 'RAILWAY/ABC/2026/001')->firstOrFail();
+
+    $this->assertDatabaseCount('loa_financial_securities', 1);
+    expect($loa->financialSecurities()->where('security_type', 'emd')->exists())->toBeTrue();
+});
+
 test('a zero or negative amount is rejected', function () {
     $division = Division::factory()->create();
 
@@ -80,26 +112,7 @@ test('a missing bank is rejected', function () {
     $response->assertSessionHasErrors('financial_securities.emd.bank_id');
 });
 
-test('a missing document is rejected when uploads are configured as mandatory', function () {
-    config(['loa.financial_security_document_required' => true]);
-
-    $division = Division::factory()->create();
-    $bank = Bank::factory()->create();
-
-    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
-        'financial_securities' => [
-            'emd' => financialSecuritySectionPayload($bank->id, ['file' => null]),
-            'performance_bg' => financialSecuritySectionPayload($bank->id),
-            'security_bg' => financialSecuritySectionPayload($bank->id),
-        ],
-    ]));
-
-    $response->assertSessionHasErrors('financial_securities.emd.file');
-});
-
-test('a missing document is accepted when uploads are configured as optional', function () {
-    config(['loa.financial_security_document_required' => false]);
-
+test('a missing document is accepted for every security type', function () {
     $division = Division::factory()->create();
     $bank = Bank::factory()->create();
 
@@ -112,6 +125,40 @@ test('a missing document is accepted when uploads are configured as optional', f
     ]));
 
     $response->assertSessionDoesntHaveErrors();
+});
+
+test('an uploaded document must be an allowed file type', function () {
+    $division = Division::factory()->create();
+    $bank = Bank::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'financial_securities' => [
+            'emd' => financialSecuritySectionPayload($bank->id, [
+                'file' => UploadedFile::fake()->create('proof.exe', 100, 'application/x-msdownload'),
+            ]),
+            'performance_bg' => financialSecuritySectionPayload($bank->id),
+            'security_bg' => financialSecuritySectionPayload($bank->id),
+        ],
+    ]));
+
+    $response->assertSessionHasErrors('financial_securities.emd.file');
+});
+
+test('an uploaded document must not exceed the maximum file size', function () {
+    $division = Division::factory()->create();
+    $bank = Bank::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'financial_securities' => [
+            'emd' => financialSecuritySectionPayload($bank->id, [
+                'file' => UploadedFile::fake()->create('proof.pdf', 5121, 'application/pdf'),
+            ]),
+            'performance_bg' => financialSecuritySectionPayload($bank->id),
+            'security_bg' => financialSecuritySectionPayload($bank->id),
+        ],
+    ]));
+
+    $response->assertSessionHasErrors('financial_securities.emd.file');
 });
 
 test('replacing a document deletes the previous file', function () {
@@ -150,8 +197,6 @@ test('replacing a document deletes the previous file', function () {
 });
 
 test('saving without a new upload keeps the existing file', function () {
-    config(['loa.financial_security_document_required' => false]);
-
     $division = Division::factory()->create();
     $loa = Loa::factory()->create(['division_id' => $division->id]);
     $bank = Bank::factory()->create();
@@ -184,8 +229,6 @@ test('saving without a new upload keeps the existing file', function () {
 });
 
 test('removing a document clears the stored file', function () {
-    config(['loa.financial_security_document_required' => false]);
-
     $division = Division::factory()->create();
     $loa = Loa::factory()->create(['division_id' => $division->id]);
     $bank = Bank::factory()->create();

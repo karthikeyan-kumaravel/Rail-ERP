@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property string|null $loa_number
+ * @property Carbon|null $loa_date
  * @property string|null $client
  * @property int|null $vendor_id
  * @property int|null $division_id
@@ -29,9 +30,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
  * @property int|null $total_stations
- * @property string|null $mobilization_advance_amount
- * @property string $mobilization_advance_unit
- * @property string $mobilization_advance_status
+ * @property Carbon|null $completion_date
+ * @property Carbon|null $extension_date
  * @property string|null $scope_of_work
  * @property bool $active_status
  * @property bool $is_delete
@@ -57,6 +57,7 @@ use Illuminate\Support\Carbon;
  */
 #[Fillable([
     'loa_number',
+    'loa_date',
     'client',
     'vendor_id',
     'division_id',
@@ -70,9 +71,8 @@ use Illuminate\Support\Carbon;
     'start_date',
     'end_date',
     'total_stations',
-    'mobilization_advance_amount',
-    'mobilization_advance_unit',
-    'mobilization_advance_status',
+    'completion_date',
+    'extension_date',
     'scope_of_work',
     'active_status',
     'is_delete',
@@ -88,10 +88,12 @@ class Loa extends Model
     protected function casts(): array
     {
         return [
+            'loa_date' => 'date',
             'start_date' => 'date',
             'end_date' => 'date',
+            'completion_date' => 'date',
+            'extension_date' => 'date',
             'contract_value_amount' => 'decimal:2',
-            'mobilization_advance_amount' => 'decimal:2',
             'active_status' => 'boolean',
             'is_delete' => 'boolean',
             'created' => 'datetime',

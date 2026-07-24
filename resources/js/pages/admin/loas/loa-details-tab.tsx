@@ -98,6 +98,24 @@ export default function LoaDetailsTab({
             </div>
 
             <div>
+                <label htmlFor="loa_date" className={labelClass}>
+                    LOA Date
+                </label>
+                <input
+                    id="loa_date"
+                    type="date"
+                    value={data.loa_date}
+                    onChange={(event) =>
+                        setData('loa_date', event.target.value)
+                    }
+                    className={inputClass}
+                />
+                {errors.loa_date && (
+                    <p className={errorClass}>{errors.loa_date}</p>
+                )}
+            </div>
+
+            <div>
                 <label htmlFor="client" className={labelClass}>
                     Client
                 </label>
@@ -349,6 +367,42 @@ export default function LoaDetailsTab({
                 </div>
                 {errors.total_stations && (
                     <p className={errorClass}>{errors.total_stations}</p>
+                )}
+            </div>
+
+            <div>
+                <label htmlFor="completion_date" className={labelClass}>
+                    Completion Date
+                </label>
+                <input
+                    id="completion_date"
+                    type="date"
+                    value={data.completion_date}
+                    onChange={(event) =>
+                        setData('completion_date', event.target.value)
+                    }
+                    className={inputClass}
+                />
+                {errors.completion_date && (
+                    <p className={errorClass}>{errors.completion_date}</p>
+                )}
+            </div>
+
+            <div>
+                <label htmlFor="extension_date" className={labelClass}>
+                    Extension Date
+                </label>
+                <input
+                    id="extension_date"
+                    type="date"
+                    value={data.extension_date}
+                    onChange={(event) =>
+                        setData('extension_date', event.target.value)
+                    }
+                    className={inputClass}
+                />
+                {errors.extension_date && (
+                    <p className={errorClass}>{errors.extension_date}</p>
                 )}
             </div>
 

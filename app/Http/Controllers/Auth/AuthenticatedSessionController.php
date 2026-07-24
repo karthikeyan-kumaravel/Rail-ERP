@@ -12,11 +12,18 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('login', [
+        $props = [
             'hcaptchaSiteKey' => config('services.hcaptcha.site_key'),
-        ]);
+        ];
+
+        // If hCaptcha is not configured, provide our local image captcha URL
+        if (! filled(config('services.hcaptcha.site_key')) || ! filled(config('services.hcaptcha.secret_key'))) {
+            $props['captchaImageUrl'] = route('captcha');
+        }
+
+        return Inertia::render('login', $props);
     }
 
     public function store(LoginRequest $request): RedirectResponse
@@ -37,4 +44,6 @@ class AuthenticatedSessionController extends Controller
 
         return redirect()->route('login');
     }
+
+    
 }
