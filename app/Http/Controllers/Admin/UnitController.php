@@ -82,6 +82,10 @@ class UnitController extends Controller
 
     public function destroy(Unit $unit): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         $unit->update([
             'is_delete' => true,
         ]);

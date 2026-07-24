@@ -157,7 +157,7 @@ export default function Login() {
             {
                 preserveScroll: true,
                 onError: (validationErrors) => {
-                    const loginErrors = validationErrors as FormErrors;
+                    const loginErrors = validationErrors as unknown as FormErrors;
                     setErrors(loginErrors);
 
                     if (loginErrors.captcha_answer) {

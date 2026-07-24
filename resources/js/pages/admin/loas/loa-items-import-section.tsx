@@ -289,7 +289,7 @@ export default function LoaItemsImportSection({
     const [draft, setDraft] = useState<LoaItemFormData | null>(null);
     const [editBidEntryMode, setEditBidEntryMode] =
         useState<BidEntryMode>('rate');
-    const [feedMode, setFeedMode] = useState<FeedMode>('manual');
+    const [feedMode] = useState<FeedMode>('manual');
     const [manualDraft, setManualDraft] =
         useState<ManualItemDraft>(emptyManualDraft());
     const [isManualBidAmountFocused, setIsManualBidAmountFocused] =
