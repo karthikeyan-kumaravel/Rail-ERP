@@ -30,12 +30,28 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\CaptchaController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware('guest')->group(function () {
     Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::get('captcha', [CaptchaController::class, 'image'])->name('captcha');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+
+    // Temporary preview route for the login1.tsx redesign — remove once reviewed/approved.
+    Route::get('login1-preview', function () {
+        $props = [
+            'hcaptchaSiteKey' => config('services.hcaptcha.site_key'),
+            'logoUrl' => asset('images/indian-railways-logo.svg'),
+            'trainBackgroundUrl' => asset('images/login-bg.jpg'),
+        ];
+
+        if (! filled(config('services.hcaptcha.site_key')) || ! filled(config('services.hcaptcha.secret_key'))) {
+            $props['captchaImageUrl'] = route('captcha');
+        }
+
+        return Inertia::render('login1', $props);
+    });
 });
 
 Route::middleware('auth')->group(function () {
