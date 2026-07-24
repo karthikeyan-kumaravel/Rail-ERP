@@ -259,24 +259,37 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                         >
                             <XIcon className="h-4 w-4" />
                         </button>
-                        <button
-                            type="button"
-                            onClick={() =>
-                                updatePreference(
-                                    'sidebarStyle',
-                                    collapsed ? 'expanded' : 'compact',
-                                )
-                            }
-                            aria-label={
-                                collapsed
-                                    ? 'Expand sidebar'
-                                    : 'Collapse sidebar'
-                            }
-                            className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[var(--sidebar-border)] text-[var(--sidebar-ink-soft)] transition hover:border-[var(--color-accent-base)]/60 hover:text-[var(--color-accent-base)] lg:flex"
-                        >
-                            <PanelCollapseIcon />
-                        </button>
                     </div>
+
+                    {/*
+                        Anchored to the sidebar's own edge (the <aside> is
+                        `fixed`, which already establishes a containing block
+                        for this) rather than sharing the header row with the
+                        logo — at the collapsed `lg:w-19` width there isn't
+                        room for both side by side without overlapping.
+                    */}
+                    <button
+                        type="button"
+                        onClick={() =>
+                            updatePreference(
+                                'sidebarStyle',
+                                collapsed ? 'expanded' : 'compact',
+                            )
+                        }
+                        aria-label={
+                            collapsed ? 'Expand sidebar' : 'Collapse sidebar'
+                        }
+                        title={
+                            collapsed ? 'Expand sidebar' : 'Collapse sidebar'
+                        }
+                        className="absolute top-6 -right-3 hidden h-6 w-6 items-center justify-center rounded-full border border-[var(--sidebar-border)] bg-[var(--sidebar-base-2)] text-[var(--sidebar-ink-soft)] shadow-md transition hover:border-[var(--color-accent-base)]/60 hover:text-[var(--color-accent-base)] lg:flex"
+                    >
+                        <PanelCollapseIcon
+                            className={`h-3.5 w-3.5 transition-transform ${
+                                collapsed ? 'rotate-180' : ''
+                            }`}
+                        />
+                    </button>
 
                     <nav
                         className="flex-1 space-y-1 overflow-y-auto px-3 py-2"

@@ -3,51 +3,78 @@ import type { FormEventHandler } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
 import { index, update } from '@/routes/admin/purchase-orders';
 import PurchaseOrderFormFields from './purchase-order-form-fields';
-import type { PurchaseOrderFormData } from './purchase-order-form-fields';
-
-type InspectionStatus = 'pending' | 'in_progress' | 'passed' | 'failed';
-type DispatchStatus = 'pending' | 'partial' | 'completed';
+import type {
+    LoaItemOption,
+    LoaOption,
+    PaymentType,
+    PurchaseOrderItemFormData,
+    PurchaseOrderStatus,
+    VendorOption,
+} from './purchase-order-form-fields';
 
 type EditPurchaseOrder = {
     unique_id: string;
     po_number: string;
-    supplier: string;
-    items_description: string;
     order_date: string;
-    amount: number | string;
+    loa_id: number | null;
+    loa_item_id: number | null;
+    vendor_id: number | null;
+    ordered_qty: number | string | null;
+    received_qty: number | string | null;
+    unit_price_incl_gst: number | string | null;
+    unit_price_excl_gst: number | string | null;
+    agreed_rate: number | string | null;
+    total_price_incl_gst: number | string | null;
+    total_price_excl_gst: number | string | null;
+    vendor_quote_price: number | string | null;
     delivery_date: string;
-    payment_terms: string;
-    total_qty: number;
-    received_qty: number;
-    inspection_status: InspectionStatus;
-    dispatch_status: DispatchStatus;
+    status: PurchaseOrderStatus;
+    payment_type: PaymentType;
 };
 
 type EditProps = {
     purchaseOrder: EditPurchaseOrder;
-    status_options: {
-        inspection_status: InspectionStatus[];
-        dispatch_status: DispatchStatus[];
-    };
+    loas: LoaOption[];
+    loa_items: LoaItemOption[];
+    vendors: VendorOption[];
+    status_options: PurchaseOrderStatus[];
+    payment_type_options: PaymentType[];
 };
 
 export default function PurchaseOrdersEdit({
     purchaseOrder,
-    status_options,
+    loas,
+    loa_items: loaItems,
+    vendors,
+    status_options: statusOptions,
+    payment_type_options: paymentTypeOptions,
 }: EditProps) {
     const { data, setData, put, processing, errors } =
-        useForm<PurchaseOrderFormData>({
+        useForm<PurchaseOrderItemFormData>({
             po_number: purchaseOrder.po_number,
-            supplier: purchaseOrder.supplier,
-            items_description: purchaseOrder.items_description,
             order_date: purchaseOrder.order_date,
-            amount: String(purchaseOrder.amount),
+            loa_id: purchaseOrder.loa_id ?? '',
+            loa_item_id: purchaseOrder.loa_item_id ?? '',
+            vendor_id: purchaseOrder.vendor_id ?? '',
+            ordered_qty: String(purchaseOrder.ordered_qty ?? ''),
+            received_qty: String(purchaseOrder.received_qty ?? ''),
+            unit_price_incl_gst: String(
+                purchaseOrder.unit_price_incl_gst ?? '',
+            ),
+            unit_price_excl_gst: String(
+                purchaseOrder.unit_price_excl_gst ?? '',
+            ),
+            agreed_rate: String(purchaseOrder.agreed_rate ?? ''),
+            total_price_incl_gst: String(
+                purchaseOrder.total_price_incl_gst ?? '',
+            ),
+            total_price_excl_gst: String(
+                purchaseOrder.total_price_excl_gst ?? '',
+            ),
+            vendor_quote_price: String(purchaseOrder.vendor_quote_price ?? ''),
             delivery_date: purchaseOrder.delivery_date,
-            payment_terms: purchaseOrder.payment_terms,
-            total_qty: String(purchaseOrder.total_qty),
-            received_qty: String(purchaseOrder.received_qty),
-            inspection_status: purchaseOrder.inspection_status,
-            dispatch_status: purchaseOrder.dispatch_status,
+            status: purchaseOrder.status,
+            payment_type: purchaseOrder.payment_type,
         });
 
     const submit: FormEventHandler = (event) => {
@@ -83,7 +110,11 @@ export default function PurchaseOrdersEdit({
                     data={data}
                     setData={setData}
                     errors={errors}
-                    statusOptions={status_options}
+                    loas={loas}
+                    loaItems={loaItems}
+                    vendors={vendors}
+                    statusOptions={statusOptions}
+                    paymentTypeOptions={paymentTypeOptions}
                 />
 
                 <div className="mt-6 flex items-center gap-3">
@@ -92,7 +123,7 @@ export default function PurchaseOrdersEdit({
                         disabled={processing}
                         className="inline-flex min-w-24 items-center justify-center gap-2 rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {processing ? 'Saving...' : 'Update PO'}
+                        {processing ? 'Saving...' : 'Save'}
                     </button>
                     <Link
                         href={index.url()}

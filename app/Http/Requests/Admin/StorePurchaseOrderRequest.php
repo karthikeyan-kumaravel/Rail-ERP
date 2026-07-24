@@ -20,28 +20,39 @@ class StorePurchaseOrderRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
+     * One purchase order document can cover several LOA line items, each
+     * added via the "Add Item" grid on the create page — so the request
+     * carries an `items` array and each entry becomes its own
+     * `purchase_orders` row (sharing the same `po_number`).
+     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'po_number' => [
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.po_number' => ['required', 'string', 'max:100'],
+            'items.*.order_date' => ['required', 'date'],
+            'items.*.loa_id' => [
                 'required',
-                'string',
-                'max:100',
-                Rule::unique('purchase_orders', 'po_number')
-                    ->where(fn ($query) => $query->where('is_delete', false)),
+                Rule::exists('loas', 'id')->where(fn ($query) => $query->where('is_delete', false)),
             ],
-            'supplier' => ['required', 'string', 'max:255'],
-            'items_description' => ['required', 'string', 'max:2000'],
-            'order_date' => ['required', 'date'],
-            'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999999.99'],
-            'delivery_date' => ['required', 'date', 'after_or_equal:order_date'],
-            'payment_terms' => ['required', 'string', 'max:255'],
-            'total_qty' => ['required', 'integer', 'min:0', 'max:4294967295'],
-            'received_qty' => ['required', 'integer', 'min:0', 'max:4294967295', 'lte:total_qty'],
-            'inspection_status' => ['required', Rule::in(PurchaseOrder::INSPECTION_STATUSES)],
-            'dispatch_status' => ['required', Rule::in(PurchaseOrder::DISPATCH_STATUSES)],
+            'items.*.loa_item_id' => ['required', Rule::exists('loa_items', 'id')],
+            'items.*.vendor_id' => [
+                'required',
+                Rule::exists('vendors', 'id')->where(fn ($query) => $query->where('is_delete', false)),
+            ],
+            'items.*.ordered_qty' => ['required', 'numeric', 'min:0'],
+            'items.*.received_qty' => ['required', 'numeric', 'min:0', 'lte:items.*.ordered_qty'],
+            'items.*.unit_price_incl_gst' => ['required', 'numeric', 'min:0'],
+            'items.*.unit_price_excl_gst' => ['required', 'numeric', 'min:0'],
+            'items.*.agreed_rate' => ['required', 'numeric', 'min:0'],
+            'items.*.total_price_incl_gst' => ['required', 'numeric', 'min:0'],
+            'items.*.total_price_excl_gst' => ['required', 'numeric', 'min:0'],
+            'items.*.vendor_quote_price' => ['required', 'numeric', 'min:0'],
+            'items.*.delivery_date' => ['required', 'date', 'after_or_equal:items.*.order_date'],
+            'items.*.status' => ['required', Rule::in(PurchaseOrder::STATUSES)],
+            'items.*.payment_type' => ['required', Rule::in(PurchaseOrder::PAYMENT_TYPES)],
         ];
     }
 
@@ -51,8 +62,8 @@ class StorePurchaseOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'delivery_date.after_or_equal' => 'The delivery date must be on or after the order date.',
-            'received_qty.lte' => 'The received quantity cannot exceed the total quantity.',
+            'items.*.delivery_date.after_or_equal' => 'The expected delivery date must be on or after the PO date.',
+            'items.*.received_qty.lte' => 'The received quantity cannot exceed the ordered quantity.',
         ];
     }
 }
