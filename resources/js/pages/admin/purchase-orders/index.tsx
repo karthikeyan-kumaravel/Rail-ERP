@@ -11,23 +11,35 @@ import {
     edit,
     index as purchaseOrdersIndex,
 } from '@/routes/admin/purchase-orders';
-
-type InspectionStatus = 'pending' | 'in_progress' | 'passed' | 'failed';
-type DispatchStatus = 'pending' | 'partial' | 'completed';
+import {
+    PAYMENT_TYPE_LABELS,
+    STATUS_LABELS,
+} from './purchase-order-form-fields';
+import type {
+    PaymentType,
+    PurchaseOrderStatus,
+} from './purchase-order-form-fields';
 
 type PurchaseOrder = {
     unique_id: string;
     po_number: string;
-    supplier: string;
-    items_description: string;
     order_date: string;
-    amount: number | string;
+    loa_number: string | null;
+    loa_item_description: string | null;
+    vendor_name: string | null;
+    ordered_qty: number | string | null;
+    received_qty: number | string | null;
+    balance_qty: number | string | null;
+    unit_price_incl_gst: number | string | null;
+    unit_price_excl_gst: number | string | null;
+    agreed_rate: number | string | null;
+    total_price_incl_gst: number | string | null;
+    total_price_excl_gst: number | string | null;
+    vendor_quote_price: number | string | null;
+    variance_percentage: number | string | null;
     delivery_date: string;
-    payment_terms: string;
-    total_qty: number;
-    received_qty: number;
-    inspection_status: InspectionStatus;
-    dispatch_status: DispatchStatus;
+    status: PurchaseOrderStatus;
+    payment_type: PaymentType;
     created_at?: string | null;
 };
 
@@ -51,7 +63,7 @@ type Paginated<T> = {
 type PurchaseOrderStats = {
     total_pos: number;
     total_value: number | string;
-    completed: number;
+    fully_received: number;
     pending: number;
 };
 
@@ -68,10 +80,17 @@ type PurchaseOrdersIndexProps = {
     filters: Filters;
 };
 
-function numberValue(value: number | string): number {
-    const parsed = Number(value);
+function numberValue(value: number | string | null): number {
+    const parsed = Number(value ?? 0);
 
     return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatNumber(value: number | string | null, digits = 2): string {
+    return numberValue(value).toLocaleString('en-IN', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
 }
 
 function formatCompactInr(value: number | string): string {
@@ -98,23 +117,14 @@ function formatCompactInr(value: number | string): string {
     })}`;
 }
 
-function statusLabel(status: string): string {
-    return status
-        .split('_')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ');
-}
-
-function statusBadgeClass(status: string): string {
+function statusBadgeClass(status: PurchaseOrderStatus): string {
     switch (status) {
-        case 'passed':
-        case 'completed':
+        case 'Fully Received':
             return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-        case 'in_progress':
-        case 'partial':
+        case 'Partially Received':
             return 'border-amber-200 bg-amber-50 text-amber-700';
-        case 'failed':
-            return 'border-red-200 bg-red-50 text-red-700';
+        case 'Placed':
+            return 'border-blue-200 bg-blue-50 text-blue-700';
         default:
             return 'border-slate-200 bg-slate-50 text-slate-600';
     }
@@ -209,47 +219,80 @@ function PurchaseOrderViewModal({
                 <div className="max-h-[calc(100vh-11rem)] overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
                     <div className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
                         <DetailRow label="PO Number" value={order.po_number} />
+                        <DetailRow label="PO Date" value={order.order_date} />
                         <DetailRow
-                            label="OEM / Supplier"
-                            value={order.supplier}
+                            label="LOA No."
+                            value={order.loa_number ?? '—'}
+                        />
+                        <DetailRow
+                            label="Vendor"
+                            value={order.vendor_name ?? '—'}
                         />
                         <div className="sm:col-span-2">
                             <DetailRow
-                                label="Items Description"
-                                value={order.items_description}
+                                label="LOA Line Item"
+                                value={order.loa_item_description ?? '—'}
                             />
                         </div>
                         <DetailRow
-                            label="Order Date"
-                            value={order.order_date}
-                        />
-                        <DetailRow
-                            label="Amount"
-                            value={formatCompactInr(order.amount)}
-                        />
-                        <DetailRow
-                            label="Delivery Date"
-                            value={order.delivery_date}
-                        />
-                        <DetailRow
-                            label="Payment Terms"
-                            value={order.payment_terms}
-                        />
-                        <DetailRow
-                            label="Total Qty"
-                            value={String(order.total_qty)}
+                            label="Ordered Qty"
+                            value={formatNumber(order.ordered_qty, 3)}
                         />
                         <DetailRow
                             label="Received Qty"
-                            value={String(order.received_qty)}
+                            value={formatNumber(order.received_qty, 3)}
                         />
                         <DetailRow
-                            label="Inspection"
-                            value={statusLabel(order.inspection_status)}
+                            label="Balance Qty"
+                            value={formatNumber(order.balance_qty, 3)}
                         />
                         <DetailRow
-                            label="Dispatch"
-                            value={statusLabel(order.dispatch_status)}
+                            label="Agreed Rate (LOA Rate)"
+                            value={formatNumber(order.agreed_rate)}
+                        />
+                        <DetailRow
+                            label="Unit Price (Incl. GST)"
+                            value={formatNumber(order.unit_price_incl_gst)}
+                        />
+                        <DetailRow
+                            label="Unit Price (Excl. GST)"
+                            value={formatNumber(order.unit_price_excl_gst)}
+                        />
+                        <DetailRow
+                            label="Total Price (Incl. GST)"
+                            value={formatCompactInr(
+                                order.total_price_incl_gst ?? 0,
+                            )}
+                        />
+                        <DetailRow
+                            label="Total Price (Excl. GST)"
+                            value={formatCompactInr(
+                                order.total_price_excl_gst ?? 0,
+                            )}
+                        />
+                        <DetailRow
+                            label="Incoming Price Capture (Vendor Quote)"
+                            value={formatNumber(order.vendor_quote_price)}
+                        />
+                        <DetailRow
+                            label="Variance %"
+                            value={
+                                order.variance_percentage !== null
+                                    ? `${formatNumber(order.variance_percentage)}%`
+                                    : '—'
+                            }
+                        />
+                        <DetailRow
+                            label="Expected Delivery Date"
+                            value={order.delivery_date}
+                        />
+                        <DetailRow
+                            label="Status"
+                            value={STATUS_LABELS[order.status]}
+                        />
+                        <DetailRow
+                            label="Payment Type"
+                            value={PAYMENT_TYPE_LABELS[order.payment_type]}
                         />
                     </div>
                 </div>
@@ -277,10 +320,8 @@ function PurchaseOrderViewModal({
 
 const sortableColumns: { key: string; label: string }[] = [
     { key: 'po_number', label: 'PO No' },
-    { key: 'supplier', label: 'OEM / Supplier' },
-    { key: 'order_date', label: 'Order Date' },
-    { key: 'amount', label: 'Amount' },
-    { key: 'delivery_date', label: 'Delivery' },
+    { key: 'order_date', label: 'PO Date' },
+    { key: 'delivery_date', label: 'Expected Delivery' },
 ];
 
 export default function PurchaseOrdersIndex({
@@ -383,15 +424,15 @@ export default function PurchaseOrdersIndex({
             icon: <path d="M7 3h8l4 4v14H5V3h2Zm7 1v4h4M8 12h8M8 16h8" />,
         },
         {
-            label: 'Total Value',
+            label: 'Total Value (Incl. GST)',
             value: formatCompactInr(stats.total_value),
             accent: 'bg-violet-600',
             iconBackground: 'bg-violet-50 text-violet-600',
             icon: <path d="M7 5h10M7 9h10M9 5c4 0 4 6 0 6h-2l8 8M7 13h4" />,
         },
         {
-            label: 'Completed',
-            value: stats.completed.toLocaleString('en-IN'),
+            label: 'Fully Received',
+            value: stats.fully_received.toLocaleString('en-IN'),
             accent: 'bg-emerald-600',
             iconBackground: 'bg-emerald-50 text-emerald-600',
             icon: <path d="m5 12 4 4L19 6" />,
@@ -433,8 +474,8 @@ export default function PurchaseOrdersIndex({
                             Purchase Orders
                         </h1>
                         <p className="mt-1 text-sm text-[var(--color-ink)]/60">
-                            Track all purchase order delivery and inspection
-                            activity.
+                            Track LOA-linked purchase order items, delivery and
+                            receipt progress.
                         </p>
                     </div>
                     <Link
@@ -537,7 +578,7 @@ export default function PurchaseOrdersIndex({
                                     onChange={(event) =>
                                         setSearch(event.target.value)
                                     }
-                                    placeholder="Search PO, supplier or items..."
+                                    placeholder="Search PO, LOA or vendor..."
                                     className="w-full rounded-lg border border-[var(--color-border-soft)] bg-[var(--color-bg-soft-2)] py-2 pr-3 pl-9 text-sm text-[var(--color-ink)] transition outline-none placeholder:text-[var(--color-ink)]/35 focus:border-[var(--color-accent)] focus:bg-[var(--color-surface)] focus:ring-2 focus:ring-[var(--color-accent)]/15"
                                 />
                             </div>
@@ -551,33 +592,7 @@ export default function PurchaseOrdersIndex({
                         <table className="w-full min-w-360 text-left text-sm">
                             <thead>
                                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-[11px] tracking-wider text-[var(--color-accent)] uppercase">
-                                    {sortableColumns
-                                        .slice(0, 2)
-                                        .map((column) => (
-                                            <th
-                                                key={column.key}
-                                                className="px-4 py-3"
-                                            >
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        applySort(column.key)
-                                                    }
-                                                    className="inline-flex items-center gap-1 font-bold transition hover:text-[var(--color-accent)]"
-                                                >
-                                                    {column.label}
-                                                    <span aria-hidden="true">
-                                                        {sortIndicator(
-                                                            column.key,
-                                                        )}
-                                                    </span>
-                                                </button>
-                                            </th>
-                                        ))}
-                                    <th className="px-4 py-3 font-bold">
-                                        Items
-                                    </th>
-                                    {sortableColumns.slice(2).map((column) => (
+                                    {sortableColumns.map((column) => (
                                         <th
                                             key={column.key}
                                             className="px-4 py-3"
@@ -587,7 +602,7 @@ export default function PurchaseOrdersIndex({
                                                 onClick={() =>
                                                     applySort(column.key)
                                                 }
-                                                className="inline-flex items-center gap-1 font-bold transition hover:text-[var(--color-accent)]"
+                                                className="inline-flex items-center gap-1 font-bold whitespace-nowrap transition hover:text-[var(--color-accent)]"
                                             >
                                                 {column.label}
                                                 <span aria-hidden="true">
@@ -596,19 +611,28 @@ export default function PurchaseOrdersIndex({
                                             </button>
                                         </th>
                                     ))}
-                                    <th className="px-4 py-3 font-bold">
-                                        Pay Terms
+                                    <th className="px-4 py-3 font-bold whitespace-nowrap">
+                                        LOA No.
                                     </th>
-                                    <th className="px-4 py-3 font-bold">
-                                        Inspection
+                                    <th className="px-4 py-3 font-bold whitespace-nowrap">
+                                        Vendor
                                     </th>
-                                    <th className="px-4 py-3 font-bold">
-                                        Dispatch
+                                    <th className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                                        Ordered/Received
                                     </th>
-                                    <th className="px-4 py-3 text-center font-bold">
-                                        Rcvd/Total
+                                    <th className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                                        Agreed Rate
                                     </th>
-                                    <th className="px-4 py-3 text-right font-bold print:hidden">
+                                    <th className="px-4 py-3 text-right font-bold whitespace-nowrap">
+                                        Variance %
+                                    </th>
+                                    <th className="px-4 py-3 font-bold whitespace-nowrap">
+                                        Status
+                                    </th>
+                                    <th className="px-4 py-3 font-bold whitespace-nowrap">
+                                        Payment
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-bold whitespace-nowrap print:hidden">
                                         Actions
                                     </th>
                                 </tr>
@@ -617,7 +641,7 @@ export default function PurchaseOrdersIndex({
                                 {purchaseOrders.data.length === 0 ? (
                                     <tr>
                                         <td
-                                            colSpan={11}
+                                            colSpan={10}
                                             className="px-6 py-16 text-center"
                                         >
                                             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface-soft)] text-[var(--color-accent-2)]">
@@ -651,67 +675,75 @@ export default function PurchaseOrdersIndex({
                                             <td className="px-4 py-3.5 font-bold whitespace-nowrap text-[var(--color-ink)]">
                                                 {order.po_number}
                                             </td>
-                                            <td className="max-w-52 px-4 py-3.5">
-                                                <span
-                                                    className="block truncate"
-                                                    title={order.supplier}
-                                                >
-                                                    {order.supplier}
-                                                </span>
-                                            </td>
-                                            <td className="max-w-64 px-4 py-3.5">
-                                                <span
-                                                    className="block truncate"
-                                                    title={
-                                                        order.items_description
-                                                    }
-                                                >
-                                                    {order.items_description}
-                                                </span>
-                                            </td>
                                             <td className="px-4 py-3.5 whitespace-nowrap tabular-nums">
                                                 {order.order_date}
-                                            </td>
-                                            <td className="px-4 py-3.5 font-semibold whitespace-nowrap text-[var(--color-ink)] tabular-nums">
-                                                {formatCompactInr(order.amount)}
                                             </td>
                                             <td className="px-4 py-3.5 whitespace-nowrap tabular-nums">
                                                 {order.delivery_date}
                                             </td>
-                                            <td className="max-w-44 px-4 py-3.5">
+                                            <td className="max-w-40 px-4 py-3.5">
                                                 <span
                                                     className="block truncate"
-                                                    title={order.payment_terms}
+                                                    title={
+                                                        order.loa_number ?? ''
+                                                    }
                                                 >
-                                                    {order.payment_terms}
+                                                    {order.loa_number ?? '—'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                            <td className="max-w-40 px-4 py-3.5">
                                                 <span
-                                                    className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(order.inspection_status)}`}
+                                                    className="block truncate"
+                                                    title={
+                                                        order.vendor_name ?? ''
+                                                    }
                                                 >
-                                                    {statusLabel(
-                                                        order.inspection_status,
-                                                    )}
+                                                    {order.vendor_name ?? '—'}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3.5 whitespace-nowrap">
-                                                <span
-                                                    className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(order.dispatch_status)}`}
-                                                >
-                                                    {statusLabel(
-                                                        order.dispatch_status,
-                                                    )}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3.5 text-center font-medium whitespace-nowrap tabular-nums">
+                                            <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap tabular-nums">
                                                 <span className="text-[var(--color-ink)]">
-                                                    {order.received_qty}
+                                                    {formatNumber(
+                                                        order.received_qty,
+                                                        3,
+                                                    )}
                                                 </span>
                                                 <span className="mx-1.5 text-[var(--color-ink)]/30">
                                                     /
                                                 </span>
-                                                {order.total_qty}
+                                                {formatNumber(
+                                                    order.ordered_qty,
+                                                    3,
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right whitespace-nowrap tabular-nums">
+                                                {formatNumber(
+                                                    order.agreed_rate,
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3.5 text-right whitespace-nowrap tabular-nums">
+                                                {order.variance_percentage !==
+                                                null
+                                                    ? `${formatNumber(order.variance_percentage)}%`
+                                                    : '—'}
+                                            </td>
+                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                                <span
+                                                    className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(order.status)}`}
+                                                >
+                                                    {
+                                                        STATUS_LABELS[
+                                                            order.status
+                                                        ]
+                                                    }
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3.5 whitespace-nowrap">
+                                                {
+                                                    PAYMENT_TYPE_LABELS[
+                                                        order.payment_type
+                                                    ]
+                                                }
                                             </td>
                                             <td className="px-4 py-3.5 print:hidden">
                                                 <div className="flex items-center justify-end gap-1">

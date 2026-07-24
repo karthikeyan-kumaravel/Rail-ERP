@@ -1,8 +1,10 @@
 <?php
 
+use App\Models\LoaItem;
 use App\Models\PurchaseOrder;
 use App\Models\User;
 use App\Models\UserScreen;
+use App\Models\Vendor;
 use App\Support\MaskedIdentifier;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -10,30 +12,48 @@ beforeEach(function () {
     $this->actingAs(User::factory()->create());
 });
 
-function validPurchaseOrderPayload(array $overrides = []): array
+/**
+ * @return array<string, mixed>
+ */
+function validPurchaseOrderItemPayload(array $overrides = []): array
 {
+    $loaItem = LoaItem::factory()->create();
+    $vendor = Vendor::factory()->create();
+
     return array_merge([
         'po_number' => 'PO/2026/005',
-        'supplier' => 'Hikvision India Pvt Ltd',
-        'items_description' => 'IP Camera 2MP (650 Nos)',
         'order_date' => '2026-07-01',
-        'amount' => 9500000,
+        'loa_id' => $loaItem->loa_id,
+        'loa_item_id' => $loaItem->id,
+        'vendor_id' => $vendor->id,
+        'ordered_qty' => 100,
+        'received_qty' => 40,
+        'unit_price_incl_gst' => 118,
+        'unit_price_excl_gst' => 100,
+        'agreed_rate' => 100,
+        'total_price_incl_gst' => 11800,
+        'total_price_excl_gst' => 10000,
+        'vendor_quote_price' => 110,
         'delivery_date' => '2026-08-15',
-        'payment_terms' => '30 days credit',
-        'total_qty' => 650,
-        'received_qty' => 520,
-        'inspection_status' => 'passed',
-        'dispatch_status' => 'partial',
+        'status' => 'Placed',
+        'payment_type' => 'Advance',
     ], $overrides);
 }
 
-test('the create page renders as a standalone route', function () {
+test('the create page renders as a standalone route with lookup options', function () {
+    $loaItem = LoaItem::factory()->create();
+    Vendor::factory()->create();
+
     $this->get('/admin/purchase-orders/create')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/purchase-orders/create')
-            ->has('status_options.inspection_status')
-            ->has('status_options.dispatch_status'));
+            ->has('loas')
+            ->has('loa_items')
+            ->has('vendors')
+            ->has('status_options', 4)
+            ->has('payment_type_options', 4)
+            ->where('loa_items.0.loa_id', $loaItem->loa_id));
 });
 
 test('the edit page renders with the purchase order using its masked route key', function () {
@@ -47,91 +67,117 @@ test('the edit page renders with the purchase order using its masked route key',
             ->where('purchaseOrder.unique_id', fn (string $value): bool => MaskedIdentifier::decode($value) === $purchaseOrder->getRawOriginal('unique_id')));
 });
 
-test('a purchase order can be created', function () {
-    $response = $this->post('/admin/purchase-orders', validPurchaseOrderPayload());
-
-    $response->assertRedirect('/admin/purchase-orders');
-
-    $purchaseOrder = PurchaseOrder::query()->where('po_number', 'PO/2026/005')->firstOrFail();
-
-    expect($purchaseOrder->supplier)->toBe('Hikvision India Pvt Ltd')
-        ->and((float) $purchaseOrder->amount)->toBe(9500000.0)
-        ->and($purchaseOrder->total_qty)->toBe(650)
-        ->and($purchaseOrder->received_qty)->toBe(520)
-        ->and($purchaseOrder->unique_id)->not->toBeNull();
-});
-
-test('an active purchase order number must be unique', function () {
-    PurchaseOrder::factory()->create(['po_number' => 'PO/2026/005']);
-
-    $response = $this->post('/admin/purchase-orders', validPurchaseOrderPayload());
-
-    $response->assertSessionHasErrors('po_number');
-});
-
-test('purchase order dates quantities and statuses are validated', function () {
-    $response = $this->post('/admin/purchase-orders', validPurchaseOrderPayload([
-        'delivery_date' => '2026-06-30',
-        'received_qty' => 651,
-        'inspection_status' => 'approved',
-        'dispatch_status' => 'shipped',
-    ]));
-
-    $response->assertSessionHasErrors([
-        'delivery_date',
-        'received_qty',
-        'inspection_status',
-        'dispatch_status',
+test('a purchase order item can be created with balance qty and variance auto-calculated', function () {
+    $response = $this->post('/admin/purchase-orders', [
+        'items' => [validPurchaseOrderItemPayload()],
     ]);
-});
-
-test('purchase order storage limits are validated before writing to the database', function () {
-    $response = $this->post('/admin/purchase-orders', validPurchaseOrderPayload([
-        'amount' => '10000000000000.001',
-        'total_qty' => '4294967296',
-        'received_qty' => '4294967296',
-    ]));
-
-    $response->assertSessionHasErrors(['amount', 'total_qty', 'received_qty']);
-});
-
-test('a purchase order can be updated using its masked route key', function () {
-    $purchaseOrder = PurchaseOrder::factory()->create(['po_number' => 'PO/2026/004']);
-
-    $response = $this->put("/admin/purchase-orders/{$purchaseOrder->unique_id}", validPurchaseOrderPayload([
-        'po_number' => 'PO/2026/004',
-        'dispatch_status' => 'completed',
-        'received_qty' => 650,
-    ]));
 
     $response->assertRedirect('/admin/purchase-orders');
     $response->assertSessionDoesntHaveErrors();
 
-    expect($purchaseOrder->refresh()->dispatch_status)->toBe('completed')
-        ->and($purchaseOrder->received_qty)->toBe(650);
+    $purchaseOrder = PurchaseOrder::query()->where('po_number', 'PO/2026/005')->firstOrFail();
+
+    expect((float) $purchaseOrder->ordered_qty)->toBe(100.0)
+        ->and((float) $purchaseOrder->received_qty)->toBe(40.0)
+        ->and((float) $purchaseOrder->balance_qty)->toBe(60.0)
+        ->and((float) $purchaseOrder->variance_percentage)->toBe(10.0)
+        ->and($purchaseOrder->unique_id)->not->toBeNull();
 });
 
-test('a purchase order is logically deleted', function () {
+test('multiple items in one request are saved as separate rows sharing the same po number', function () {
+    $response = $this->post('/admin/purchase-orders', [
+        'items' => [
+            validPurchaseOrderItemPayload(['po_number' => 'PO/2026/010']),
+            validPurchaseOrderItemPayload(['po_number' => 'PO/2026/010']),
+        ],
+    ]);
+
+    $response->assertRedirect('/admin/purchase-orders');
+    $response->assertSessionDoesntHaveErrors();
+
+    expect(PurchaseOrder::query()->where('po_number', 'PO/2026/010')->count())->toBe(2);
+});
+
+test('at least one item is required to create a purchase order', function () {
+    $response = $this->post('/admin/purchase-orders', ['items' => []]);
+
+    $response->assertSessionHasErrors('items');
+});
+
+test('purchase order item dates quantities and enums are validated', function () {
+    $response = $this->post('/admin/purchase-orders', [
+        'items' => [validPurchaseOrderItemPayload([
+            'delivery_date' => '2026-06-30',
+            'received_qty' => 150,
+            'status' => 'Shipped',
+            'payment_type' => 'Cheque',
+        ])],
+    ]);
+
+    $response->assertSessionHasErrors([
+        'items.0.delivery_date',
+        'items.0.received_qty',
+        'items.0.status',
+        'items.0.payment_type',
+    ]);
+});
+
+test('a purchase order line can be updated using its masked route key with recalculated balance and variance', function () {
+    $purchaseOrder = PurchaseOrder::factory()->create();
+    $loaItem = LoaItem::factory()->create();
+    $vendor = Vendor::factory()->create();
+
+    $response = $this->put("/admin/purchase-orders/{$purchaseOrder->unique_id}", [
+        'po_number' => $purchaseOrder->po_number,
+        'order_date' => '2026-07-01',
+        'loa_id' => $loaItem->loa_id,
+        'loa_item_id' => $loaItem->id,
+        'vendor_id' => $vendor->id,
+        'ordered_qty' => 200,
+        'received_qty' => 200,
+        'unit_price_incl_gst' => 118,
+        'unit_price_excl_gst' => 100,
+        'agreed_rate' => 100,
+        'total_price_incl_gst' => 23600,
+        'total_price_excl_gst' => 20000,
+        'vendor_quote_price' => 90,
+        'delivery_date' => '2026-08-01',
+        'status' => 'Fully Received',
+        'payment_type' => 'Cash',
+    ]);
+
+    $response->assertRedirect('/admin/purchase-orders');
+    $response->assertSessionDoesntHaveErrors();
+
+    $purchaseOrder->refresh();
+
+    expect($purchaseOrder->status)->toBe('Fully Received')
+        ->and((float) $purchaseOrder->balance_qty)->toBe(0.0)
+        ->and((float) $purchaseOrder->variance_percentage)->toBe(-10.0);
+});
+
+test('a purchase order line is logically deleted', function () {
     $purchaseOrder = PurchaseOrder::factory()->create();
 
     $this->delete("/admin/purchase-orders/{$purchaseOrder->unique_id}")
         ->assertRedirect('/admin/purchase-orders');
 
     expect($purchaseOrder->refresh()->is_delete)->toBeTrue();
+    $this->assertDatabaseHas('purchase_orders', ['id' => $purchaseOrder->id]);
 });
 
-test('the purchase order index returns active records and dispatch stats', function () {
+test('the purchase order index returns active records and status stats', function () {
     PurchaseOrder::factory()->create([
-        'amount' => 1000,
-        'dispatch_status' => 'completed',
+        'total_price_incl_gst' => 1000,
+        'status' => 'Fully Received',
     ]);
     PurchaseOrder::factory()->create([
-        'amount' => 2500,
-        'dispatch_status' => 'partial',
+        'total_price_incl_gst' => 2500,
+        'status' => 'Placed',
     ]);
     PurchaseOrder::factory()->create([
-        'amount' => 9000,
-        'dispatch_status' => 'pending',
+        'total_price_incl_gst' => 9000,
+        'status' => 'Not Placed',
         'is_delete' => true,
     ]);
 
@@ -142,7 +188,7 @@ test('the purchase order index returns active records and dispatch stats', funct
             ->has('purchaseOrders.data', 2)
             ->where('stats.total_pos', 2)
             ->where('stats.total_value', fn (string $value): bool => (float) $value === 3500.0)
-            ->where('stats.completed', 1)
+            ->where('stats.fully_received', 1)
             ->where('stats.pending', 1));
 });
 

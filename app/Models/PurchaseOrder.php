@@ -8,21 +8,29 @@ use Database\Factories\PurchaseOrderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
  * @property string $po_number
- * @property string $supplier
- * @property string $items_description
  * @property Carbon $order_date
- * @property string $amount
+ * @property int|null $loa_id
+ * @property int|null $loa_item_id
+ * @property int|null $vendor_id
+ * @property string|null $ordered_qty
+ * @property string|null $received_qty
+ * @property string|null $balance_qty
+ * @property string|null $unit_price_incl_gst
+ * @property string|null $unit_price_excl_gst
+ * @property string|null $agreed_rate
+ * @property string|null $total_price_incl_gst
+ * @property string|null $total_price_excl_gst
+ * @property string|null $vendor_quote_price
+ * @property string|null $variance_percentage
  * @property Carbon $delivery_date
- * @property string $payment_terms
- * @property int $total_qty
- * @property int $received_qty
- * @property string $inspection_status
- * @property string $dispatch_status
+ * @property string $status
+ * @property string|null $payment_type
  * @property bool $is_delete
  * @property string|null $unique_id
  * @property string|null $acc_year
@@ -35,19 +43,29 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Loa|null $loa
+ * @property-read LoaItem|null $loaItem
+ * @property-read Vendor|null $vendor
  */
 #[Fillable([
     'po_number',
-    'supplier',
-    'items_description',
     'order_date',
-    'amount',
-    'delivery_date',
-    'payment_terms',
-    'total_qty',
+    'loa_id',
+    'loa_item_id',
+    'vendor_id',
+    'ordered_qty',
     'received_qty',
-    'inspection_status',
-    'dispatch_status',
+    'balance_qty',
+    'unit_price_incl_gst',
+    'unit_price_excl_gst',
+    'agreed_rate',
+    'total_price_incl_gst',
+    'total_price_excl_gst',
+    'vendor_quote_price',
+    'variance_percentage',
+    'delivery_date',
+    'status',
+    'payment_type',
     'is_delete',
 ])]
 class PurchaseOrder extends Model
@@ -56,10 +74,10 @@ class PurchaseOrder extends Model
     use HasAuditSessionFields, HasFactory, HasMaskedRouteKey;
 
     /** @var array<int, string> */
-    public const INSPECTION_STATUSES = ['pending', 'in_progress', 'passed', 'failed'];
+    public const STATUSES = ['Not Placed', 'Placed', 'Partially Received', 'Fully Received'];
 
     /** @var array<int, string> */
-    public const DISPATCH_STATUSES = ['pending', 'partial', 'completed'];
+    public const PAYMENT_TYPES = ['Advance', 'Cash', 'LC', 'Part Payment'];
 
     /**
      * @return array<string, string>
@@ -69,12 +87,43 @@ class PurchaseOrder extends Model
         return [
             'order_date' => 'date',
             'delivery_date' => 'date',
-            'amount' => 'decimal:2',
-            'total_qty' => 'integer',
-            'received_qty' => 'integer',
+            'ordered_qty' => 'decimal:3',
+            'received_qty' => 'decimal:3',
+            'balance_qty' => 'decimal:3',
+            'unit_price_incl_gst' => 'decimal:2',
+            'unit_price_excl_gst' => 'decimal:2',
+            'agreed_rate' => 'decimal:2',
+            'total_price_incl_gst' => 'decimal:2',
+            'total_price_excl_gst' => 'decimal:2',
+            'vendor_quote_price' => 'decimal:2',
+            'variance_percentage' => 'decimal:2',
             'is_delete' => 'boolean',
             'created' => 'datetime',
             'updated' => 'datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Loa, $this>
+     */
+    public function loa(): BelongsTo
+    {
+        return $this->belongsTo(Loa::class);
+    }
+
+    /**
+     * @return BelongsTo<LoaItem, $this>
+     */
+    public function loaItem(): BelongsTo
+    {
+        return $this->belongsTo(LoaItem::class);
+    }
+
+    /**
+     * @return BelongsTo<Vendor, $this>
+     */
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
     }
 }
