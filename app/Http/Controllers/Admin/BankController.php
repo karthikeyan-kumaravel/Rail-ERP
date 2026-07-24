@@ -82,6 +82,10 @@ class BankController extends Controller
 
     public function destroy(Bank $bank): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         if ($bank->financialSecurities()->exists()) {
             return redirect()
                 ->route('admin.banks.index')

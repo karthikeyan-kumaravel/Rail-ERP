@@ -37,16 +37,31 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user()?->load('userType');
+        $roleName = strtolower((string) ($user?->userType?->name ?? ''));
+        $isSuperAdmin = $roleName === 'super admin';
+        $isAdmin = $roleName === 'admin';
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'role' => $user?->userType?->name,
+                'isSuperAdmin' => $isSuperAdmin,
+                'isAdmin' => $isAdmin,
+                'canCreate' => $isSuperAdmin || $isAdmin,
+                'canEdit' => $isSuperAdmin || $isAdmin,
+                'canDelete' => $isSuperAdmin,
             ],
+<<<<<<< HEAD
+            'navigation' => $user ? UserScreen::navigationTree() : [],
+=======
             'navigation' => $request->user() ? UserScreen::navigationTree() : [],
             'alertsCount' => $request->user()
                 ? Alert::query()->where('is_delete', false)->count()
                 : null,
+>>>>>>> b415ef0c4a51f92e7254845b09bf71093f5abee7
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),

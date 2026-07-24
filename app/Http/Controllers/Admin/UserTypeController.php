@@ -58,18 +58,43 @@ class UserTypeController extends Controller
 
     public function create(): Response
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to create records.');
+        }
+
         return Inertia::render('admin/user-types/create');
     }
 
     public function store(StoreUserTypeRequest $request): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to create records.');
+        }
+
         UserType::query()->create($request->validated());
 
         return redirect()->route('admin.user-types.index')->with('success', 'User type created successfully.');
     }
 
+    public function show(UserType $userType): Response
+    {
+        return Inertia::render('admin/user-types/show', [
+            'userType' => [
+                'unique_id' => $userType->unique_id,
+                'name' => $userType->name,
+                'active_status' => $userType->active_status,
+                'users_count' => $userType->users()->count(),
+                'created_at' => $userType->created_at?->format('d M Y'),
+            ],
+        ]);
+    }
+
     public function edit(UserType $userType): Response
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to edit records.');
+        }
+
         return Inertia::render('admin/user-types/edit', [
             'userType' => $userType->only(['unique_id', 'name', 'active_status']),
         ]);
@@ -77,6 +102,10 @@ class UserTypeController extends Controller
 
     public function update(UpdateUserTypeRequest $request, UserType $userType): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to update records.');
+        }
+
         $userType->update($request->validated());
 
         return redirect()->route('admin.user-types.index')->with('success', 'User type updated successfully.');
@@ -84,6 +113,10 @@ class UserTypeController extends Controller
 
     public function destroy(UserType $userType): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         if ($userType->users()->exists()) {
             return redirect()
                 ->route('admin.user-types.index')

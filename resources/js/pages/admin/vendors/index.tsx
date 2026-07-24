@@ -1,8 +1,12 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
+import DetailsModal, {
+    buildDetailsFromRecord,
+    resolveRecordTitle,
+} from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { PencilIcon, TrashIcon } from '@/lib/icons';
+import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
@@ -58,7 +62,10 @@ const sortableColumns: { key: string; label: string }[] = [
 ];
 
 export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
-    const { flash } = usePage().props;
+    const { flash, auth } = usePage().props;
+    const [selectedRecord, setSelectedRecord] = useState<
+        Record<string, unknown> | null
+    >(null);
     const [search, setSearch] = useState(filters.search);
     const isFirstRender = useRef(true);
 
@@ -287,27 +294,54 @@ export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
                                     </td>
                                     <td className="px-3 py-3 print:hidden">
                                         <div className="flex items-center gap-3">
-                                            <Link
-                                                href={edit.url(
-                                                    vendor.unique_id,
-                                                )}
-                                                title="Edit"
-                                                aria-label={`Edit ${vendor.company_name}`}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-                                            >
-                                                <PencilIcon />
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleDelete(vendor)
-                                                }
-                                                title="Delete"
-                                                aria-label={`Delete ${vendor.company_name}`}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
-                                            >
-                                                <TrashIcon />
-                                            </button>
+                                            {auth.isSuperAdmin ? (
+
+                                                <Link
+
+                                                    href={edit.url(vendor.unique_id,)}
+
+                                                    title="Edit"
+
+                                                    aria-label={`Edit ${vendor.company_name}`}
+
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+
+                                                >
+
+                                                    <PencilIcon />
+
+                                                </Link>
+
+                                            ) : (
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSelectedRecord(
+                                                            vendor as Record<string, unknown>,
+                                                        )
+                                                    }
+                                                    title="View"
+                                                    aria-label={`View ${vendor.company_name}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                                >
+                                                    <EyeIcon />
+</button>
+
+                                            )}
+                                            {auth.isSuperAdmin && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleDelete(vendor)
+                                                    }
+                                                    title="Delete"
+                                                    aria-label={`Delete ${vendor.company_name}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
+                                                >
+                                                    <TrashIcon />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -323,6 +357,13 @@ export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
                     links={vendors.links}
                 />
             </div>
+            {selectedRecord && (
+                <DetailsModal
+                    title={resolveRecordTitle(selectedRecord)}
+                    details={buildDetailsFromRecord(selectedRecord)}
+                    onClose={() => setSelectedRecord(null)}
+                />
+            )}
         </AdminLayout>
     );
 }
