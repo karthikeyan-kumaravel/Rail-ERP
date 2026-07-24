@@ -1,6 +1,7 @@
 import { Head, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEventHandler } from 'react';
+import { store as storeSession } from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
 
 type FormErrors = Record<string, string[]>;
 type Mode = 'login' | 'register';
@@ -143,7 +144,7 @@ export default function Login() {
         }
 
         router.post(
-            '/login',
+            storeSession.url(),
             {
                 email: form.email,
                 password: form.password,

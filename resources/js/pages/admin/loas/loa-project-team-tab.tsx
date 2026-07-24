@@ -63,13 +63,13 @@ export default function LoaProjectTeamTab({
                     >
                         <div>
                             <label
-                                htmlFor={`team-${index}-name`}
+                                htmlFor={`team.${index}.engineer_id`}
                                 className={labelClass}
                             >
                                 Name
                             </label>
                             <EngineerCombobox
-                                id={`team-${index}-name`}
+                                id={`team.${index}.engineer_id`}
                                 value={member.engineer_id}
                                 displayLabel={member.name}
                                 onSelect={(engineer) =>
@@ -86,13 +86,13 @@ export default function LoaProjectTeamTab({
 
                         <div>
                             <label
-                                htmlFor={`team-${index}-role`}
+                                htmlFor={`team.${index}.engineer_type_id`}
                                 className={labelClass}
                             >
                                 Role
                             </label>
                             <select
-                                id={`team-${index}-role`}
+                                id={`team.${index}.engineer_type_id`}
                                 value={member.engineer_type_id}
                                 onChange={(event) =>
                                     handleRoleChange(

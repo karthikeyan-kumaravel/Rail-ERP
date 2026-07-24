@@ -17,8 +17,7 @@ track-related works for clients/railway divisions.
    contract record once a tender is won: client, division, work type,
    contract value, completion period, defect liability period, start/end
    dates, total stations covered. Financial security terms live alongside it:
-   Bank Guarantee (amount + validity), security deposit, mobilization
-   advance (amount + status).
+   Bank Guarantee (amount + validity), security deposit.
 3. **Scope breakdown** — `loa_items` are the BOQ/schedule line items under an
    LOA: item code/description, quantity + unit, unit rate, escalation,
    advertised value vs. bid rate/amount — i.e. the tendered-vs-won-rate
@@ -43,7 +42,6 @@ track-related works for clients/railway divisions.
 | **LOA** | Letter of Acceptance — the contract-award record |
 | **BOQ** | Bill of Quantities — the itemized scope/pricing schedule (modeled as `loa_items`) |
 | **BG** | Bank Guarantee — a financial security instrument tied to an LOA |
-| **Mobilization advance** | Upfront payment to help the contractor mobilize resources for a won contract |
 | **Defect liability period** | Post-completion warranty window during which the contractor remains liable for defects |
 | **Division** (railway) | An organizational unit of the railway the LOA is awarded under/for — distinct from a company "department" |
 | **acc_year** | Accounting/fiscal year string used for record-keeping, April-to-March boundary (see `[[database]]`) |

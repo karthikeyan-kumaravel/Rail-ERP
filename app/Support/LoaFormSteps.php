@@ -30,6 +30,7 @@ final class LoaFormSteps
     public const array FIELDS_BY_TAB = [
         'details' => [
             'loa_number',
+            'loa_date',
             'client',
             'vendor_id',
             'division_id',
@@ -41,6 +42,8 @@ final class LoaFormSteps
             'start_date',
             'end_date',
             'total_stations',
+            'completion_date',
+            'extension_date',
             'active_status',
             'stations',
             'stations.*.station_id',
@@ -70,9 +73,6 @@ final class LoaFormSteps
             'items.*.payment_stages',
         ],
         'financial' => [
-            'mobilization_advance_amount',
-            'mobilization_advance_unit',
-            'mobilization_advance_status',
             'financial_securities',
             'financial_securities.emd.amount',
             'financial_securities.emd.amount_unit',

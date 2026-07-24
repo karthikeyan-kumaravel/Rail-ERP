@@ -15,6 +15,7 @@ declare module '@inertiajs/core' {
             auth: Auth;
             navigation: NavigationItem[];
             sidebarOpen: boolean;
+            alertsCount: number | null;
             flash: {
                 success: string | null;
                 error: string | null;

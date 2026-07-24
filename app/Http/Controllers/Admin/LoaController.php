@@ -18,6 +18,7 @@ use App\Models\ScheduleType;
 use App\Models\Station;
 use App\Models\Unit;
 use App\Models\Vendor;
+use App\Services\AlertGenerationService;
 use App\Support\LoaFormSteps;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,8 @@ class LoaController extends Controller
 {
     use HasPaginatedIndex;
 
+    public function __construct(private readonly AlertGenerationService $alertGenerationService) {}
+
     /**
      * The Loa columns that are mass-assignable and safe to expose to the frontend as-is.
      *
@@ -41,6 +44,7 @@ class LoaController extends Controller
      */
     private const array FILLABLE_COLUMNS = [
         'loa_number',
+        'loa_date',
         'client',
         'vendor_id',
         'division_id',
@@ -54,9 +58,8 @@ class LoaController extends Controller
         'start_date',
         'end_date',
         'total_stations',
-        'mobilization_advance_amount',
-        'mobilization_advance_unit',
-        'mobilization_advance_status',
+        'completion_date',
+        'extension_date',
         'scope_of_work',
         'active_status',
         'is_delete',
@@ -171,6 +174,8 @@ class LoaController extends Controller
             return $loa;
         });
 
+        $this->alertGenerationService->syncLoaCompletionAlertForLoa($loa);
+
         if (! $request->boolean('finish', true)) {
             return redirect($this->resumeUrl($loa, $request->string('current_step')->toString()))
                 ->with('success', 'Progress saved.');
@@ -188,6 +193,14 @@ class LoaController extends Controller
             'loa' => [
                 'unique_id' => $loa->unique_id,
                 ...$loa->only(self::FILLABLE_COLUMNS),
+                // Overrides the raw ISO-8601 datetime strings the date casts
+                // above produce — <input type="date"> only accepts a strict
+                // Y-m-d value and silently blanks itself on anything else.
+                'loa_date' => $loa->loa_date?->format('Y-m-d'),
+                'start_date' => $loa->start_date?->format('Y-m-d'),
+                'end_date' => $loa->end_date?->format('Y-m-d'),
+                'completion_date' => $loa->completion_date?->format('Y-m-d'),
+                'extension_date' => $loa->extension_date?->format('Y-m-d'),
                 'team' => $loa->teamMembers()
                     ->orderBy('order_no')
                     ->get(['engineer_id', 'engineer_type_id', 'name', 'role'])
@@ -217,6 +230,8 @@ class LoaController extends Controller
             $this->replaceStations($loa, $request->validated('stations', []));
             $this->syncFinancialSecurities($loa, $request->validated('financial_securities', []));
         });
+
+        $this->alertGenerationService->syncLoaCompletionAlertForLoa($loa);
 
         if (! $request->boolean('finish', true)) {
             return redirect($this->resumeUrl($loa, $request->string('current_step')->toString()))
@@ -298,6 +313,8 @@ class LoaController extends Controller
         $loa->update([
             'is_delete' => true,
         ]);
+
+        $this->alertGenerationService->syncLoaCompletionAlertForLoa($loa);
 
         return redirect()->route('admin.loas.index')->with('success', 'LOA deleted successfully.');
     }

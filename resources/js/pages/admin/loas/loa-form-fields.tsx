@@ -124,6 +124,12 @@ export const FINANCIAL_SECURITY_TYPES: FinancialSecurityType[] = [
     'security_bg',
 ];
 
+/**
+ * Performance BG and Security BG are optional — only EMD is a mandatory
+ * financial security, so it's the only type checked by `validateLoaTab`.
+ */
+const FINANCIAL_SECURITY_REQUIRED_TYPES: FinancialSecurityType[] = ['emd'];
+
 export const FINANCIAL_SECURITY_LABELS: Record<FinancialSecurityType, string> =
     {
         emd: 'EMD Details',
@@ -182,6 +188,7 @@ export function defaultFinancialSecurities(): FinancialSecuritiesFormData {
 
 export type LoaFormData = {
     loa_number: string;
+    loa_date: string;
     client: string;
     vendor_id: number | '';
     division_id: number | '';
@@ -195,9 +202,8 @@ export type LoaFormData = {
     start_date: string;
     end_date: string;
     total_stations: number | '';
-    mobilization_advance_amount: number | '';
-    mobilization_advance_unit: 'Cr' | 'L';
-    mobilization_advance_status: 'Pending' | 'Requested' | 'Received';
+    completion_date: string;
+    extension_date: string;
     scope_of_work: string;
     active_status: '1' | '0';
     team: LoaTeamMemberFormData[];
@@ -307,7 +313,7 @@ export function validateLoaTab(
     }
 
     if (tab === 'financial') {
-        FINANCIAL_SECURITY_TYPES.forEach((type) => {
+        FINANCIAL_SECURITY_REQUIRED_TYPES.forEach((type) => {
             const section = data.financial_securities[type];
             const label = FINANCIAL_SECURITY_LABELS[type];
 
@@ -349,9 +355,37 @@ export function validateLoaTab(
     return errors;
 }
 
+/**
+ * Focuses and scrolls to the first invalid field, matched by DOM `id`
+ * against the first key in `errors` (object key order is insertion order,
+ * so this is "first" in whatever order the caller assembled the errors).
+ * A no-op if no element has a matching id — not every field in the wizard
+ * carries one yet, so this degrades silently rather than throwing.
+ */
+export function scrollToFirstError(errors: LoaFormErrors): void {
+    const firstErrorKey = Object.keys(errors)[0];
+
+    if (!firstErrorKey) {
+        return;
+    }
+
+    const field = document.getElementById(firstErrorKey);
+
+    if (!field) {
+        return;
+    }
+
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    if (field instanceof HTMLElement && typeof field.focus === 'function') {
+        field.focus({ preventScroll: true });
+    }
+}
+
 export function defaultLoaFormData(): LoaFormData {
     return {
         loa_number: '',
+        loa_date: '',
         client: '',
         vendor_id: '',
         division_id: '',
@@ -365,9 +399,8 @@ export function defaultLoaFormData(): LoaFormData {
         start_date: '',
         end_date: '',
         total_stations: '',
-        mobilization_advance_amount: 0,
-        mobilization_advance_unit: 'L',
-        mobilization_advance_status: 'Pending',
+        completion_date: '',
+        extension_date: '',
         scope_of_work: '',
         active_status: '1',
         team: [{ engineer_id: '', engineer_type_id: '', name: '', role: '' }],
