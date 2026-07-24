@@ -103,6 +103,10 @@ class CityController extends Controller
 
     public function destroy(City $city): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         $city->update([
             'is_delete' => true,
         ]);

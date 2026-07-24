@@ -98,6 +98,10 @@ class DistrictController extends Controller
 
     public function destroy(District $district): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         if ($district->cities()->exists()) {
             return redirect()
                 ->route('admin.districts.index')

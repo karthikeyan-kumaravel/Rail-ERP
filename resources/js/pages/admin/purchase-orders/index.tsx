@@ -288,7 +288,10 @@ export default function PurchaseOrdersIndex({
     stats,
     filters,
 }: PurchaseOrdersIndexProps) {
-    const { flash } = usePage().props;
+    const { flash, auth } = usePage().props;
+    const [selectedRecord, setSelectedRecord] = useState<
+        Record<string, unknown> | null
+    >(null);
     const [search, setSearch] = useState(filters.search ?? '');
     const [listLoading, setListLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -728,36 +731,63 @@ export default function PurchaseOrdersIndex({
                                                     >
                                                         <EyeIcon />
                                                     </button>
-                                                    <Link
-                                                        href={edit.url(
-                                                            order.unique_id,
-                                                        )}
-                                                        title="Edit"
-                                                        aria-label={`Edit ${order.po_number}`}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-status-gold-icon)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:outline-none"
-                                                    >
-                                                        <PencilIcon />
-                                                    </Link>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleDelete(order)
-                                                        }
-                                                        disabled={
-                                                            deletingId ===
-                                                            order.unique_id
-                                                        }
-                                                        title="Delete"
-                                                        aria-label={`Delete ${order.po_number}`}
-                                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:outline-none disabled:cursor-wait disabled:opacity-45"
-                                                    >
-                                                        {deletingId ===
-                                                        order.unique_id ? (
-                                                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
-                                                        ) : (
-                                                            <TrashIcon />
-                                                        )}
-                                                    </button>
+                                                    {auth.isSuperAdmin ? (
+
+                                                        <Link
+
+                                                            href={edit.url(order.unique_id,)}
+
+                                                            title="Edit"
+
+                                                            aria-label={`Edit ${order.po_number}`}
+
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-status-gold-icon)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:outline-none"
+
+                                                        >
+
+                                                            <PencilIcon />
+
+                                                        </Link>
+
+                                                    ) : (
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setSelectedRecord(
+                                                                    order as Record<string, unknown>,
+                                                                )
+                                                            }
+                                                            title="View"
+                                                            aria-label={`View ${order.po_number}`}
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                                        >
+                                                            <EyeIcon />
+                                                        </button>
+
+                                                    )}
+                                                    {auth.isSuperAdmin && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleDelete(order)
+                                                            }
+                                                            disabled={
+                                                                deletingId ===
+                                                                order.unique_id
+                                                            }
+                                                            title="Delete"
+                                                            aria-label={`Delete ${order.po_number}`}
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500 transition hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:outline-none disabled:cursor-wait disabled:opacity-45"
+                                                        >
+                                                            {deletingId ===
+                                                            order.unique_id ? (
+                                                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
+                                                            ) : (
+                                                                <TrashIcon />
+                                                            )}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -777,6 +807,14 @@ export default function PurchaseOrdersIndex({
                     </div>
                 </section>
             </div>
+
+            {selectedRecord && (
+                <DetailsModal
+                    title={resolveRecordTitle(selectedRecord)}
+                    details={buildDetailsFromRecord(selectedRecord)}
+                    onClose={() => setSelectedRecord(null)}
+                />
+            )}
 
             {viewingOrder && (
                 <PurchaseOrderViewModal

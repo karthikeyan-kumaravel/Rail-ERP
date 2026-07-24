@@ -1,8 +1,12 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
+import DetailsModal, {
+    buildDetailsFromRecord,
+    resolveRecordTitle,
+} from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { PencilIcon, TrashIcon } from '@/lib/icons';
+import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
 import { create, destroy, edit, index } from '@/routes/admin/users';
@@ -50,8 +54,21 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'mobile_no', label: 'Mobile No' },
 ];
 
+const READ_ONLY_ADD_ROLES = [
+    'accounts team',
+    'operation team',
+    'service engineer',
+    'stores team',
+];
+
 export default function UsersIndex({ users, filters }: UsersIndexProps) {
-    const { flash } = usePage().props;
+    const { flash, auth } = usePage().props;
+    const authRole = String(auth.role ?? '').trim().toLowerCase();
+    const showAddButton =
+        Boolean(auth.canCreate) && !READ_ONLY_ADD_ROLES.includes(authRole);
+    const [selectedRecord, setSelectedRecord] = useState<
+        Record<string, unknown> | null
+    >(null);
     const [search, setSearch] = useState(filters.search);
     const isFirstRender = useRef(true);
 
@@ -144,12 +161,14 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                             User Creation
                         </span>
                     </div>
-                    <Link
-                        href={create.url()}
-                        className="rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
-                    >
-                        + Add New
-                    </Link>
+                    {showAddButton && (
+                        <Link
+                            href={create.url()}
+                            className="rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
+                        >
+                            + Add New
+                        </Link>
+                    )}
                 </div>
             }
         >
@@ -241,25 +260,54 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                                     </td>
                                     <td className="px-3 py-3 print:hidden">
                                         <div className="flex items-center gap-3">
-                                            <Link
-                                                href={edit.url(user.unique_id)}
-                                                title="Edit"
-                                                aria-label={`Edit ${user.name}`}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-                                            >
-                                                <PencilIcon />
-                                            </Link>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleDelete(user)
-                                                }
-                                                title="Delete"
-                                                aria-label={`Delete ${user.name}`}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
-                                            >
-                                                <TrashIcon />
-                                            </button>
+                                            {auth.isSuperAdmin ? (
+
+                                                <Link
+
+                                                    href={edit.url(user.unique_id)}
+
+                                                    title="Edit"
+
+                                                    aria-label={`Edit ${user.name}`}
+
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+
+                                                >
+
+                                                    <PencilIcon />
+
+                                                </Link>
+
+                                            ) : (
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSelectedRecord(
+                                                            user as Record<string, unknown>,
+                                                        )
+                                                    }
+                                                    title="View"
+                                                    aria-label={`View ${user.name}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                                >
+                                                    <EyeIcon />
+                                                </button>
+
+                                            )}
+                                            {auth.isSuperAdmin && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleDelete(user)
+                                                    }
+                                                    title="Delete"
+                                                    aria-label={`Delete ${user.name}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
+                                                >
+                                                    <TrashIcon />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -275,6 +323,13 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                     links={users.links}
                 />
             </div>
+            {selectedRecord && (
+                <DetailsModal
+                    title={resolveRecordTitle(selectedRecord)}
+                    details={buildDetailsFromRecord(selectedRecord)}
+                    onClose={() => setSelectedRecord(null)}
+                />
+            )}
         </AdminLayout>
     );
 }

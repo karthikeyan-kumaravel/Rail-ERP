@@ -291,6 +291,10 @@ class LoaController extends Controller
 
     public function destroy(Loa $loa): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         $loa->update([
             'is_delete' => true,
         ]);

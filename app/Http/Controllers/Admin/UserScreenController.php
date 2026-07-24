@@ -105,6 +105,10 @@ class UserScreenController extends Controller
 
     public function destroy(UserScreen $userScreen): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         if ($userScreen->subScreens()->exists()) {
             return redirect()
                 ->route('admin.user-screens.index')

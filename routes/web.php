@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\CaptchaController;
+use App\Http\Middleware\PreventAdminDelete;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -40,9 +41,13 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware([
+        'authorize.admin',
+        PreventAdminDelete::class,
+    ])->group(function () {
         Route::resource('users', UserController::class)->except('show');
         Route::resource('user-types', UserTypeController::class)->except('show');
+        Route::get('user-types/{user_type}', [UserTypeController::class, 'show'])->name('user-types.show');
         Route::resource('user-screens', UserScreenController::class)->except('show');
         Route::get('user-type-permissions', [UserTypePermissionController::class, 'index'])
             ->name('user-type-permissions.index');

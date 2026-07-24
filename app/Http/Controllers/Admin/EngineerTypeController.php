@@ -82,6 +82,10 @@ class EngineerTypeController extends Controller
 
     public function destroy(EngineerType $engineerType): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         $engineerType->update([
             'is_delete' => true,
         ]);

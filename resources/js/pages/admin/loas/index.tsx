@@ -1,6 +1,10 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
+import DetailsModal, {
+    buildDetailsFromRecord,
+    resolveRecordTitle,
+} from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
 import { DocumentIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
@@ -54,7 +58,10 @@ function formatContractValue(amount: number, unit: 'Cr' | 'L'): string {
 }
 
 export default function LoasIndex({ loas, filters }: LoasIndexProps) {
-    const { flash } = usePage().props;
+    const { flash, auth } = usePage().props;
+    const [selectedRecord, setSelectedRecord] = useState<
+        Record<string, unknown> | null
+    >(null);
     const [search, setSearch] = useState(filters.search);
     const isFirstRender = useRef(true);
 
@@ -276,14 +283,41 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                                             >
                                                 <EyeIcon />
                                             </Link>
-                                            <Link
-                                                href={edit.url(loa.unique_id)}
-                                                title="Edit"
-                                                aria-label={`Edit ${loa.loa_number}`}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-                                            >
-                                                <PencilIcon />
-                                            </Link>
+                                            {auth.isSuperAdmin ? (
+
+                                                <Link
+
+                                                    href={edit.url(loa.unique_id)}
+
+                                                    title="Edit"
+
+                                                    aria-label={`Edit ${loa.loa_number}`}
+
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+
+                                                >
+
+                                                    <PencilIcon />
+
+                                                </Link>
+
+                                            ) : (
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setSelectedRecord(
+                                                            loa as Record<string, unknown>,
+                                                        )
+                                                    }
+                                                    title="View"
+                                                    aria-label={`View ${loa.loa_number}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                                >
+                                                    <EyeIcon />
+</button>
+
+                                            )}
                                             <a
                                                 href={pdf.url(loa.unique_id)}
                                                 title="Download PDF"
@@ -292,17 +326,19 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                                             >
                                                 <DocumentIcon />
                                             </a>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    handleDelete(loa)
-                                                }
-                                                title="Delete"
-                                                aria-label={`Delete ${loa.loa_number}`}
-                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
-                                            >
-                                                <TrashIcon />
-                                            </button>
+                                            {auth.isSuperAdmin && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleDelete(loa)
+                                                    }
+                                                    title="Delete"
+                                                    aria-label={`Delete ${loa.loa_number}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
+                                                >
+                                                    <TrashIcon />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -318,6 +354,13 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                     links={loas.links}
                 />
             </div>
+            {selectedRecord && (
+                <DetailsModal
+                    title={resolveRecordTitle(selectedRecord)}
+                    details={buildDetailsFromRecord(selectedRecord)}
+                    onClose={() => setSelectedRecord(null)}
+                />
+            )}
         </AdminLayout>
     );
 }

@@ -98,6 +98,10 @@ class DivisionController extends Controller
 
     public function destroy(Division $division): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         if ($division->stations()->exists()) {
             return redirect()
                 ->route('admin.divisions.index')

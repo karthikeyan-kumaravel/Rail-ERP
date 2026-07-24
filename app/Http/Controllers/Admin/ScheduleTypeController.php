@@ -96,6 +96,10 @@ class ScheduleTypeController extends Controller
 
     public function destroy(ScheduleType $scheduleType): RedirectResponse
     {
+        if (strtolower((string) (auth()->user()->userType?->name ?? '')) !== 'super admin') {
+            abort(403, 'You are not authorized to delete records.');
+        }
+
         $scheduleType->update([
             'is_delete' => true,
         ]);
