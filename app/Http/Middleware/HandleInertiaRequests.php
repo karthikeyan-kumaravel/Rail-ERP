@@ -54,14 +54,10 @@ class HandleInertiaRequests extends Middleware
                 'canEdit' => $isSuperAdmin || $isAdmin,
                 'canDelete' => $isSuperAdmin,
             ],
-<<<<<<< HEAD
             'navigation' => $user ? UserScreen::navigationTree() : [],
-=======
-            'navigation' => $request->user() ? UserScreen::navigationTree() : [],
-            'alertsCount' => $request->user()
+            'alertsCount' => $user
                 ? Alert::query()->where('is_delete', false)->count()
                 : null,
->>>>>>> b415ef0c4a51f92e7254845b09bf71093f5abee7
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
