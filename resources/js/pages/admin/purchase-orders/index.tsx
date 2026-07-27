@@ -25,18 +25,11 @@ type PurchaseOrder = {
     po_number: string;
     order_date: string;
     loa_number: string | null;
-    loa_item_description: string | null;
     vendor_name: string | null;
-    ordered_qty: number | string | null;
-    received_qty: number | string | null;
-    balance_qty: number | string | null;
-    unit_price_incl_gst: number | string | null;
-    unit_price_excl_gst: number | string | null;
-    agreed_rate: number | string | null;
-    total_price_incl_gst: number | string | null;
-    total_price_excl_gst: number | string | null;
-    vendor_quote_price: number | string | null;
-    variance_percentage: number | string | null;
+    items_count: number;
+    total_ordered_qty: number | string | null;
+    total_received_qty: number | string | null;
+    total_value_incl_gst: number | string | null;
     delivery_date: string;
     status: PurchaseOrderStatus;
     payment_type: PaymentType;
@@ -228,59 +221,23 @@ function PurchaseOrderViewModal({
                             label="Vendor"
                             value={order.vendor_name ?? '—'}
                         />
-                        <div className="sm:col-span-2">
-                            <DetailRow
-                                label="LOA Line Item"
-                                value={order.loa_item_description ?? '—'}
-                            />
-                        </div>
                         <DetailRow
-                            label="Ordered Qty"
-                            value={formatNumber(order.ordered_qty, 3)}
+                            label="Items"
+                            value={`${order.items_count}`}
                         />
                         <DetailRow
-                            label="Received Qty"
-                            value={formatNumber(order.received_qty, 3)}
+                            label="Total Ordered Qty"
+                            value={formatNumber(order.total_ordered_qty, 3)}
                         />
                         <DetailRow
-                            label="Balance Qty"
-                            value={formatNumber(order.balance_qty, 3)}
+                            label="Total Received Qty"
+                            value={formatNumber(order.total_received_qty, 3)}
                         />
                         <DetailRow
-                            label="Agreed Rate (LOA Rate)"
-                            value={formatNumber(order.agreed_rate)}
-                        />
-                        <DetailRow
-                            label="Unit Price (Incl. GST)"
-                            value={formatNumber(order.unit_price_incl_gst)}
-                        />
-                        <DetailRow
-                            label="Unit Price (Excl. GST)"
-                            value={formatNumber(order.unit_price_excl_gst)}
-                        />
-                        <DetailRow
-                            label="Total Price (Incl. GST)"
+                            label="Total Value (Incl. GST)"
                             value={formatCompactInr(
-                                order.total_price_incl_gst ?? 0,
+                                order.total_value_incl_gst ?? 0,
                             )}
-                        />
-                        <DetailRow
-                            label="Total Price (Excl. GST)"
-                            value={formatCompactInr(
-                                order.total_price_excl_gst ?? 0,
-                            )}
-                        />
-                        <DetailRow
-                            label="Incoming Price Capture (Vendor Quote)"
-                            value={formatNumber(order.vendor_quote_price)}
-                        />
-                        <DetailRow
-                            label="Variance %"
-                            value={
-                                order.variance_percentage !== null
-                                    ? `${formatNumber(order.variance_percentage)}%`
-                                    : '—'
-                            }
                         />
                         <DetailRow
                             label="Expected Delivery Date"
@@ -330,9 +287,6 @@ export default function PurchaseOrdersIndex({
     filters,
 }: PurchaseOrdersIndexProps) {
     const { flash, auth } = usePage().props;
-    const [selectedRecord, setSelectedRecord] = useState<
-        Record<string, unknown> | null
-    >(null);
     const [search, setSearch] = useState(filters.search ?? '');
     const [listLoading, setListLoading] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -477,7 +431,7 @@ export default function PurchaseOrdersIndex({
                             Purchase Orders
                         </h1>
                         <p className="mt-1 text-sm text-[var(--color-ink)]/60">
-                            Track LOA-linked purchase order items, delivery and
+                            Track LOA-linked purchase orders, delivery and
                             receipt progress.
                         </p>
                     </div>
@@ -620,14 +574,14 @@ export default function PurchaseOrdersIndex({
                                     <th className="px-4 py-3 font-bold whitespace-nowrap">
                                         Vendor
                                     </th>
+                                    <th className="px-4 py-3 text-center font-bold whitespace-nowrap">
+                                        Items
+                                    </th>
                                     <th className="px-4 py-3 text-right font-bold whitespace-nowrap">
                                         Ordered/Received
                                     </th>
                                     <th className="px-4 py-3 text-right font-bold whitespace-nowrap">
-                                        Agreed Rate
-                                    </th>
-                                    <th className="px-4 py-3 text-right font-bold whitespace-nowrap">
-                                        Variance %
+                                        Total Value (Incl. GST)
                                     </th>
                                     <th className="px-4 py-3 font-bold whitespace-nowrap">
                                         Status
@@ -704,10 +658,15 @@ export default function PurchaseOrdersIndex({
                                                     {order.vendor_name ?? '—'}
                                                 </span>
                                             </td>
+                                            <td className="px-4 py-3.5 text-center tabular-nums">
+                                                <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-[var(--color-accent)]/10 px-2 py-0.5 text-xs font-bold text-[var(--color-accent)]">
+                                                    {order.items_count}
+                                                </span>
+                                            </td>
                                             <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap tabular-nums">
                                                 <span className="text-[var(--color-ink)]">
                                                     {formatNumber(
-                                                        order.received_qty,
+                                                        order.total_received_qty,
                                                         3,
                                                     )}
                                                 </span>
@@ -715,20 +674,15 @@ export default function PurchaseOrdersIndex({
                                                     /
                                                 </span>
                                                 {formatNumber(
-                                                    order.ordered_qty,
+                                                    order.total_ordered_qty,
                                                     3,
                                                 )}
                                             </td>
                                             <td className="px-4 py-3.5 text-right whitespace-nowrap tabular-nums">
-                                                {formatNumber(
-                                                    order.agreed_rate,
+                                                {formatCompactInr(
+                                                    order.total_value_incl_gst ??
+                                                        0,
                                                 )}
-                                            </td>
-                                            <td className="px-4 py-3.5 text-right whitespace-nowrap tabular-nums">
-                                                {order.variance_percentage !==
-                                                null
-                                                    ? `${formatNumber(order.variance_percentage)}%`
-                                                    : '—'}
                                             </td>
                                             <td className="px-4 py-3.5 whitespace-nowrap">
                                                 <span
@@ -763,46 +717,25 @@ export default function PurchaseOrdersIndex({
                                                     >
                                                         <EyeIcon />
                                                     </button>
-                                                    {auth.isSuperAdmin ? (
-
+                                                    {auth.isSuperAdmin && (
                                                         <Link
-
-                                                            href={edit.url(order.unique_id,)}
-
+                                                            href={edit.url(
+                                                                order.unique_id,
+                                                            )}
                                                             title="Edit"
-
                                                             aria-label={`Edit ${order.po_number}`}
-
                                                             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-status-gold-icon)] transition hover:bg-[var(--color-surface-soft)] hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:outline-none"
-
                                                         >
-
                                                             <PencilIcon />
-
                                                         </Link>
-
-                                                    ) : (
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setSelectedRecord(
-                                                                    order as Record<string, unknown>,
-                                                                )
-                                                            }
-                                                            title="View"
-                                                            aria-label={`View ${order.po_number}`}
-                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-                                                        >
-                                                            <EyeIcon />
-                                                        </button>
-
                                                     )}
                                                     {auth.isSuperAdmin && (
                                                         <button
                                                             type="button"
                                                             onClick={() =>
-                                                                handleDelete(order)
+                                                                handleDelete(
+                                                                    order,
+                                                                )
                                                             }
                                                             disabled={
                                                                 deletingId ===
@@ -839,14 +772,6 @@ export default function PurchaseOrdersIndex({
                     </div>
                 </section>
             </div>
-
-            {selectedRecord && (
-                <DetailsModal
-                    title={resolveRecordTitle(selectedRecord)}
-                    details={buildDetailsFromRecord(selectedRecord)}
-                    onClose={() => setSelectedRecord(null)}
-                />
-            )}
 
             {viewingOrder && (
                 <PurchaseOrderViewModal

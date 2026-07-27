@@ -1,16 +1,22 @@
 import { Link, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { FormEventHandler } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
 import { index, store } from '@/routes/admin/purchase-orders';
-import PurchaseOrderFormFields, {
+import {
+    computeEffectiveLoaItems,
+    defaultPurchaseOrderHeader,
     defaultPurchaseOrderItem,
     FieldError,
+    PurchaseOrderHeaderFields,
+    PurchaseOrderItemFields,
+    validatePurchaseOrderItemDraft,
 } from './purchase-order-form-fields';
 import type {
     LoaItemOption,
     LoaOption,
     PaymentType,
+    PurchaseOrderHeaderFormData,
     PurchaseOrderItemFormData,
     PurchaseOrderStatus,
     VendorOption,
@@ -25,39 +31,6 @@ type CreateProps = {
     payment_type_options: PaymentType[];
 };
 
-const requiredFields: Array<{
-    field: keyof PurchaseOrderItemFormData;
-    label: string;
-}> = [
-    { field: 'loa_id', label: 'LOA No.' },
-    { field: 'po_number', label: 'PO Number' },
-    { field: 'order_date', label: 'PO Date' },
-    { field: 'loa_item_id', label: 'LOA Line Item' },
-    { field: 'vendor_id', label: 'Vendor Name' },
-    { field: 'received_qty', label: 'Received Qty' },
-    { field: 'unit_price_incl_gst', label: 'Unit Price (Incl. GST)' },
-    { field: 'unit_price_excl_gst', label: 'Unit Price (Excl. GST)' },
-    { field: 'agreed_rate', label: 'Agreed Rate' },
-    { field: 'total_price_incl_gst', label: 'Total Price (Incl. GST)' },
-    { field: 'total_price_excl_gst', label: 'Total Price (Excl. GST)' },
-    { field: 'vendor_quote_price', label: 'Incoming Price Capture' },
-    { field: 'delivery_date', label: 'Expected Delivery Date' },
-];
-
-function validateDraft(
-    draft: PurchaseOrderItemFormData,
-): Partial<Record<keyof PurchaseOrderItemFormData, string>> {
-    const errors: Partial<Record<keyof PurchaseOrderItemFormData, string>> = {};
-
-    requiredFields.forEach(({ field, label }) => {
-        if (draft[field] === '' || draft[field] === null) {
-            errors[field] = `${label} is required.`;
-        }
-    });
-
-    return errors;
-}
-
 export default function PurchaseOrdersCreate({
     loas,
     loa_items: loaItems,
@@ -65,42 +38,63 @@ export default function PurchaseOrdersCreate({
     status_options: statusOptions,
     payment_type_options: paymentTypeOptions,
 }: CreateProps) {
-    const [draft, setDraftState] = useState<PurchaseOrderItemFormData>(
-        defaultPurchaseOrderItem(),
-    );
-    const [draftErrors, setDraftErrors] = useState<
-        Partial<Record<keyof PurchaseOrderItemFormData, string>>
-    >({});
-
-    const { data, setData, post, processing, errors } = useForm<{
-        items: PurchaseOrderItemFormData[];
-    }>({
+    const { data, setData, post, processing, errors } = useForm<
+        PurchaseOrderHeaderFormData & { items: PurchaseOrderItemFormData[] }
+    >({
+        ...defaultPurchaseOrderHeader(),
         items: [],
     });
 
-    const setDraft = <K extends keyof PurchaseOrderItemFormData>(
+    const [itemDraft, setItemDraftState] = useState<PurchaseOrderItemFormData>(
+        defaultPurchaseOrderItem(),
+    );
+    const [itemDraftErrors, setItemDraftErrors] = useState<
+        Partial<Record<keyof PurchaseOrderItemFormData, string>>
+    >({});
+
+    const effectiveLoaItems = useMemo(
+        () => computeEffectiveLoaItems(loaItems, data.items),
+        [loaItems, data.items],
+    );
+
+    const setHeaderField = <K extends keyof PurchaseOrderHeaderFormData>(
+        key: K,
+        value: PurchaseOrderHeaderFormData[K],
+    ) => {
+        setData((current) => ({
+            ...current,
+            [key]: value,
+            items: key === 'loa_id' ? [] : current.items,
+        }));
+
+        if (key === 'loa_id') {
+            setItemDraftState(defaultPurchaseOrderItem());
+            setItemDraftErrors({});
+        }
+    };
+
+    const setItemDraft = <K extends keyof PurchaseOrderItemFormData>(
         key: K,
         value: PurchaseOrderItemFormData[K],
     ) => {
-        setDraftState((current) => ({ ...current, [key]: value }));
+        setItemDraftState((current) => ({ ...current, [key]: value }));
     };
 
     const addItem = () => {
-        const validationErrors = validateDraft(draft);
+        const validationErrors = validatePurchaseOrderItemDraft(
+            itemDraft,
+            effectiveLoaItems,
+        );
 
         if (Object.keys(validationErrors).length > 0) {
-            setDraftErrors(validationErrors);
+            setItemDraftErrors(validationErrors);
 
             return;
         }
 
-        setDraftErrors({});
-        setData('items', [...data.items, draft]);
-        setDraftState({
-            ...defaultPurchaseOrderItem(),
-            po_number: draft.po_number,
-            order_date: draft.order_date,
-        });
+        setItemDraftErrors({});
+        setData('items', [...data.items, itemDraft]);
+        setItemDraftState(defaultPurchaseOrderItem());
     };
 
     const removeItem = (index: number) => {
@@ -114,6 +108,10 @@ export default function PurchaseOrdersCreate({
         event.preventDefault();
         post(store.url());
     };
+
+    const itemErrors = Object.entries(errors).filter(([key]) =>
+        key.startsWith('items.'),
+    );
 
     return (
         <AdminLayout
@@ -137,17 +135,29 @@ export default function PurchaseOrdersCreate({
             <form onSubmit={submit} noValidate className="space-y-5">
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm">
                     <h2 className="mb-4 text-base font-bold text-[var(--color-ink)]">
-                        Item Details
+                        Purchase Order Details
                     </h2>
-                    <PurchaseOrderFormFields
-                        data={draft}
-                        setData={setDraft}
-                        errors={draftErrors}
+                    <PurchaseOrderHeaderFields
+                        data={data}
+                        setData={setHeaderField}
+                        errors={errors}
                         loas={loas}
-                        loaItems={loaItems}
                         vendors={vendors}
                         statusOptions={statusOptions}
                         paymentTypeOptions={paymentTypeOptions}
+                    />
+                </div>
+
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm">
+                    <h2 className="mb-4 text-base font-bold text-[var(--color-ink)]">
+                        Item Details
+                    </h2>
+                    <PurchaseOrderItemFields
+                        data={itemDraft}
+                        setData={setItemDraft}
+                        errors={itemDraftErrors}
+                        loaId={data.loa_id}
+                        loaItems={effectiveLoaItems}
                     />
 
                     <div className="mt-5">
@@ -168,12 +178,13 @@ export default function PurchaseOrdersCreate({
                     </h2>
                     <PurchaseOrderItemsTable
                         items={data.items}
-                        loas={loas}
                         loaItems={loaItems}
-                        vendors={vendors}
                         onRemove={removeItem}
                     />
                     <FieldError message={errors.items} />
+                    {itemErrors.map(([key, message]) => (
+                        <FieldError key={key} message={message} />
+                    ))}
                 </div>
 
                 <div className="flex items-center gap-3">
