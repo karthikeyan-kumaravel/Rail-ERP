@@ -26,6 +26,11 @@ Route::middleware('web')->group(function () {
 - Responses are `JsonResponse` with a `message` key plus payload
   (`{"message": "...", "user": {...}}`), and validation failures raise
   `ValidationException` the normal Laravel way (422 + `errors`).
+- **Currently orphaned**: `resources/js/pages/login.tsx` no longer calls
+  this endpoint — it posts to the Inertia `AuthenticatedSessionController`
+  route instead (see `[[authentication]]`). Don't assume this API backs the
+  live login/register UI; it still works if called directly but has no
+  active caller.
 - `bootstrap/app.php` forces JSON error rendering for any route under
   `api/*` or any request with `expectsJson()`:
   ```php

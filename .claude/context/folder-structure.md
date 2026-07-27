@@ -45,6 +45,9 @@ resources/
       export-toolbar.tsx, export-utils.ts
       multi-select.tsx, table-pagination.tsx, toast.tsx
       settings-import-modal.tsx, settings-import-actions.tsx
+      alert-card.tsx           # renders an Alert record (severity styling)
+      engineer-combobox.tsx    # searchable engineer picker, reused across forms
+      details-modal.tsx        # generic read-only "view record" modal (buildDetailsFromRecord helper)
     layouts/
       admin-layout.tsx        # the one shared authenticated shell
     pages/
@@ -52,6 +55,7 @@ resources/
       admin/
         <resource>/            # kebab-case, one folder per resource
           index.tsx create.tsx edit.tsx <resource>-form-fields.tsx
+        execution-plan/         # UI-only prototype (Gantt/milestones/checklist tabs), no backend yet — see [[business-overview]]
     types/                    # navigation.ts, index.ts, global.d.ts — shared TS types
   views/
     app.blade.php              # Inertia root template
@@ -69,6 +73,11 @@ tests/
 .claude/
   context/                     # this documentation set
 ```
+
+Note: `routes/web.php` currently has a `GET /login1-preview` route rendering
+`resources/js/pages/login1.tsx`, explicitly commented as a temporary preview
+of a login redesign to be removed once reviewed — don't treat it as a
+pattern to replicate for other pages.
 
 ## Naming patterns to follow
 

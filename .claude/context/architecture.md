@@ -31,6 +31,17 @@ Inertia response:
 - `flash.success` / `flash.error` — one-shot session flash messages
 - `name` — app name from config
 
+## Authorization middleware — `AuthorizeAdminActions` / `PreventAdminDelete`
+
+Every `admin.*`-named route runs through `AuthorizeAdminActions` (registered
+as `'authorize.admin'` in `bootstrap/app.php`) and `PreventAdminDelete`,
+applied at the route-group level in `routes/web.php`. These gate *actions*
+(create/update/delete) by role and, for non-`admin`/`superadmin` roles, by a
+`UserTypePermission` row keyed on `(user_type_id, user_screen_id)` — see
+`[[permissions]]` for the full rule set. This is a real enforcement layer,
+not just modeled data — don't assume every `admin.*` mutation is reachable
+by every authenticated user.
+
 Frontend pages read these via `usePage().props` (see
 `resources/js/layouts/admin-layout.tsx`).
 
@@ -70,7 +81,11 @@ Laravel defaults — added via the `HasAuditSessionFields` trait
 
 Apply both traits (`HasAuditSessionFields`, `HasMaskedRouteKey`) to any new
 domain model to stay consistent — see any model in `app/Models/` as a
-template (e.g. `UserScreen.php`, `Vendor.php`).
+template (e.g. `UserScreen.php`, `Vendor.php`). The one intentional
+exception is a detail/line-item model that's always accessed through its
+parent and never route-bound or listed independently (`LoaItem`,
+`LoaTeamMember`, `LoaStation`, `PurchaseOrderItem`) — those use plain
+`HasFactory` only; see `[[database]]`.
 
 ## Controller pattern
 
