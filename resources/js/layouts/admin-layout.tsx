@@ -181,6 +181,8 @@ function NavItem({
 type AdminLayoutProps = {
     children: ReactNode;
     title: string;
+    // Accepted for backwards compatibility with existing callers, but no
+    // longer rendered — the breadcrumb/header row was removed app-wide.
     header?: ReactNode;
     withBackgroundImage?: boolean;
 };
@@ -193,7 +195,7 @@ export default function AdminLayout(layoutProps: AdminLayoutProps) {
     );
 }
 
-function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
+function AdminLayoutContent({ children, title }: AdminLayoutProps) {
     const { props, url: currentUrl } = usePage();
     const { auth, navigation, alertsCount } = props;
     const currentPath = currentUrl.split('?')[0];
@@ -204,6 +206,11 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
         initialOpenGroups(navigation, currentPath),
     );
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [hoverExpanded, setHoverExpanded] = useState(false);
+    // The persisted preference still says "compact", but hovering a
+    // collapsed sidebar should visually reveal it without touching that
+    // preference — this is what everything below actually renders from.
+    const isVisuallyCollapsed = collapsed && !hoverExpanded;
 
     const toggleGroup = (folderName: string) => {
         setOpenGroups((current) => ({
@@ -236,16 +243,18 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                 )}
 
                 <aside
+                    onMouseEnter={() => setHoverExpanded(true)}
+                    onMouseLeave={() => setHoverExpanded(false)}
                     className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[var(--sidebar-border)] bg-linear-to-b from-[var(--sidebar-bg-from)] to-[var(--sidebar-bg-to)] text-[var(--sidebar-ink)] transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:transition-[width] ${
                         mobileOpen ? 'translate-x-0' : '-translate-x-full'
-                    } ${collapsed ? 'lg:w-19' : 'lg:w-64'}`}
+                    } ${isVisuallyCollapsed ? 'lg:w-19' : 'lg:w-64'}`}
                 >
                     <div className="flex items-center justify-between gap-2 px-4 py-5">
                         <div className="flex min-w-0 items-center gap-2.5">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-[var(--color-accent)] to-[var(--color-accent-2)] text-white shadow-lg">
                                 <RailIcon className="h-5 w-5" />
                             </div>
-                            {!collapsed && (
+                            {!isVisuallyCollapsed && (
                                 <span className="truncate text-lg font-semibold text-[var(--sidebar-ink)]">
                                     Rail ERP
                                 </span>
@@ -299,7 +308,7 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                             }
                         }}
                     >
-                        {!collapsed && (
+                        {!isVisuallyCollapsed && (
                             <p className="px-3 pt-1 pb-1.5 text-[10.5px] font-semibold tracking-[0.14em] text-[var(--sidebar-heading)] uppercase">
                                 Overview
                             </p>
@@ -317,7 +326,7 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                                 className="h-8 w-8"
                                 iconClassName="h-4.5 w-4.5"
                             />
-                            {!collapsed && <span>Home</span>}
+                            {!isVisuallyCollapsed && <span>Home</span>}
                         </Link>
 
                         {navigation.map((item) => (
@@ -325,7 +334,7 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                                 key={item.folder_name}
                                 item={item}
                                 currentPath={currentPath}
-                                collapsed={collapsed}
+                                collapsed={isVisuallyCollapsed}
                                 openGroups={openGroups}
                                 onToggleGroup={toggleGroup}
                                 depth={0}
@@ -393,11 +402,6 @@ function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
                                 </button>
                             </div>
                         </nav>
-                        {header && (
-                            <header className="relative border-b border-[var(--color-border)] px-4 py-5 sm:px-8">
-                                {header}
-                            </header>
-                        )}
                     </div>
                     <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
                         {children}

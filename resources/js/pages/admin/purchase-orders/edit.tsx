@@ -1,35 +1,37 @@
 import { Link, useForm } from '@inertiajs/react';
+import { useMemo, useState } from 'react';
 import type { FormEventHandler } from 'react';
 import AdminLayout from '@/layouts/admin-layout';
 import { index, update } from '@/routes/admin/purchase-orders';
-import PurchaseOrderFormFields from './purchase-order-form-fields';
+import {
+    computeEffectiveLoaItems,
+    defaultPurchaseOrderItem,
+    FieldError,
+    PurchaseOrderHeaderFields,
+    PurchaseOrderItemFields,
+    validatePurchaseOrderItemDraft,
+} from './purchase-order-form-fields';
 import type {
     LoaItemOption,
     LoaOption,
     PaymentType,
+    PurchaseOrderHeaderFormData,
     PurchaseOrderItemFormData,
     PurchaseOrderStatus,
     VendorOption,
 } from './purchase-order-form-fields';
+import PurchaseOrderItemsTable from './purchase-order-items-table';
 
 type EditPurchaseOrder = {
     unique_id: string;
     po_number: string;
     order_date: string;
     loa_id: number | null;
-    loa_item_id: number | null;
     vendor_id: number | null;
-    ordered_qty: number | string | null;
-    received_qty: number | string | null;
-    unit_price_incl_gst: number | string | null;
-    unit_price_excl_gst: number | string | null;
-    agreed_rate: number | string | null;
-    total_price_incl_gst: number | string | null;
-    total_price_excl_gst: number | string | null;
-    vendor_quote_price: number | string | null;
     delivery_date: string;
     status: PurchaseOrderStatus;
     payment_type: PaymentType;
+    items: PurchaseOrderItemFormData[];
 };
 
 type EditProps = {
@@ -49,38 +51,86 @@ export default function PurchaseOrdersEdit({
     status_options: statusOptions,
     payment_type_options: paymentTypeOptions,
 }: EditProps) {
-    const { data, setData, put, processing, errors } =
-        useForm<PurchaseOrderItemFormData>({
-            po_number: purchaseOrder.po_number,
-            order_date: purchaseOrder.order_date,
-            loa_id: purchaseOrder.loa_id ?? '',
-            loa_item_id: purchaseOrder.loa_item_id ?? '',
-            vendor_id: purchaseOrder.vendor_id ?? '',
-            ordered_qty: String(purchaseOrder.ordered_qty ?? ''),
-            received_qty: String(purchaseOrder.received_qty ?? ''),
-            unit_price_incl_gst: String(
-                purchaseOrder.unit_price_incl_gst ?? '',
-            ),
-            unit_price_excl_gst: String(
-                purchaseOrder.unit_price_excl_gst ?? '',
-            ),
-            agreed_rate: String(purchaseOrder.agreed_rate ?? ''),
-            total_price_incl_gst: String(
-                purchaseOrder.total_price_incl_gst ?? '',
-            ),
-            total_price_excl_gst: String(
-                purchaseOrder.total_price_excl_gst ?? '',
-            ),
-            vendor_quote_price: String(purchaseOrder.vendor_quote_price ?? ''),
-            delivery_date: purchaseOrder.delivery_date,
-            status: purchaseOrder.status,
-            payment_type: purchaseOrder.payment_type,
-        });
+    const { data, setData, put, processing, errors } = useForm<
+        PurchaseOrderHeaderFormData & { items: PurchaseOrderItemFormData[] }
+    >({
+        po_number: purchaseOrder.po_number,
+        order_date: purchaseOrder.order_date,
+        loa_id: purchaseOrder.loa_id ?? '',
+        vendor_id: purchaseOrder.vendor_id ?? '',
+        delivery_date: purchaseOrder.delivery_date,
+        status: purchaseOrder.status,
+        payment_type: purchaseOrder.payment_type,
+        items: purchaseOrder.items,
+    });
+
+    const [itemDraft, setItemDraftState] = useState<PurchaseOrderItemFormData>(
+        defaultPurchaseOrderItem(),
+    );
+    const [itemDraftErrors, setItemDraftErrors] = useState<
+        Partial<Record<keyof PurchaseOrderItemFormData, string>>
+    >({});
+
+    const effectiveLoaItems = useMemo(
+        () => computeEffectiveLoaItems(loaItems, data.items),
+        [loaItems, data.items],
+    );
+
+    const setHeaderField = <K extends keyof PurchaseOrderHeaderFormData>(
+        key: K,
+        value: PurchaseOrderHeaderFormData[K],
+    ) => {
+        setData((current) => ({
+            ...current,
+            [key]: value,
+            items: key === 'loa_id' ? [] : current.items,
+        }));
+
+        if (key === 'loa_id') {
+            setItemDraftState(defaultPurchaseOrderItem());
+            setItemDraftErrors({});
+        }
+    };
+
+    const setItemDraft = <K extends keyof PurchaseOrderItemFormData>(
+        key: K,
+        value: PurchaseOrderItemFormData[K],
+    ) => {
+        setItemDraftState((current) => ({ ...current, [key]: value }));
+    };
+
+    const addItem = () => {
+        const validationErrors = validatePurchaseOrderItemDraft(
+            itemDraft,
+            effectiveLoaItems,
+        );
+
+        if (Object.keys(validationErrors).length > 0) {
+            setItemDraftErrors(validationErrors);
+
+            return;
+        }
+
+        setItemDraftErrors({});
+        setData('items', [...data.items, itemDraft]);
+        setItemDraftState(defaultPurchaseOrderItem());
+    };
+
+    const removeItem = (index: number) => {
+        setData(
+            'items',
+            data.items.filter((_, itemIndex) => itemIndex !== index),
+        );
+    };
 
     const submit: FormEventHandler = (event) => {
         event.preventDefault();
         put(update.url(purchaseOrder.unique_id));
     };
+
+    const itemErrors = Object.entries(errors).filter(([key]) =>
+        key.startsWith('items.'),
+    );
 
     return (
         <AdminLayout
@@ -101,26 +151,65 @@ export default function PurchaseOrdersEdit({
                 </div>
             }
         >
-            <form
-                onSubmit={submit}
-                noValidate
-                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm"
-            >
-                <PurchaseOrderFormFields
-                    data={data}
-                    setData={setData}
-                    errors={errors}
-                    loas={loas}
-                    loaItems={loaItems}
-                    vendors={vendors}
-                    statusOptions={statusOptions}
-                    paymentTypeOptions={paymentTypeOptions}
-                />
+            <form onSubmit={submit} noValidate className="space-y-5">
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm">
+                    <h2 className="mb-4 text-base font-bold text-[var(--color-ink)]">
+                        Purchase Order Details
+                    </h2>
+                    <PurchaseOrderHeaderFields
+                        data={data}
+                        setData={setHeaderField}
+                        errors={errors}
+                        loas={loas}
+                        vendors={vendors}
+                        statusOptions={statusOptions}
+                        paymentTypeOptions={paymentTypeOptions}
+                    />
+                </div>
 
-                <div className="mt-6 flex items-center gap-3">
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm">
+                    <h2 className="mb-4 text-base font-bold text-[var(--color-ink)]">
+                        Item Details
+                    </h2>
+                    <PurchaseOrderItemFields
+                        data={itemDraft}
+                        setData={setItemDraft}
+                        errors={itemDraftErrors}
+                        loaId={data.loa_id}
+                        loaItems={effectiveLoaItems}
+                    />
+
+                    <div className="mt-5">
+                        <button
+                            type="button"
+                            onClick={addItem}
+                            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 px-5 py-2.5 text-sm font-semibold text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/20"
+                        >
+                            <span className="text-lg leading-none">+</span>
+                            Add Item
+                        </button>
+                    </div>
+                </div>
+
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/95 p-6 shadow-xl backdrop-blur-sm">
+                    <h2 className="mb-4 text-base font-bold text-[var(--color-ink)]">
+                        Items Added ({data.items.length})
+                    </h2>
+                    <PurchaseOrderItemsTable
+                        items={data.items}
+                        loaItems={loaItems}
+                        onRemove={removeItem}
+                    />
+                    <FieldError message={errors.items} />
+                    {itemErrors.map(([key, message]) => (
+                        <FieldError key={key} message={message} />
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-3">
                     <button
                         type="submit"
-                        disabled={processing}
+                        disabled={processing || data.items.length === 0}
                         className="inline-flex min-w-24 items-center justify-center gap-2 rounded-lg bg-linear-to-r from-[var(--color-accent)] to-[var(--color-accent-2)] px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {processing ? 'Saving...' : 'Save'}
