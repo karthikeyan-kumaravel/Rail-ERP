@@ -27,8 +27,8 @@ use App\Http\Controllers\Admin\UserTypePermissionController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\ZoneController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\CaptchaController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\PreventAdminDelete;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -63,10 +63,13 @@ Route::middleware('auth')->group(function () {
         'authorize.admin',
         PreventAdminDelete::class,
     ])->group(function () {
+        Route::get('/', fn () => Inertia::render('admin/dashboard'))->name('dashboard');
+        Route::get('settings', fn () => Inertia::render('admin/settings-dashboard'))->name('settings.dashboard');
         Route::resource('users', UserController::class)->except('show');
         Route::resource('user-types', UserTypeController::class)->except('show');
         Route::get('user-types/{user_type}', [UserTypeController::class, 'show'])->name('user-types.show');
         Route::resource('user-screens', UserScreenController::class)->except('show');
+        Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
         Route::get('user-type-permissions', [UserTypePermissionController::class, 'index'])
             ->name('user-type-permissions.index');
         Route::get('user-type-permissions/{user_type}/edit', [UserTypePermissionController::class, 'edit'])

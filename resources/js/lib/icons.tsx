@@ -193,6 +193,12 @@ export const ChevronDownIcon = ({ className = 'h-4 w-4' }: IconProps) => (
     </svg>
 );
 
+export const ChevronRightIcon = ({ className = 'h-4 w-4' }: IconProps) => (
+    <svg {...svg({ className, 'aria-hidden': true, focusable: false })}>
+        <path d="m9 6 6 6-6 6" />
+    </svg>
+);
+
 export const PanelCollapseIcon = ({ className = 'h-4 w-4' }: IconProps) => (
     <svg {...svg({ className })}>
         <rect x="3" y="4" width="18" height="16" rx="2" />

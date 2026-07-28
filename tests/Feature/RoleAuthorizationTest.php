@@ -32,9 +32,9 @@ test('admin users cannot send delete requests for admin resources', function () 
     $response->assertForbidden();
 });
 
-test('non-admin users can view the role screen but cannot edit it when update is disabled', function () {
+test('accounts team can only view its permitted modules', function () {
     $role = UserType::factory()->create(['name' => 'Accounts Team', 'active_status' => true, 'is_delete' => false]);
-    $screen = UserScreen::factory()->create(['folder_name' => 'user-types', 'main_screen_id' => null, 'status' => true, 'is_delete' => false]);
+    $screen = UserScreen::factory()->create(['folder_name' => 'customers', 'main_screen_id' => null, 'status' => true, 'is_delete' => false]);
     UserTypePermission::factory()->create([
         'user_type_id' => $role->id,
         'user_screen_id' => $screen->id,
@@ -53,7 +53,51 @@ test('non-admin users can view the role screen but cannot edit it when update is
 
     $this->actingAs($user);
 
-    $this->get('/admin/user-types')->assertOk();
-    $this->get("/admin/user-types/{$role->unique_id}")->assertOk();
-    $this->get("/admin/user-types/{$role->unique_id}/edit")->assertForbidden();
+    $this->get('/admin/customers')->assertOk();
+    $this->get('/admin/alerts')->assertOk();
+    $this->get('/admin/settings')->assertOk();
+    $this->get('/admin/user-types')->assertForbidden();
+    $this->post('/admin/customers', [])->assertForbidden();
+});
+
+test('operation team can only view alerts and settings modules', function () {
+    $role = UserType::factory()->create(['name' => 'Operation Team', 'active_status' => true, 'is_delete' => false]);
+    $user = User::factory()->create([
+        'user_type_id' => $role->id,
+        'name' => 'Operation User',
+        'email' => 'operation@example.com',
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get('/dashboard')->assertOk();
+    $this->get('/admin/alerts')->assertOk();
+    $this->get('/admin/settings')->assertOk();
+    $this->get('/admin/states')->assertOk();
+    $this->get('/admin/projects')->assertOk();
+    $this->get('/admin/user-types')->assertForbidden();
+    $this->get('/admin/loas')->assertForbidden();
+    $this->post('/admin/states', [])->assertForbidden();
+});
+
+test('service engineer can only view permitted settings and project setup modules', function () {
+    $role = UserType::factory()->create(['name' => 'Service Engineer', 'active_status' => true, 'is_delete' => false]);
+    $user = User::factory()->create([
+        'user_type_id' => $role->id,
+        'name' => 'Service Engineer User',
+        'email' => 'service-engineer@example.com',
+    ]);
+
+    $this->actingAs($user);
+
+    $this->get('/dashboard')->assertOk();
+    $this->get('/admin/alerts')->assertOk();
+    $this->get('/admin/settings')->assertOk();
+    $this->get('/admin/stations')->assertOk();
+    $this->get('/admin/departments')->assertOk();
+    $this->get('/admin/loas')->assertOk();
+    $this->get('/admin/purchase-orders')->assertOk();
+    $this->get('/admin/customers')->assertForbidden();
+    $this->get('/admin/projects')->assertForbidden();
+    $this->post('/admin/stations', [])->assertForbidden();
 });
