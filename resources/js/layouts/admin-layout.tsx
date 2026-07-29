@@ -212,8 +212,6 @@ function NavItem({
 type AdminLayoutProps = {
     children: ReactNode;
     title: string;
-    // Accepted for backwards compatibility with existing callers, but no
-    // longer rendered — the breadcrumb/header row was removed app-wide.
     header?: ReactNode;
     withBackgroundImage?: boolean;
 };
@@ -226,7 +224,7 @@ export default function AdminLayout(layoutProps: AdminLayoutProps) {
     );
 }
 
-function AdminLayoutContent({ children, title }: AdminLayoutProps) {
+function AdminLayoutContent({ children, title, header }: AdminLayoutProps) {
     const { props, url: currentUrl } = usePage();
     const { auth, navigation, alertsCount } = props;
     const currentPath = currentUrl.split('?')[0];
@@ -570,6 +568,11 @@ function AdminLayoutContent({ children, title }: AdminLayoutProps) {
                                 </button>
                             </div>
                         </nav>
+                        {header && (
+                            <header className="relative border-b border-[var(--color-border)] px-4 py-5 sm:px-8">
+                                {header}
+                            </header>
+                        )}
                     </div>
                     <main className="relative min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">
                         {children}

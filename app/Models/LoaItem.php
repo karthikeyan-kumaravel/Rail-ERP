@@ -18,6 +18,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $schedule_advertised_value
  * @property string $item_no
  * @property string $item_description
+ * @property string|null $item_category
+ * @property string|null $specialization_file_path
+ * @property string|null $specialization_original_file_name
  * @property string|null $item_code
  * @property string $item_quantity
  * @property string $quantity_unit
@@ -49,6 +52,9 @@ use Illuminate\Support\Carbon;
     'schedule_advertised_value',
     'item_no',
     'item_description',
+    'item_category',
+    'specialization_file_path',
+    'specialization_original_file_name',
     'item_code',
     'item_quantity',
     'quantity_unit',

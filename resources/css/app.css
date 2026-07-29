@@ -118,7 +118,7 @@
      * labels) neutral regardless of which Accent Color is selected. The name
      * is legacy; the value is intentionally no longer gold-toned.
      */
-    --color-gold: #94a3b8;
+    --color-gold: #000000;
 }
 
 :root[data-theme='dark'] {
@@ -317,4 +317,17 @@ body {
     transition-duration: 0s !important;
     animation-duration: 0s !important;
     scroll-behavior: auto !important;
+}
+
+/*
+ * Form field titles: every `<label>` in the app is a field/option title
+ * (input, select, textarea, date, file upload, checkbox/radio) — bolding
+ * the element itself retrofits that app-wide, the same way the
+ * `data-bg-style='glass'` and `data-animations='off'` rules above apply a
+ * treatment globally, without editing each `{resource}-form-fields.tsx`'s
+ * local `labelClass`/`inputClass` constants. `!important` is required to
+ * win over the per-field `font-medium`/`font-normal` utility classes.
+ */
+label {
+    font-weight: 600 !important;
 }

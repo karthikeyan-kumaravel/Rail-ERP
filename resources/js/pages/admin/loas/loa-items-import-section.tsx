@@ -1,9 +1,21 @@
 import { Fragment, useRef, useState } from 'react';
+import FileUploadField from '@/lib/file-upload-field';
+import NumericInput from '@/lib/numeric-input';
+import ToggleSwitch from '@/lib/toggle-switch';
 import { importPreview } from '@/routes/admin/loas/items';
-import { inputClass, labelClass } from './loa-form-fields';
+import {
+    BID_VALUE_TYPE_OPTIONS,
+    ITEM_CATEGORY_OPTIONS,
+    bidValueTypeFromRateUnit,
+    inputClass,
+    labelClass,
+    rateUnitFromBidValueType,
+} from './loa-form-fields';
 import type {
     BidRateUnit,
+    BidValueType,
     InspectionBy,
+    ItemCategory,
     LoaFormErrors,
     LoaItemFormData,
     PaymentStages,
@@ -26,14 +38,16 @@ type LoaItemsImportSectionProps = {
 
 type FeedMode = 'import' | 'manual';
 
-/** Which of Bid Rate / Bid Amount the user is actively driving; the other is derived. */
-type BidEntryMode = 'rate' | 'amount';
+/** Which of Bid Rate / Bid Amount / Bid Value Type+% the user is actively driving; the others are derived. */
+type BidEntryMode = 'rate' | 'amount' | 'percentage';
 
 type ManualItemDraft = {
     schedule_name_id: number | '';
     schedule_type_id: number | '';
     item_no: string;
     item_description: string;
+    item_category: ItemCategory | '';
+    specialization_file: File | null;
     item_code: string;
     item_quantity: string;
     quantity_unit: string;
@@ -42,6 +56,8 @@ type ManualItemDraft = {
     bid_rate: string;
     bid_amount: string;
     bid_entry_mode: BidEntryMode;
+    bid_value_type: BidValueType;
+    bid_percentage: string;
     rebate_enabled: boolean;
     rebate_percentage: string;
     inspection_by: InspectionBy | '';
@@ -54,6 +70,8 @@ function emptyManualDraft(): ManualItemDraft {
         schedule_type_id: '',
         item_no: '',
         item_description: '',
+        item_category: '',
+        specialization_file: null,
         item_code: '',
         item_quantity: '',
         quantity_unit: '',
@@ -62,6 +80,8 @@ function emptyManualDraft(): ManualItemDraft {
         bid_rate: '',
         bid_amount: '',
         bid_entry_mode: 'rate',
+        bid_value_type: 'At Per',
+        bid_percentage: '',
         rebate_enabled: false,
         rebate_percentage: '',
         inspection_by: '',
@@ -193,6 +213,25 @@ function calculateBidRateFromAmount(
     return roundMoney(toNumber(bidAmount) / qty);
 }
 
+/** Bid Amount (Rs) driven off a directly entered Bid Value Type + Bid %, relative to the Advt. Value. */
+function calculateBidAmountFromPercentage(
+    advertisedValue: number,
+    bidValueType: BidValueType,
+    bidPercentage: number | string,
+): number {
+    if (bidValueType === 'At Per') {
+        return roundMoney(advertisedValue);
+    }
+
+    const delta = (advertisedValue * toNumber(bidPercentage)) / 100;
+
+    return roundMoney(
+        bidValueType === 'Above %'
+            ? advertisedValue + delta
+            : advertisedValue - delta,
+    );
+}
+
 /** Percentage deviation of the Bid Amount from the Advt. Value. */
 function calculatePercentageValue(
     advertisedValue: number,
@@ -268,8 +307,6 @@ function bidPercentageToneClass(unit: BidRateUnit | null): string {
     return 'border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] text-[var(--color-ink)]/55';
 }
 
-const bidPercentageBoxClass =
-    'w-full rounded-lg border px-4 py-2.5 text-sm font-semibold outline-none disabled:cursor-not-allowed';
 const bidPercentageSmallBoxClass =
     'w-full min-w-24 rounded-md border px-2 py-1.5 text-xs font-semibold disabled:cursor-not-allowed';
 
@@ -321,7 +358,26 @@ export default function LoaItemsImportSection({
                         next.bid_rate,
                     ),
                 );
+            } else if (next.bid_entry_mode === 'amount') {
+                next.bid_rate = String(
+                    calculateBidRateFromAmount(
+                        next.item_quantity,
+                        next.bid_amount,
+                    ),
+                );
             } else {
+                const advertisedValue = calculateAdvertisedValue(
+                    next.item_quantity,
+                    next.unit_rate,
+                    next.escalation,
+                );
+                next.bid_amount = String(
+                    calculateBidAmountFromPercentage(
+                        advertisedValue,
+                        next.bid_value_type,
+                        next.bid_percentage,
+                    ),
+                );
                 next.bid_rate = String(
                     calculateBidRateFromAmount(
                         next.item_quantity,
@@ -329,6 +385,67 @@ export default function LoaItemsImportSection({
                     ),
                 );
             }
+
+            return next;
+        });
+    };
+
+    /**
+     * Unit Rate/Escalation only feed Bid Rate/Amount when the percentage
+     * entry mode is active — Bid Amount is defined relative to Advt. Value
+     * in that mode, unlike the rate/amount modes where it's independent.
+     */
+    const handleManualUnitRateChange = (value: string) => {
+        setManualDraft((current) => {
+            const next = { ...current, unit_rate: value };
+
+            if (next.bid_entry_mode !== 'percentage') {
+                return next;
+            }
+
+            const advertisedValue = calculateAdvertisedValue(
+                next.item_quantity,
+                next.unit_rate,
+                next.escalation,
+            );
+            next.bid_amount = String(
+                calculateBidAmountFromPercentage(
+                    advertisedValue,
+                    next.bid_value_type,
+                    next.bid_percentage,
+                ),
+            );
+            next.bid_rate = String(
+                calculateBidRateFromAmount(next.item_quantity, next.bid_amount),
+            );
+
+            return next;
+        });
+    };
+
+    const handleManualEscalationChange = (value: string) => {
+        setManualDraft((current) => {
+            const next = { ...current, escalation: value };
+
+            if (next.bid_entry_mode !== 'percentage') {
+                return next;
+            }
+
+            const advertisedValue = calculateAdvertisedValue(
+                next.item_quantity,
+                next.unit_rate,
+                next.escalation,
+            );
+            next.bid_amount = String(
+                calculateBidAmountFromPercentage(
+                    advertisedValue,
+                    next.bid_value_type,
+                    next.bid_percentage,
+                ),
+            );
+            next.bid_rate = String(
+                calculateBidRateFromAmount(next.item_quantity, next.bid_amount),
+            );
 
             return next;
         });
@@ -354,6 +471,78 @@ export default function LoaItemsImportSection({
                 calculateBidRateFromAmount(current.item_quantity, value),
             ),
         }));
+    };
+
+    /**
+     * Switching into (or between) percentage-driven entry seeds the % input
+     * from whatever's currently derived from Bid Amount rather than
+     * resetting to 0, so clicking the dropdown doesn't jump the bid.
+     */
+    const handleManualBidValueTypeChange = (type: BidValueType) => {
+        setManualDraft((current) => {
+            const advertisedValue = calculateAdvertisedValue(
+                current.item_quantity,
+                current.unit_rate,
+                current.escalation,
+            );
+            const seedPercentage =
+                current.bid_entry_mode === 'percentage'
+                    ? current.bid_percentage
+                    : String(
+                          calculatePercentageValue(
+                              advertisedValue,
+                              current.bid_amount,
+                          ),
+                      );
+            const percentage = type === 'At Per' ? '0' : seedPercentage || '0';
+            const bidAmount = calculateBidAmountFromPercentage(
+                advertisedValue,
+                type,
+                percentage,
+            );
+
+            return {
+                ...current,
+                bid_entry_mode: 'percentage',
+                bid_value_type: type,
+                bid_percentage: percentage,
+                bid_amount: String(bidAmount),
+                bid_rate: String(
+                    calculateBidRateFromAmount(
+                        current.item_quantity,
+                        bidAmount,
+                    ),
+                ),
+            };
+        });
+    };
+
+    const handleManualBidPercentageChange = (value: string) => {
+        setManualDraft((current) => {
+            const advertisedValue = calculateAdvertisedValue(
+                current.item_quantity,
+                current.unit_rate,
+                current.escalation,
+            );
+            const bidAmount = calculateBidAmountFromPercentage(
+                advertisedValue,
+                current.bid_value_type,
+                value,
+            );
+
+            return {
+                ...current,
+                bid_entry_mode: 'percentage',
+                bid_percentage: value,
+                bid_amount: String(bidAmount),
+                bid_rate: String(
+                    calculateBidRateFromAmount(
+                        current.item_quantity,
+                        bidAmount,
+                    ),
+                ),
+            };
+        });
     };
 
     const visibleManualScheduleTypes = manualDraft.schedule_name_id
@@ -431,6 +620,11 @@ export default function LoaItemsImportSection({
                 manualDraft.item_no.trim() ||
                 String(items.length + 1).padStart(2, '0'),
             item_description: manualDraft.item_description,
+            item_category: manualDraft.item_category || null,
+            specialization_file: manualDraft.specialization_file,
+            specialization_existing_file_url: null,
+            specialization_existing_file_name: null,
+            remove_specialization_file: false,
             item_code: manualDraft.item_code || null,
             item_quantity:
                 manualDraft.item_quantity === ''
@@ -606,12 +800,95 @@ export default function LoaItemsImportSection({
                     next.item_quantity,
                     next.bid_rate,
                 );
+            } else if (editBidEntryMode === 'amount') {
+                next.bid_rate = calculateBidRateFromAmount(
+                    next.item_quantity,
+                    next.bid_amount,
+                );
             } else {
+                const advertisedValue = calculateAdvertisedValue(
+                    next.item_quantity,
+                    next.unit_rate,
+                    next.escalation,
+                );
+                next.bid_amount = calculateBidAmountFromPercentage(
+                    advertisedValue,
+                    bidValueTypeFromRateUnit(next.bid_rate_unit),
+                    next.bid_percentage_value ?? 0,
+                );
                 next.bid_rate = calculateBidRateFromAmount(
                     next.item_quantity,
                     next.bid_amount,
                 );
             }
+
+            return next;
+        });
+    };
+
+    /**
+     * Unit Rate/Escalation only feed Bid Rate/Amount when the percentage
+     * entry mode is active — see the mirrored manual-form handlers above.
+     */
+    const handleDraftUnitRateChange = (value: LoaItemFormData['unit_rate']) => {
+        setDraft((current) => {
+            if (current === null) {
+                return current;
+            }
+
+            const next = { ...current, unit_rate: value };
+
+            if (editBidEntryMode !== 'percentage') {
+                return next;
+            }
+
+            const advertisedValue = calculateAdvertisedValue(
+                next.item_quantity,
+                next.unit_rate,
+                next.escalation,
+            );
+            next.bid_amount = calculateBidAmountFromPercentage(
+                advertisedValue,
+                bidValueTypeFromRateUnit(next.bid_rate_unit),
+                next.bid_percentage_value ?? 0,
+            );
+            next.bid_rate = calculateBidRateFromAmount(
+                next.item_quantity,
+                next.bid_amount,
+            );
+
+            return next;
+        });
+    };
+
+    const handleDraftEscalationChange = (
+        value: LoaItemFormData['escalation'],
+    ) => {
+        setDraft((current) => {
+            if (current === null) {
+                return current;
+            }
+
+            const next = { ...current, escalation: value };
+
+            if (editBidEntryMode !== 'percentage') {
+                return next;
+            }
+
+            const advertisedValue = calculateAdvertisedValue(
+                next.item_quantity,
+                next.unit_rate,
+                next.escalation,
+            );
+            next.bid_amount = calculateBidAmountFromPercentage(
+                advertisedValue,
+                bidValueTypeFromRateUnit(next.bid_rate_unit),
+                next.bid_percentage_value ?? 0,
+            );
+            next.bid_rate = calculateBidRateFromAmount(
+                next.item_quantity,
+                next.bid_amount,
+            );
 
             return next;
         });
@@ -649,6 +926,80 @@ export default function LoaItemsImportSection({
                       ),
                   },
         );
+    };
+
+    /**
+     * Switching into (or between) percentage-driven entry seeds the % input
+     * from whatever's currently derived from Bid Amount rather than
+     * resetting to 0, mirroring the manual-form handler above.
+     */
+    const handleDraftBidValueTypeChange = (type: BidValueType) => {
+        setEditBidEntryMode('percentage');
+        setDraft((current) => {
+            if (current === null) {
+                return current;
+            }
+
+            const advertisedValue = calculateAdvertisedValue(
+                current.item_quantity,
+                current.unit_rate,
+                current.escalation,
+            );
+            const seedPercentage =
+                editBidEntryMode === 'percentage'
+                    ? (current.bid_percentage_value ?? 0)
+                    : calculatePercentageValue(
+                          advertisedValue,
+                          current.bid_amount,
+                      );
+            const percentage = type === 'At Per' ? 0 : seedPercentage || 0;
+            const bidAmount = calculateBidAmountFromPercentage(
+                advertisedValue,
+                type,
+                percentage,
+            );
+
+            return {
+                ...current,
+                bid_rate_unit: rateUnitFromBidValueType(type),
+                bid_percentage_value: percentage,
+                bid_amount: bidAmount,
+                bid_rate: calculateBidRateFromAmount(
+                    current.item_quantity,
+                    bidAmount,
+                ),
+            };
+        });
+    };
+
+    const handleDraftBidPercentageChange = (value: number | string) => {
+        setEditBidEntryMode('percentage');
+        setDraft((current) => {
+            if (current === null) {
+                return current;
+            }
+
+            const advertisedValue = calculateAdvertisedValue(
+                current.item_quantity,
+                current.unit_rate,
+                current.escalation,
+            );
+            const bidAmount = calculateBidAmountFromPercentage(
+                advertisedValue,
+                bidValueTypeFromRateUnit(current.bid_rate_unit),
+                value,
+            );
+
+            return {
+                ...current,
+                bid_percentage_value: value,
+                bid_amount: bidAmount,
+                bid_rate: calculateBidRateFromAmount(
+                    current.item_quantity,
+                    bidAmount,
+                ),
+            };
+        });
     };
 
     const saveEditedItem = () => {
@@ -736,6 +1087,14 @@ export default function LoaItemsImportSection({
         manualDraft.bid_amount,
         manualDraft.rebate_percentage,
     );
+    const manualEffectiveBidValueType =
+        manualDraft.bid_entry_mode === 'percentage'
+            ? manualDraft.bid_value_type
+            : bidValueTypeFromRateUnit(manualBidRateUnit);
+    const manualEffectiveBidPercentage =
+        manualDraft.bid_entry_mode === 'percentage'
+            ? manualDraft.bid_percentage
+            : String(manualPercentageValue);
 
     return (
         <section>
@@ -838,66 +1197,58 @@ export default function LoaItemsImportSection({
                 <div className="mt-4 rounded-xl border border-[var(--color-gold)]/30 bg-[var(--color-surface-soft)]/40 p-4">
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div>
-                            <label
-                                htmlFor="manual_schedule_name_id"
-                                className={labelClass}
-                            >
-                                Schedule Name
-                            </label>
-                            <select
-                                id="manual_schedule_name_id"
-                                value={manualDraft.schedule_name_id}
-                                onChange={(event) =>
-                                    handleManualScheduleNameChange(
-                                        event.target.value,
-                                    )
-                                }
-                                className={inputClass}
-                            >
-                                <option value="">Select a schedule name</option>
-                                {scheduleNames.map((scheduleName) => (
-                                    <option
-                                        key={scheduleName.id}
-                                        value={scheduleName.id}
-                                    >
-                                        {scheduleName.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="manual_schedule_type_id"
-                                className={labelClass}
-                            >
-                                Schedule Type
-                            </label>
-                            <select
-                                id="manual_schedule_type_id"
-                                value={manualDraft.schedule_type_id}
-                                onChange={(event) =>
-                                    updateManualDraft(
-                                        'schedule_type_id',
-                                        event.target.value
-                                            ? Number(event.target.value)
-                                            : '',
-                                    )
-                                }
-                                className={inputClass}
-                            >
-                                <option value="">Select a schedule type</option>
-                                {visibleManualScheduleTypes.map(
-                                    (scheduleType) => (
+                            <span className={labelClass}>
+                                Schedule Name - Type
+                            </span>
+                            <div className="grid grid-cols-2 gap-2">
+                                <select
+                                    id="manual_schedule_name_id"
+                                    aria-label="Schedule Name"
+                                    value={manualDraft.schedule_name_id}
+                                    onChange={(event) =>
+                                        handleManualScheduleNameChange(
+                                            event.target.value,
+                                        )
+                                    }
+                                    className={inputClass}
+                                >
+                                    <option value="">Name</option>
+                                    {scheduleNames.map((scheduleName) => (
                                         <option
-                                            key={scheduleType.id}
-                                            value={scheduleType.id}
+                                            key={scheduleName.id}
+                                            value={scheduleName.id}
                                         >
-                                            {scheduleType.name}
+                                            {scheduleName.name}
                                         </option>
-                                    ),
-                                )}
-                            </select>
+                                    ))}
+                                </select>
+                                <select
+                                    id="manual_schedule_type_id"
+                                    aria-label="Schedule Type"
+                                    value={manualDraft.schedule_type_id}
+                                    onChange={(event) =>
+                                        updateManualDraft(
+                                            'schedule_type_id',
+                                            event.target.value
+                                                ? Number(event.target.value)
+                                                : '',
+                                        )
+                                    }
+                                    className={inputClass}
+                                >
+                                    <option value="">Type</option>
+                                    {visibleManualScheduleTypes.map(
+                                        (scheduleType) => (
+                                            <option
+                                                key={scheduleType.id}
+                                                value={scheduleType.id}
+                                            >
+                                                {scheduleType.name}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                            </div>
                         </div>
 
                         <div>
@@ -921,6 +1272,27 @@ export default function LoaItemsImportSection({
                                     2,
                                     '0',
                                 )}
+                                className={inputClass}
+                            />
+                        </div>
+
+                        <div>
+                            <label
+                                htmlFor="manual_item_code"
+                                className={labelClass}
+                            >
+                                Item Code
+                            </label>
+                            <input
+                                id="manual_item_code"
+                                type="text"
+                                value={manualDraft.item_code}
+                                onChange={(event) =>
+                                    updateManualDraft(
+                                        'item_code',
+                                        event.target.value,
+                                    )
+                                }
                                 className={inputClass}
                             />
                         </div>
@@ -949,22 +1321,48 @@ export default function LoaItemsImportSection({
 
                         <div>
                             <label
-                                htmlFor="manual_item_code"
+                                htmlFor="manual_item_category"
                                 className={labelClass}
                             >
-                                Item Code
+                                Item Category
                             </label>
-                            <input
-                                id="manual_item_code"
-                                type="text"
-                                value={manualDraft.item_code}
+                            <select
+                                id="manual_item_category"
+                                value={manualDraft.item_category}
                                 onChange={(event) =>
                                     updateManualDraft(
-                                        'item_code',
-                                        event.target.value,
+                                        'item_category',
+                                        event.target.value as ItemCategory | '',
                                     )
                                 }
                                 className={inputClass}
+                            >
+                                <option value="">Select</option>
+                                {ITEM_CATEGORY_OPTIONS.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                htmlFor="manual_specialization_file"
+                                className={labelClass}
+                            >
+                                Specialization
+                            </label>
+                            <FileUploadField
+                                id="manual_specialization_file"
+                                file={manualDraft.specialization_file}
+                                onChange={(file) =>
+                                    updateManualDraft(
+                                        'specialization_file',
+                                        file,
+                                    )
+                                }
+                                accept="*/*"
                             />
                         </div>
 
@@ -975,9 +1373,9 @@ export default function LoaItemsImportSection({
                             >
                                 Item Qty
                             </label>
-                            <input
+                            <NumericInput
                                 id="manual_item_quantity"
-                                type="number"
+                                allowDecimal
                                 min={0}
                                 step="0.001"
                                 value={manualDraft.item_quantity}
@@ -1024,15 +1422,14 @@ export default function LoaItemsImportSection({
                             >
                                 Unit Rate (Rs)
                             </label>
-                            <input
+                            <NumericInput
                                 id="manual_unit_rate"
-                                type="number"
+                                allowDecimal
                                 min={0}
                                 step="0.01"
                                 value={manualDraft.unit_rate}
                                 onChange={(event) =>
-                                    updateManualDraft(
-                                        'unit_rate',
+                                    handleManualUnitRateChange(
                                         event.target.value,
                                     )
                                 }
@@ -1047,15 +1444,14 @@ export default function LoaItemsImportSection({
                             >
                                 Escl. (%)
                             </label>
-                            <input
+                            <NumericInput
                                 id="manual_escalation"
-                                type="number"
+                                allowDecimal
                                 min={0}
                                 step="0.01"
                                 value={manualDraft.escalation}
                                 onChange={(event) =>
-                                    updateManualDraft(
-                                        'escalation',
+                                    handleManualEscalationChange(
                                         event.target.value,
                                     )
                                 }
@@ -1079,21 +1475,46 @@ export default function LoaItemsImportSection({
                             />
                         </div>
 
-                        <div className="flex items-end">
-                            <label className="flex items-center gap-2 text-sm text-[var(--color-ink)]">
-                                <input
-                                    type="checkbox"
+                        <div className="flex items-end gap-3">
+                            <div>
+                                <span className={labelClass}>Rebate</span>
+                                <ToggleSwitch
+                                    id="manual_rebate_enabled"
                                     checked={manualDraft.rebate_enabled}
-                                    onChange={(event) =>
+                                    onChange={(checked) =>
                                         updateManualDraft(
                                             'rebate_enabled',
-                                            event.target.checked,
+                                            checked,
                                         )
                                     }
-                                    className="h-4 w-4 rounded border-[var(--color-gold)]/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]/40"
+                                    aria-label="Enable rebate"
                                 />
-                                Rebate
-                            </label>
+                            </div>
+                            {manualDraft.rebate_enabled && (
+                                <div className="flex-1">
+                                    <label
+                                        htmlFor="manual_rebate_percentage"
+                                        className={labelClass}
+                                    >
+                                        Rebate %
+                                    </label>
+                                    <NumericInput
+                                        id="manual_rebate_percentage"
+                                        allowDecimal
+                                        min={0}
+                                        max={100}
+                                        step="0.01"
+                                        value={manualDraft.rebate_percentage}
+                                        onChange={(event) =>
+                                            updateManualDraft(
+                                                'rebate_percentage',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className={inputClass}
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div>
@@ -1103,9 +1524,9 @@ export default function LoaItemsImportSection({
                             >
                                 Bid Rate (Rs)
                             </label>
-                            <input
+                            <NumericInput
                                 id="manual_bid_rate"
-                                type="number"
+                                allowDecimal
                                 min={0}
                                 step="0.01"
                                 value={manualDraft.bid_rate}
@@ -1120,49 +1541,53 @@ export default function LoaItemsImportSection({
 
                         <div>
                             <label
-                                htmlFor="manual_bid_percentage_value"
+                                htmlFor="manual_bid_value_type"
                                 className={labelClass}
                             >
-                                Bid % Value
+                                Bid Value Type
                             </label>
-                            <input
-                                id="manual_bid_percentage_value"
-                                type="text"
-                                disabled
-                                value={
-                                    manualBidRateUnit
-                                        ? `${formatNumber(manualPercentageValue, 4, 2)}${manualBidRateUnit}`
-                                        : 'At par with Advt. Value'
+                            <select
+                                id="manual_bid_value_type"
+                                value={manualEffectiveBidValueType}
+                                onChange={(event) =>
+                                    handleManualBidValueTypeChange(
+                                        event.target.value as BidValueType,
+                                    )
                                 }
-                                className={`${bidPercentageBoxClass} ${bidPercentageToneClass(manualBidRateUnit)}`}
-                            />
+                                className={inputClass}
+                            >
+                                {BID_VALUE_TYPE_OPTIONS.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
 
-                        {manualDraft.rebate_enabled && (
-                            <div>
-                                <label
-                                    htmlFor="manual_rebate_percentage"
-                                    className={labelClass}
-                                >
-                                    Rebate %
-                                </label>
-                                <input
-                                    id="manual_rebate_percentage"
-                                    type="number"
-                                    min={0}
-                                    max={100}
-                                    step="0.01"
-                                    value={manualDraft.rebate_percentage}
-                                    onChange={(event) =>
-                                        updateManualDraft(
-                                            'rebate_percentage',
-                                            event.target.value,
-                                        )
-                                    }
-                                    className={inputClass}
-                                />
-                            </div>
-                        )}
+                        <div>
+                            <label
+                                htmlFor="manual_bid_percentage"
+                                className={labelClass}
+                            >
+                                Bid %
+                            </label>
+                            <NumericInput
+                                id="manual_bid_percentage"
+                                allowDecimal
+                                min={0}
+                                step="0.01"
+                                disabled={
+                                    manualEffectiveBidValueType === 'At Per'
+                                }
+                                value={manualEffectiveBidPercentage}
+                                onChange={(event) =>
+                                    handleManualBidPercentageChange(
+                                        event.target.value,
+                                    )
+                                }
+                                className={inputClass}
+                            />
+                        </div>
 
                         <div>
                             <label
@@ -1282,11 +1707,14 @@ export default function LoaItemsImportSection({
                 <table className="w-full min-w-[2350px] text-left text-xs">
                     <thead className="bg-[var(--color-ink)] text-white">
                         <tr>
-                            <th className="w-36 px-3 py-3">Schedule Name</th>
-                            <th className="w-32 px-3 py-3">Schedule Type</th>
+                            <th className="w-48 px-3 py-3">
+                                Schedule Name - Type
+                            </th>
                             <th className="w-24 px-3 py-3">Item S.No.</th>
-                            <th className="min-w-80 px-3 py-3">Item Desc</th>
                             <th className="w-28 px-3 py-3">Item Code</th>
+                            <th className="min-w-80 px-3 py-3">Item Desc</th>
+                            <th className="w-40 px-3 py-3">Item Category</th>
+                            <th className="w-40 px-3 py-3">Specialization</th>
                             <th className="w-28 px-3 py-3 text-right">
                                 Item Qty
                             </th>
@@ -1301,12 +1729,11 @@ export default function LoaItemsImportSection({
                             <th className="w-32 px-3 py-3 text-right">
                                 Bid Rate (Rs)
                             </th>
-                            <th className="w-20 px-3 py-3 text-center">
+                            <th className="w-24 px-3 py-3 text-center">
                                 Rebate
                             </th>
-                            <th className="w-36 px-3 py-3 text-right">
-                                Bid % Value
-                            </th>
+                            <th className="w-28 px-3 py-3">Bid Value Type</th>
+                            <th className="w-24 px-3 py-3 text-right">Bid %</th>
                             <th className="w-28 px-3 py-3 text-right">
                                 Rebate %
                             </th>
@@ -1327,7 +1754,7 @@ export default function LoaItemsImportSection({
                         {items.length === 0 ? (
                             <tr>
                                 <td
-                                    colSpan={19}
+                                    colSpan={21}
                                     className="px-4 py-8 text-center text-sm text-[var(--color-ink)]/55"
                                 >
                                     No item details imported yet.
@@ -1363,11 +1790,6 @@ export default function LoaItemsImportSection({
                                     editedAdvertisedValue,
                                     editedItem.bid_amount,
                                 );
-                                const editedPercentageValue =
-                                    calculatePercentageValue(
-                                        editedAdvertisedValue,
-                                        editedItem.bid_amount,
-                                    );
                                 const editedFinalBidAmount =
                                     calculateFinalBidAmount(
                                         editedItem.bid_amount,
@@ -1381,7 +1803,7 @@ export default function LoaItemsImportSection({
                                         {showSchedule && (
                                             <tr className="border-t border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] font-semibold text-[var(--color-ink)]">
                                                 <td
-                                                    colSpan={9}
+                                                    colSpan={10}
                                                     className="px-3 py-2.5"
                                                 >
                                                     {item.schedule_name}
@@ -1391,105 +1813,130 @@ export default function LoaItemsImportSection({
                                                         item.schedule_advertised_value,
                                                     )}
                                                 </td>
-                                                <td colSpan={9} />
+                                                <td colSpan={10} />
                                             </tr>
                                         )}
                                         <tr className="border-t border-[var(--color-gold)]/15 align-top text-[var(--color-ink)]/85 even:bg-[var(--color-surface-soft)]/25">
                                             <td className="px-3 py-3">
                                                 {isEditing ? (
-                                                    <select
-                                                        value={
-                                                            editedItem.schedule_name_id
-                                                        }
-                                                        onChange={(event) =>
-                                                            handleDraftScheduleNameChange(
-                                                                event.target
-                                                                    .value,
-                                                            )
-                                                        }
-                                                        className={
-                                                            smallInputClass
-                                                        }
-                                                    >
-                                                        <option value="">
-                                                            Select
-                                                        </option>
-                                                        {scheduleNames.map(
-                                                            (scheduleName) => (
-                                                                <option
-                                                                    key={
-                                                                        scheduleName.id
-                                                                    }
-                                                                    value={
-                                                                        scheduleName.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        scheduleName.name
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <select
+                                                            aria-label="Schedule Name"
+                                                            value={
+                                                                editedItem.schedule_name_id
+                                                            }
+                                                            onChange={(event) =>
+                                                                handleDraftScheduleNameChange(
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                            className={
+                                                                smallInputClass
+                                                            }
+                                                        >
+                                                            <option value="">
+                                                                Schedule Name
+                                                            </option>
+                                                            {scheduleNames.map(
+                                                                (
+                                                                    scheduleName,
+                                                                ) => (
+                                                                    <option
+                                                                        key={
+                                                                            scheduleName.id
+                                                                        }
+                                                                        value={
+                                                                            scheduleName.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            scheduleName.name
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <select
+                                                            aria-label="Schedule Type"
+                                                            value={
+                                                                editedItem.schedule_type_id
+                                                            }
+                                                            onChange={(event) =>
+                                                                updateDraft(
+                                                                    'schedule_type_id',
+                                                                    event.target
+                                                                        .value
+                                                                        ? Number(
+                                                                              event
+                                                                                  .target
+                                                                                  .value,
+                                                                          )
+                                                                        : '',
+                                                                )
+                                                            }
+                                                            className={
+                                                                smallInputClass
+                                                            }
+                                                        >
+                                                            <option value="">
+                                                                Schedule Type
+                                                            </option>
+                                                            {visibleScheduleTypesFor(
+                                                                editedItem.schedule_name_id,
+                                                            ).map(
+                                                                (
+                                                                    scheduleType,
+                                                                ) => (
+                                                                    <option
+                                                                        key={
+                                                                            scheduleType.id
+                                                                        }
+                                                                        value={
+                                                                            scheduleType.id
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            scheduleType.name
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                    </div>
                                                 ) : (
-                                                    (scheduleNames.find(
-                                                        (scheduleName) =>
-                                                            scheduleName.id ===
-                                                            item.schedule_name_id,
-                                                    )?.name ?? '—')
-                                                )}
-                                            </td>
-                                            <td className="px-3 py-3">
-                                                {isEditing ? (
-                                                    <select
-                                                        value={
-                                                            editedItem.schedule_type_id
+                                                    (() => {
+                                                        const scheduleNameLabel =
+                                                            scheduleNames.find(
+                                                                (
+                                                                    scheduleName,
+                                                                ) =>
+                                                                    scheduleName.id ===
+                                                                    item.schedule_name_id,
+                                                            )?.name;
+                                                        const scheduleTypeLabel =
+                                                            scheduleTypes.find(
+                                                                (
+                                                                    scheduleType,
+                                                                ) =>
+                                                                    scheduleType.id ===
+                                                                    item.schedule_type_id,
+                                                            )?.name;
+
+                                                        if (
+                                                            !scheduleNameLabel &&
+                                                            !scheduleTypeLabel
+                                                        ) {
+                                                            return '—';
                                                         }
-                                                        onChange={(event) =>
-                                                            updateDraft(
-                                                                'schedule_type_id',
-                                                                event.target
-                                                                    .value
-                                                                    ? Number(
-                                                                          event
-                                                                              .target
-                                                                              .value,
-                                                                      )
-                                                                    : '',
-                                                            )
-                                                        }
-                                                        className={
-                                                            smallInputClass
-                                                        }
-                                                    >
-                                                        <option value="">
-                                                            Select
-                                                        </option>
-                                                        {visibleScheduleTypesFor(
-                                                            editedItem.schedule_name_id,
-                                                        ).map(
-                                                            (scheduleType) => (
-                                                                <option
-                                                                    key={
-                                                                        scheduleType.id
-                                                                    }
-                                                                    value={
-                                                                        scheduleType.id
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        scheduleType.name
-                                                                    }
-                                                                </option>
-                                                            ),
-                                                        )}
-                                                    </select>
-                                                ) : (
-                                                    (scheduleTypes.find(
-                                                        (scheduleType) =>
-                                                            scheduleType.id ===
-                                                            item.schedule_type_id,
-                                                    )?.name ?? '—')
+
+                                                        return [
+                                                            scheduleNameLabel,
+                                                            scheduleTypeLabel,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' - ');
+                                                    })()
                                                 )}
                                             </td>
                                             <td className="px-3 py-3">
@@ -1522,6 +1969,28 @@ export default function LoaItemsImportSection({
                                                             'item_no',
                                                         )}
                                                     </p>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {isEditing ? (
+                                                    <input
+                                                        value={
+                                                            editedItem.item_code ??
+                                                            ''
+                                                        }
+                                                        onChange={(event) =>
+                                                            updateDraft(
+                                                                'item_code',
+                                                                event.target
+                                                                    .value,
+                                                            )
+                                                        }
+                                                        className={
+                                                            smallInputClass
+                                                        }
+                                                    />
+                                                ) : (
+                                                    (item.item_code ?? '—')
                                                 )}
                                             </td>
                                             <td className="px-3 py-3">
@@ -1559,30 +2028,99 @@ export default function LoaItemsImportSection({
                                             </td>
                                             <td className="px-3 py-3">
                                                 {isEditing ? (
-                                                    <input
+                                                    <select
                                                         value={
-                                                            editedItem.item_code ??
+                                                            editedItem.item_category ??
                                                             ''
                                                         }
                                                         onChange={(event) =>
                                                             updateDraft(
-                                                                'item_code',
-                                                                event.target
-                                                                    .value,
+                                                                'item_category',
+                                                                (event.target
+                                                                    .value ||
+                                                                    null) as ItemCategory | null,
                                                             )
                                                         }
                                                         className={
                                                             smallInputClass
                                                         }
-                                                    />
+                                                    >
+                                                        <option value="">
+                                                            Select
+                                                        </option>
+                                                        {ITEM_CATEGORY_OPTIONS.map(
+                                                            (option) => (
+                                                                <option
+                                                                    key={option}
+                                                                    value={
+                                                                        option
+                                                                    }
+                                                                >
+                                                                    {option}
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
                                                 ) : (
-                                                    (item.item_code ?? '—')
+                                                    (item.item_category ?? '—')
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {isEditing ? (
+                                                    <FileUploadField
+                                                        file={
+                                                            editedItem.specialization_file
+                                                        }
+                                                        onChange={(file) =>
+                                                            updateDraft(
+                                                                'specialization_file',
+                                                                file,
+                                                            )
+                                                        }
+                                                        existingFileUrl={
+                                                            editedItem.specialization_existing_file_url
+                                                        }
+                                                        existingFileName={
+                                                            editedItem.specialization_existing_file_name
+                                                        }
+                                                        removeExisting={
+                                                            editedItem.remove_specialization_file
+                                                        }
+                                                        onRemoveExisting={(
+                                                            remove,
+                                                        ) =>
+                                                            updateDraft(
+                                                                'remove_specialization_file',
+                                                                remove,
+                                                            )
+                                                        }
+                                                        accept="*/*"
+                                                    />
+                                                ) : item.specialization_file ? (
+                                                    item.specialization_file
+                                                        .name
+                                                ) : item.specialization_existing_file_name ? (
+                                                    <a
+                                                        href={
+                                                            item.specialization_existing_file_url ??
+                                                            undefined
+                                                        }
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="font-medium text-[var(--color-gold)] hover:text-[var(--color-accent)]"
+                                                    >
+                                                        {
+                                                            item.specialization_existing_file_name
+                                                        }
+                                                    </a>
+                                                ) : (
+                                                    '—'
                                                 )}
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 {isEditing ? (
-                                                    <input
-                                                        type="number"
+                                                    <NumericInput
+                                                        allowDecimal
                                                         min={0}
                                                         step="0.001"
                                                         value={
@@ -1659,16 +2197,15 @@ export default function LoaItemsImportSection({
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 {isEditing ? (
-                                                    <input
-                                                        type="number"
+                                                    <NumericInput
+                                                        allowDecimal
                                                         min={0}
                                                         step="0.01"
                                                         value={
                                                             editedItem.unit_rate
                                                         }
                                                         onChange={(event) =>
-                                                            updateDraft(
-                                                                'unit_rate',
+                                                            handleDraftUnitRateChange(
                                                                 event.target
                                                                     .value,
                                                             )
@@ -1683,8 +2220,8 @@ export default function LoaItemsImportSection({
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 {isEditing ? (
-                                                    <input
-                                                        type="number"
+                                                    <NumericInput
+                                                        allowDecimal
                                                         min={0}
                                                         step="0.01"
                                                         value={
@@ -1692,8 +2229,7 @@ export default function LoaItemsImportSection({
                                                             ''
                                                         }
                                                         onChange={(event) =>
-                                                            updateDraft(
-                                                                'escalation',
+                                                            handleDraftEscalationChange(
                                                                 event.target
                                                                     .value ===
                                                                     ''
@@ -1736,8 +2272,8 @@ export default function LoaItemsImportSection({
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 {isEditing ? (
-                                                    <input
-                                                        type="number"
+                                                    <NumericInput
+                                                        allowDecimal
                                                         min={0}
                                                         step="0.01"
                                                         value={
@@ -1758,32 +2294,76 @@ export default function LoaItemsImportSection({
                                                 )}
                                             </td>
                                             <td className="px-3 py-3 text-center">
-                                                <input
-                                                    type="checkbox"
+                                                <ToggleSwitch
                                                     checked={
                                                         editedItem.rebate_enabled
                                                     }
                                                     disabled={!isEditing}
-                                                    onChange={(event) =>
+                                                    onChange={(checked) =>
                                                         updateDraft(
                                                             'rebate_enabled',
-                                                            event.target
-                                                                .checked,
+                                                            checked,
                                                         )
                                                     }
                                                     aria-label={`Enable rebate for item ${item.item_no}`}
-                                                    className="h-4 w-4 rounded border-[var(--color-gold)]/40 text-[var(--color-accent)] focus:ring-[var(--color-accent)]/40 disabled:cursor-not-allowed disabled:opacity-60"
                                                 />
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {isEditing ? (
+                                                    <select
+                                                        aria-label={`Bid value type for item ${item.item_no}`}
+                                                        value={bidValueTypeFromRateUnit(
+                                                            editedItem.bid_rate_unit,
+                                                        )}
+                                                        onChange={(event) =>
+                                                            handleDraftBidValueTypeChange(
+                                                                event.target
+                                                                    .value as BidValueType,
+                                                            )
+                                                        }
+                                                        className={
+                                                            smallInputClass
+                                                        }
+                                                    >
+                                                        {BID_VALUE_TYPE_OPTIONS.map(
+                                                            (option) => (
+                                                                <option
+                                                                    key={option}
+                                                                    value={
+                                                                        option
+                                                                    }
+                                                                >
+                                                                    {option}
+                                                                </option>
+                                                            ),
+                                                        )}
+                                                    </select>
+                                                ) : (
+                                                    bidValueTypeFromRateUnit(
+                                                        item.bid_rate_unit,
+                                                    )
+                                                )}
                                             </td>
                                             <td className="px-3 py-3 text-right">
                                                 {isEditing ? (
-                                                    <input
-                                                        type="text"
-                                                        disabled
+                                                    <NumericInput
+                                                        allowDecimal
+                                                        min={0}
+                                                        step="0.01"
+                                                        disabled={
+                                                            bidValueTypeFromRateUnit(
+                                                                editedItem.bid_rate_unit,
+                                                            ) === 'At Per'
+                                                        }
                                                         value={
-                                                            editedBidRateUnit
-                                                                ? `${formatNumber(editedPercentageValue, 4, 2)}${editedBidRateUnit}`
-                                                                : 'At par'
+                                                            editedItem.bid_percentage_value ??
+                                                            0
+                                                        }
+                                                        onChange={(event) =>
+                                                            handleDraftBidPercentageChange(
+                                                                event.target
+                                                                    .value,
+                                                            )
                                                         }
                                                         className={`${bidPercentageSmallBoxClass} ${bidPercentageToneClass(editedBidRateUnit)}`}
                                                     />
@@ -1791,11 +2371,12 @@ export default function LoaItemsImportSection({
                                                     <input
                                                         type="text"
                                                         disabled
-                                                        value={
-                                                            item.bid_rate_unit
-                                                                ? `${formatNumber(item.bid_percentage_value ?? 0, 4, 2)}${item.bid_rate_unit}`
-                                                                : 'At par'
-                                                        }
+                                                        value={formatNumber(
+                                                            item.bid_percentage_value ??
+                                                                0,
+                                                            4,
+                                                            2,
+                                                        )}
                                                         className={`${bidPercentageSmallBoxClass} ${bidPercentageToneClass(item.bid_rate_unit)}`}
                                                     />
                                                 )}
@@ -1803,8 +2384,8 @@ export default function LoaItemsImportSection({
                                             <td className="px-3 py-3 text-right">
                                                 {editedItem.rebate_enabled ? (
                                                     isEditing ? (
-                                                        <input
-                                                            type="number"
+                                                        <NumericInput
+                                                            allowDecimal
                                                             min={0}
                                                             max={100}
                                                             step="0.01"
@@ -1990,7 +2571,7 @@ export default function LoaItemsImportSection({
                                         {additionalRowErrors.length > 0 && (
                                             <tr className="border-t border-red-500/10 bg-red-500/5">
                                                 <td
-                                                    colSpan={19}
+                                                    colSpan={21}
                                                     className="px-3 py-2 text-xs text-red-600"
                                                 >
                                                     {additionalRowErrors.join(

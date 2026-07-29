@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\Loas\LoaExport;
 use App\Http\Controllers\Concerns\HasPaginatedIndex;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreLoaRequest;
@@ -29,6 +30,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LoaController extends Controller
@@ -77,6 +80,9 @@ class LoaController extends Controller
         'schedule_advertised_value',
         'item_no',
         'item_description',
+        'item_category',
+        'specialization_file_path',
+        'specialization_original_file_name',
         'item_code',
         'item_quantity',
         'quantity_unit',
@@ -205,7 +211,17 @@ class LoaController extends Controller
                     ->orderBy('order_no')
                     ->get(['engineer_id', 'engineer_type_id', 'name', 'role'])
                     ->toArray(),
-                'items' => $loa->items()->orderBy('order_no')->get(self::ITEM_COLUMNS)->toArray(),
+                'items' => $loa->items()
+                    ->orderBy('order_no')
+                    ->get(self::ITEM_COLUMNS)
+                    ->map(fn (LoaItem $item) => [
+                        ...$item->only(self::ITEM_COLUMNS),
+                        'specialization_existing_file_url' => $item->specialization_file_path
+                            ? Storage::disk('public')->url($item->specialization_file_path)
+                            : null,
+                        'specialization_existing_file_name' => $item->specialization_original_file_name,
+                    ])
+                    ->toArray(),
                 'stations' => $loa->stations()->orderBy('order_no')->get(['station_id'])->toArray(),
                 'financial_securities' => $this->financialSecurityPayload($loa),
             ],
@@ -302,6 +318,34 @@ class LoaController extends Controller
             ->toString();
 
         return $pdf->download($filename);
+    }
+
+    public function excel(Loa $loa): BinaryFileResponse
+    {
+        $loa->loadMissing([
+            'division',
+            'scheduleName',
+            'scheduleType',
+            'vendor',
+            'teamMembers' => fn ($query) => $query->orderBy('order_no')->with('engineerType:id,name'),
+            'stations' => fn ($query) => $query->orderBy('order_no')->with('station:id,station_name'),
+        ]);
+        $items = $loa->items()
+            ->orderBy('order_no')
+            ->with(['scheduleName:id,name', 'scheduleType:id,name'])
+            ->get(self::ITEM_COLUMNS);
+        $financialSecurities = $loa->financialSecurities()
+            ->with('bank:id,name')
+            ->get();
+
+        $filename = Str::of($loa->loa_number ?? 'loa')
+            ->replaceMatches('/[^A-Za-z0-9]+/', '-')
+            ->trim('-')
+            ->prepend('LOA_')
+            ->append('.xlsx')
+            ->toString();
+
+        return Excel::download(new LoaExport($loa, $items, $financialSecurities), $filename);
     }
 
     public function destroy(Loa $loa): RedirectResponse
@@ -578,17 +622,62 @@ class LoaController extends Controller
     }
 
     /**
+     * Items are always deleted and recreated wholesale (see the loop below),
+     * but a Specialization upload needs to survive a resave where the user
+     * didn't touch that field — there's no stable per-item id round trip to
+     * upsert against, so `order_no` (already assigned positionally on every
+     * save) is used as the correlation key between the old rows and the
+     * resubmitted list, mirroring why `syncFinancialSecurities()` avoids
+     * blindly wiping an untouched document.
+     *
      * @param  array<int, array<string, mixed>>  $items
      */
     private function replaceItems(Loa $loa, array $items): void
     {
+        $existingFilesByOrder = $loa->items()
+            ->get(['order_no', 'specialization_file_path', 'specialization_original_file_name'])
+            ->keyBy('order_no');
+
         $loa->items()->delete();
 
         foreach ($items as $index => $item) {
+            $file = $item['specialization_file'] ?? null;
+            $removeFile = (bool) ($item['remove_specialization_file'] ?? false);
+            unset($item['specialization_file'], $item['remove_specialization_file']);
+
+            $existing = $existingFilesByOrder->get($index);
+
+            if ($file instanceof UploadedFile) {
+                if ($existing?->specialization_file_path) {
+                    Storage::disk('public')->delete($existing->specialization_file_path);
+                }
+
+                $item['specialization_file_path'] = $file->store('loas/items', 'public');
+                $item['specialization_original_file_name'] = $file->getClientOriginalName();
+            } elseif ($removeFile) {
+                if ($existing?->specialization_file_path) {
+                    Storage::disk('public')->delete($existing->specialization_file_path);
+                }
+
+                $item['specialization_file_path'] = null;
+                $item['specialization_original_file_name'] = null;
+            } elseif ($existing?->specialization_file_path) {
+                $item['specialization_file_path'] = $existing->specialization_file_path;
+                $item['specialization_original_file_name'] = $existing->specialization_original_file_name;
+            }
+
             $loa->items()->create([
                 ...$item,
                 'order_no' => $index,
             ]);
+        }
+
+        foreach ($existingFilesByOrder as $orderNo => $existingItem) {
+            if (array_key_exists((int) $orderNo, $items) || ! $existingItem->specialization_file_path) {
+                continue;
+            }
+
+            Storage::disk('public')->delete($existingItem->specialization_file_path);
         }
     }
 

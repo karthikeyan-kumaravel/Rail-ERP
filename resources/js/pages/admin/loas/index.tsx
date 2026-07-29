@@ -6,10 +6,24 @@ import DetailsModal, {
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { DocumentIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import {
+    DocumentIcon,
+    EyeIcon,
+    PencilIcon,
+    SpreadsheetIcon,
+    TrashIcon,
+} from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index, pdf, show } from '@/routes/admin/loas';
+import {
+    create,
+    destroy,
+    edit,
+    excel,
+    index,
+    pdf,
+    show,
+} from '@/routes/admin/loas';
 
 type LoaRow = {
     unique_id: string;
@@ -59,9 +73,10 @@ function formatContractValue(amount: number, unit: 'Cr' | 'L'): string {
 
 export default function LoasIndex({ loas, filters }: LoasIndexProps) {
     const { flash, auth } = usePage().props;
-    const [selectedRecord, setSelectedRecord] = useState<
-        Record<string, unknown> | null
-    >(null);
+    const [selectedRecord, setSelectedRecord] = useState<Record<
+        string,
+        unknown
+    > | null>(null);
     const [search, setSearch] = useState(filters.search);
     const isFirstRender = useRef(true);
 
@@ -284,30 +299,28 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                                                 <EyeIcon />
                                             </Link>
                                             {auth.isSuperAdmin ? (
-
                                                 <Link
-
-                                                    href={edit.url(loa.unique_id)}
+                                                    href={edit.url(
+                                                        loa.unique_id,
+                                                    )}
 
                                                     title="Edit"
 
                                                     aria-label={`Edit ${loa.loa_number}`}
 
                                                     className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-
                                                 >
-
                                                     <PencilIcon />
-
                                                 </Link>
-
                                             ) : (
-
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         setSelectedRecord(
-                                                            loa as Record<string, unknown>,
+                                                            loa as Record<
+                                                                string,
+                                                                unknown
+                                                            >,
                                                         )
                                                     }
                                                     title="View"
@@ -315,8 +328,7 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                                                     className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
                                                 >
                                                     <EyeIcon />
-</button>
-
+                                                </button>
                                             )}
                                             <a
                                                 href={pdf.url(loa.unique_id)}
@@ -325,6 +337,14 @@ export default function LoasIndex({ loas, filters }: LoasIndexProps) {
                                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-ink)]/60 transition hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
                                             >
                                                 <DocumentIcon />
+                                            </a>
+                                            <a
+                                                href={excel.url(loa.unique_id)}
+                                                title="Download Excel"
+                                                aria-label={`Download Excel for ${loa.loa_number}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-ink)]/60 transition hover:bg-[var(--color-ink)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <SpreadsheetIcon />
                                             </a>
                                             {auth.isSuperAdmin && (
                                                 <button

@@ -33,8 +33,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\PreventAdminDelete;
 // use App\Http\Controllers\DashboardController;
 use App\Models\User;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 if (app()->environment('local')) {
     Route::get('/__dev_login', function () {
@@ -49,22 +49,27 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::get('captcha', [CaptchaController::class, 'image'])->name('captcha');
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
+});
 
-    // Temporary preview route for the login1.tsx redesign — remove once reviewed/approved.
-    Route::get('login1-preview', function () {
-        $props = [
-            'hcaptchaSiteKey' => config('services.hcaptcha.site_key'),
-            'logoUrl' => asset('images/indian-railways-logo.svg'),
-            'trainBackgroundUrl' => asset('images/login-bg.jpg'),
-        ];
+Route::get('__env-probe', fn () => app()->environment());
 
-        if (! filled(config('services.hcaptcha.site_key')) || ! filled(config('services.hcaptcha.secret_key'))) {
-            $props['captchaImageUrl'] = route('captcha');
+if (app()->environment('local')) {
+    Route::get('__test-login/{id}', function (string $id) {
+        auth()->login(User::findOrFail($id));
+
+        return redirect('/dashboard');
+    });
+
+    Route::get('__opcache-reset', function () {
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+
+            return 'opcache reset';
         }
 
-        return Inertia::render('login1', $props);
+        return 'opcache not available';
     });
-});
+}
 
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
@@ -99,6 +104,7 @@ Route::middleware('auth')->group(function () {
         Route::post('loas/items/import-preview', LoaItemImportController::class)
             ->name('loas.items.import-preview');
         Route::get('loas/{loa}/pdf', [LoaController::class, 'pdf'])->name('loas.pdf');
+        Route::get('loas/{loa}/excel', [LoaController::class, 'excel'])->name('loas.excel');
         Route::resource('loas', LoaController::class);
         Route::resource('activities', ActivityController::class)->except('show');
         Route::resource('engineer-types', EngineerTypeController::class)->except('show');

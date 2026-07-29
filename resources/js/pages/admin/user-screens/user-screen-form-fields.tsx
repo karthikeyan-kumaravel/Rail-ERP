@@ -1,4 +1,5 @@
 import IconPicker from '@/lib/icon-picker';
+import NumericInput from '@/lib/numeric-input';
 
 export type UserScreenFormData = {
     main_screen_id: number | '';
@@ -138,9 +139,8 @@ export default function UserScreenFormFields({
                     <label htmlFor="order_no" className={labelClass}>
                         Order No
                     </label>
-                    <input
+                    <NumericInput
                         id="order_no"
-                        type="number"
                         min={0}
                         value={data.order_no}
                         onChange={(event) =>
