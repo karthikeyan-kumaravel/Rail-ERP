@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DistrictController;
 use App\Http\Controllers\Admin\DivisionController;
 use App\Http\Controllers\Admin\EngineerController;
 use App\Http\Controllers\Admin\EngineerTypeController;
+use App\Http\Controllers\Admin\ExecutionPlanController;
 use App\Http\Controllers\Admin\Imports\SettingsImportController;
 use App\Http\Controllers\Admin\LoaController;
 use App\Http\Controllers\Admin\LoaItemImportController;
@@ -98,8 +99,11 @@ Route::middleware('auth')->group(function () {
         Route::resource('projects', ProjectController::class);
         Route::resource('purchase-orders', PurchaseOrderController::class)
             ->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+        Route::get('execution-plan', [ExecutionPlanController::class, 'index'])
+            ->name('execution-plan.index');
         Route::resource('schedule-names', ScheduleNameController::class)->except('show');
         Route::resource('schedule-types', ScheduleTypeController::class)->except('show');
+        Route::get('alerts', [AlertController::class, 'index'])->name('alerts.index');
 
         Route::prefix('imports')->name('imports.')->group(function () {
             Route::get('{module}/template', [SettingsImportController::class, 'template'])->name('template');

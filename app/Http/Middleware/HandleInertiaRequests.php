@@ -69,7 +69,7 @@ class HandleInertiaRequests extends Middleware
                 'canEdit' => $isSuperAdmin || $isAdmin,
                 'canDelete' => $isSuperAdmin,
             ],
-            'navigation' => $navigation,
+            'navigation' => $user ? UserScreen::navigationTree() : [],
             'alertsCount' => $user
                 ? Alert::query()->where('is_delete', false)->count()
                 : null,

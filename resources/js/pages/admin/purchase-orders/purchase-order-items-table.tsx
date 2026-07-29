@@ -2,30 +2,20 @@ import { TrashIcon } from '@/lib/icons';
 import {
     calculateBalanceQty,
     calculateVariancePercentage,
-    PAYMENT_TYPE_LABELS,
-    STATUS_LABELS,
 } from './purchase-order-form-fields';
 import type {
     LoaItemOption,
-    LoaOption,
     PurchaseOrderItemFormData,
-    VendorOption,
 } from './purchase-order-form-fields';
 
 type PurchaseOrderItemsTableProps = {
     items: PurchaseOrderItemFormData[];
-    loas: LoaOption[];
     loaItems: LoaItemOption[];
-    vendors: VendorOption[];
     onRemove: (index: number) => void;
 };
 
 const headers = [
-    'LOA No.',
-    'PO Number',
-    'PO Date',
     'LOA Line Item',
-    'Vendor',
     'Ordered Qty',
     'Received Qty',
     'Balance Qty',
@@ -36,17 +26,12 @@ const headers = [
     'Total Price (Excl. GST)',
     'Vendor Quote',
     'Variance %',
-    'Expected Delivery',
-    'Status',
-    'Payment Type',
     'Action',
 ];
 
 export default function PurchaseOrderItemsTable({
     items,
-    loas,
     loaItems,
-    vendors,
     onRemove,
 }: PurchaseOrderItemsTableProps) {
     if (items.length === 0) {
@@ -76,16 +61,9 @@ export default function PurchaseOrderItemsTable({
                 </thead>
                 <tbody>
                     {items.map((item, index) => {
-                        const loaName =
-                            loas.find((loa) => loa.id === item.loa_id)?.name ??
-                            '—';
                         const loaItemName =
                             loaItems.find(
                                 (loaItem) => loaItem.id === item.loa_item_id,
-                            )?.name ?? '—';
-                        const vendorName =
-                            vendors.find(
-                                (vendor) => vendor.id === item.vendor_id,
                             )?.name ?? '—';
                         const balanceQty = calculateBalanceQty(
                             item.ordered_qty,
@@ -101,20 +79,8 @@ export default function PurchaseOrderItemsTable({
                                 key={index}
                                 className="border-b border-[var(--color-border-soft-2)] text-[var(--color-ink)]/80 transition last:border-b-0 hover:bg-[var(--color-surface-soft-2)]"
                             >
-                                <td className="max-w-40 truncate px-3 py-3">
-                                    {loaName}
-                                </td>
-                                <td className="px-3 py-3 font-semibold whitespace-nowrap text-[var(--color-ink)]">
-                                    {item.po_number}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap tabular-nums">
-                                    {item.order_date}
-                                </td>
                                 <td className="max-w-52 truncate px-3 py-3">
                                     {loaItemName}
-                                </td>
-                                <td className="max-w-40 truncate px-3 py-3">
-                                    {vendorName}
                                 </td>
                                 <td className="px-3 py-3 text-right tabular-nums">
                                     {item.ordered_qty}
@@ -147,15 +113,6 @@ export default function PurchaseOrderItemsTable({
                                     {variancePercentage
                                         ? `${variancePercentage}%`
                                         : '—'}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap tabular-nums">
-                                    {item.delivery_date}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap">
-                                    {STATUS_LABELS[item.status]}
-                                </td>
-                                <td className="px-3 py-3 whitespace-nowrap">
-                                    {PAYMENT_TYPE_LABELS[item.payment_type]}
                                 </td>
                                 <td className="px-3 py-3">
                                     <button
