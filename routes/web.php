@@ -33,7 +33,6 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\PreventAdminDelete;
 // use App\Http\Controllers\DashboardController;
 use App\Models\User;
-use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 if (app()->environment('local')) {
