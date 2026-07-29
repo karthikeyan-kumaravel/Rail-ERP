@@ -42,6 +42,109 @@ class AuthorizeAdminActions
             return $next($request);
         }
 
+        if ($role === 'accountsteam') {
+            if (! $request->isMethod('GET')) {
+                abort(403, 'Unauthorized');
+            }
+
+            $routeSegments = explode('.', $routeName);
+            $module = trim((string) ($routeSegments[1] ?? ''));
+            if ($module === '') {
+                abort(403, 'Unauthorized');
+            }
+
+            $allowed = in_array($module, [
+                'alerts',
+                'settings',
+                'customers',
+                'vendors',
+                'banks',
+                'engineers',
+                'engineer-types',
+            ], true);
+
+            if (! $allowed) {
+                abort(403, 'Unauthorized');
+            }
+
+            return $next($request);
+        }
+
+        if ($role === 'operationteam') {
+            if (! $request->isMethod('GET')) {
+                abort(403, 'Unauthorized');
+            }
+
+            $routeSegments = explode('.', $routeName);
+            $module = trim((string) ($routeSegments[1] ?? ''));
+            if ($module === '') {
+                abort(403, 'Unauthorized');
+            }
+
+            $allowed = in_array($module, [
+                'alerts',
+                'settings',
+                'states',
+                'districts',
+                'cities',
+                'zones',
+                'divisions',
+                'stations',
+                'customers',
+                'vendors',
+                'banks',
+                'activities',
+                'engineer-types',
+                'units',
+                'departments',
+                'projects',
+                'schedule-names',
+                'schedule-types',
+                'engineers',
+            ], true);
+
+            if (! $allowed) {
+                abort(403, 'Unauthorized');
+            }
+
+            return $next($request);
+        }
+
+        if ($role === 'serviceengineer') {
+            if (! $request->isMethod('GET')) {
+                abort(403, 'Unauthorized');
+            }
+
+            $routeSegments = explode('.', $routeName);
+            $module = trim((string) ($routeSegments[1] ?? ''));
+            if ($module === '') {
+                abort(403, 'Unauthorized');
+            }
+
+            $allowed = in_array($module, [
+                'alerts',
+                'settings',
+                'states',
+                'districts',
+                'cities',
+                'zones',
+                'divisions',
+                'stations',
+                'departments',
+                'units',
+                'schedule-names',
+                'schedule-types',
+                'loas',
+                'purchase-orders',
+            ], true);
+
+            if (! $allowed) {
+                abort(403, 'Unauthorized');
+            }
+
+            return $next($request);
+        }
+
         if ($request->isMethod('GET')) {
             return $next($request);
         }

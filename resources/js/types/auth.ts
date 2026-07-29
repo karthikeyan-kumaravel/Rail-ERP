@@ -14,4 +14,10 @@ export type Auth = {
     role?: string | null;
     isSuperAdmin?: boolean;
     isAdmin?: boolean;
+    isAccountsTeam?: boolean;
+    isOperationTeam?: boolean;
+    isServiceEngineer?: boolean;
+    canCreate?: boolean;
+    canEdit?: boolean;
+    canDelete?: boolean;
 };

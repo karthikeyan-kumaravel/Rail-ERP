@@ -1,6 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AppearancePanel from '@/lib/appearance-panel';
 import {
     BellIcon,
@@ -19,7 +19,29 @@ import type { NavigationItem } from '@/types';
 
 const adminBasePath = `${dashboard.url().replace(/\/dashboard\/?$/, '')}/admin`;
 
-function adminUrl(folderName: string): string {
+function isAdminItem(
+    item: Pick<NavigationItem, 'folder_name' | 'screen_name'>,
+): boolean {
+    return (
+        item.folder_name.toLowerCase() === 'admin' ||
+        item.screen_name.trim().toLowerCase() === 'admin'
+    );
+}
+
+function isSettingsItem(
+    item: Pick<NavigationItem, 'folder_name' | 'screen_name'>,
+): boolean {
+    return item.folder_name.toLowerCase() === 'settings';
+}
+
+function adminUrl(folderName: string, screenName?: string): string {
+    if (
+        folderName.toLowerCase() === 'admin' ||
+        screenName?.trim().toLowerCase() === 'admin'
+    ) {
+        return adminBasePath;
+    }
+
     return `${adminBasePath}/${folderName}`;
 }
 
@@ -68,8 +90,11 @@ function NavItem({
     onToggleGroup,
     depth,
 }: NavItemProps) {
-    const href = adminUrl(item.folder_name);
-    const hasChildren = item.children.length > 0;
+    const href = adminUrl(item.folder_name, item.screen_name);
+    // Admin and Settings are dashboard links. Their child screens remain
+    // available from that dashboard instead of expanding the sidebar.
+    const hasChildren =
+        item.children.length > 0 && !isAdminItem(item) && !isSettingsItem(item);
     const isOpen = openGroups[item.folder_name] ?? false;
     const childrenContainerRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +111,13 @@ function NavItem({
     }, [hasChildren, isOpen, currentPath]);
 
     if (!hasChildren) {
-        const isActive = currentPath.startsWith(href);
+        // Admin/Settings link to their own dashboard at a path that is a
+        // prefix of every page beneath it, so only an exact match should
+        // count as active — a prefix match would light them up everywhere.
+        const isDashboardLink = isAdminItem(item) || isSettingsItem(item);
+        const isActive = isDashboardLink
+            ? currentPath === href
+            : currentPath.startsWith(href);
         const stateClass = isActive
             ? 'bg-[var(--sidebar-active-bg)] text-[var(--sidebar-ink)] shadow-[inset_3px_0_0_0_var(--sidebar-active-border)]'
             : 'text-[var(--sidebar-ink-soft)] hover:bg-[var(--sidebar-hover-bg)] hover:text-[var(--sidebar-ink)]';
@@ -200,10 +231,147 @@ function AdminLayoutContent({ children, title }: AdminLayoutProps) {
     const { auth, navigation, alertsCount } = props;
     const currentPath = currentUrl.split('?')[0];
 
+    const accountsNavigation = useMemo(() => {
+        const allowedChildren = new Set([
+            'customers',
+            'vendors',
+            'banks',
+            'engineers',
+            'engineer-types',
+        ]);
+
+        const alertsItem = navigation.find(
+            (item) => item.folder_name === 'alerts',
+        );
+
+        const settingsItem = navigation.find(
+            (item) => item.folder_name === 'settings',
+        );
+
+        const subSettingsItem = navigation.find(
+            (item) => item.folder_name === 'sub-settings',
+        );
+
+        const settingsChildren = [
+            ...(settingsItem?.children ?? []),
+            ...(subSettingsItem?.children ?? []),
+        ].filter((child) => allowedChildren.has(child.folder_name));
+
+        const filteredSettings = settingsItem
+            ? {
+                  ...settingsItem,
+                  children: settingsChildren,
+              }
+            : null;
+
+        const result: NavigationItem[] = [];
+
+        if (alertsItem) {
+            result.push(alertsItem);
+        }
+
+        if (filteredSettings && filteredSettings.children.length > 0) {
+            result.push(filteredSettings);
+        }
+
+        return result;
+    }, [navigation]);
+
+    const operationNavigation = useMemo(() => {
+        const alertsItem = navigation.find(
+            (item) => item.folder_name === 'alerts',
+        );
+
+        const settingsItem = navigation.find(
+            (item) => item.folder_name === 'settings',
+        );
+
+        const subSettingsItem = navigation.find(
+            (item) => item.folder_name === 'sub-settings',
+        );
+
+        const settingsChildren = [
+            ...(settingsItem?.children ?? []),
+            ...(subSettingsItem?.children ?? []),
+        ];
+
+        const result: NavigationItem[] = [];
+
+        if (alertsItem) {
+            result.push(alertsItem);
+        }
+
+        if (settingsItem && settingsChildren.length > 0) {
+            result.push({
+                ...settingsItem,
+                screen_name: 'All Settings',
+                children: settingsChildren,
+            });
+        }
+
+        return result;
+    }, [navigation]);
+
+    const defaultNavigation = useMemo(() => {
+        const settingsItem = navigation.find(
+            (item) => item.folder_name === 'settings',
+        );
+
+        const subSettingsItem = navigation.find(
+            (item) => item.folder_name === 'sub-settings',
+        );
+
+        if (!settingsItem) {
+            return navigation;
+        }
+
+        const mergedSettings: NavigationItem = {
+            ...settingsItem,
+            children: [
+                ...settingsItem.children,
+                ...(subSettingsItem?.children ?? []),
+            ],
+        };
+
+        return navigation
+            .filter((item) => item.folder_name !== 'sub-settings')
+            .map((item) =>
+                item.folder_name === 'settings' ? mergedSettings : item,
+            );
+    }, [navigation]);
+
+    const isAccountsTeam =
+        auth?.isAccountsTeam === true ||
+        auth?.role?.toLowerCase().trim() === 'accounts team';
+
+    const isOperationTeam =
+        auth?.isOperationTeam === true ||
+        auth?.role?.toLowerCase().trim() === 'operation team';
+
+    const displayedNavigation = isAccountsTeam
+        ? accountsNavigation
+        : isOperationTeam
+          ? operationNavigation
+          : defaultNavigation;
+
+    const sidebarNavigation = [
+        ...displayedNavigation.filter((item) => item.folder_name !== 'alerts'),
+        ...displayedNavigation.filter((item) => item.folder_name === 'alerts'),
+    ].map((item) =>
+        isAdminItem(item) || isSettingsItem(item)
+            ? {
+                  ...item,
+                  // Admin/Settings children belong on their dashboards, never
+                  // in the sidebar.
+                  children: [],
+              }
+            : item,
+    );
+
     const { preferences, updatePreference } = usePreferences();
     const collapsed = preferences.sidebarStyle === 'compact';
     const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
-        initialOpenGroups(navigation, currentPath),
+        initialOpenGroups(sidebarNavigation, currentPath),
     );
     const [mobileOpen, setMobileOpen] = useState(false);
     const [hoverExpanded, setHoverExpanded] = useState(false);
@@ -301,7 +469,7 @@ function AdminLayoutContent({ children, title }: AdminLayoutProps) {
                     </button>
 
                     <nav
-                        className="flex-1 space-y-1 overflow-y-auto px-3 py-2"
+                        className="flex-1 space-y-1.5 overflow-y-auto px-3 py-2"
                         onClick={(event) => {
                             if ((event.target as HTMLElement).closest('a')) {
                                 setMobileOpen(false);
@@ -329,7 +497,7 @@ function AdminLayoutContent({ children, title }: AdminLayoutProps) {
                             {!isVisuallyCollapsed && <span>Home</span>}
                         </Link>
 
-                        {navigation.map((item) => (
+                        {sidebarNavigation.map((item) => (
                             <NavItem
                                 key={item.folder_name}
                                 item={item}
