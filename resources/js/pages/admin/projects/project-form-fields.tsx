@@ -1,3 +1,5 @@
+import NumericInput from '@/lib/numeric-input';
+
 export type ProjectFormData = {
     name: string;
     customer_id: number | '';
@@ -173,9 +175,9 @@ export default function ProjectFormFields({
                 <label htmlFor="contract_value" className={labelClass}>
                     Contract Value
                 </label>
-                <input
+                <NumericInput
                     id="contract_value"
-                    type="number"
+                    allowDecimal
                     step="0.01"
                     min="0"
                     value={data.contract_value}

@@ -16,6 +16,8 @@ class AuthenticatedSessionController extends Controller
     {
         $props = [
             'hcaptchaSiteKey' => config('services.hcaptcha.site_key'),
+            'logoUrl' => asset('images/indian-railways-logo.svg'),
+            'trainBackgroundUrl' => asset('images/login-bg.jpg'),
         ];
 
         // If hCaptcha is not configured, provide our local image captcha URL
@@ -44,6 +46,4 @@ class AuthenticatedSessionController extends Controller
 
         return redirect()->route('login');
     }
-
-    
 }

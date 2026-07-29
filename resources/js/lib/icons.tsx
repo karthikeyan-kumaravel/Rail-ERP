@@ -261,6 +261,14 @@ export const DocumentIcon = ({ className = 'h-4 w-4' }: IconProps) => (
     </svg>
 );
 
+export const SpreadsheetIcon = ({ className = 'h-4 w-4' }: IconProps) => (
+    <svg {...svg({ className, 'aria-hidden': true, focusable: false })}>
+        <path d="M14 3v5a1 1 0 0 0 1 1h5" />
+        <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
+        <path d="M8 13h8M8 17h8M11 13v6" />
+    </svg>
+);
+
 export const EyeIcon = ({ className = 'h-4.5 w-4.5' }: IconProps) => (
     <svg {...svg({ className })}>
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />

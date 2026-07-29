@@ -74,11 +74,6 @@ tests/
   context/                     # this documentation set
 ```
 
-Note: `routes/web.php` currently has a `GET /login1-preview` route rendering
-`resources/js/pages/login1.tsx`, explicitly commented as a temporary preview
-of a login redesign to be removed once reviewed — don't treat it as a
-pattern to replicate for other pages.
-
 ## Naming patterns to follow
 
 - Frontend page folders are **kebab-case** and mirror the backend

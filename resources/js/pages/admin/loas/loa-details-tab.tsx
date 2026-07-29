@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TrainIcon } from '@/lib/icons';
+import NumericInput from '@/lib/numeric-input';
 import {
     errorClass,
     inputClass,
@@ -197,9 +198,9 @@ export default function LoaDetailsTab({
                     Contract Value
                 </label>
                 <div className="flex items-center gap-2.5">
-                    <input
+                    <NumericInput
                         id="contract_value_amount"
-                        type="number"
+                        allowDecimal
                         min={0}
                         step="0.01"
                         value={data.contract_value_amount}
@@ -246,9 +247,8 @@ export default function LoaDetailsTab({
                 >
                     Completion Period (Months)
                 </label>
-                <input
+                <NumericInput
                     id="completion_period_months"
-                    type="number"
                     min={0}
                     value={data.completion_period_months}
                     onChange={(event) =>
@@ -273,9 +273,8 @@ export default function LoaDetailsTab({
                 <label htmlFor="defect_liability_months" className={labelClass}>
                     Defect Liability (Months)
                 </label>
-                <input
+                <NumericInput
                     id="defect_liability_months"
-                    type="number"
                     min={0}
                     value={data.defect_liability_months}
                     onChange={(event) =>
@@ -337,9 +336,8 @@ export default function LoaDetailsTab({
                     Total Stations
                 </label>
                 <div className="flex items-center gap-2.5">
-                    <input
+                    <NumericInput
                         id="total_stations"
-                        type="number"
                         min={0}
                         value={data.total_stations}
                         onChange={(event) =>

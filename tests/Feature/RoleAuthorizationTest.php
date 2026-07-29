@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\UserScreen;
 use App\Models\UserType;
 use App\Models\UserTypePermission;
+use Database\Seeders\UserTypePermissionSeeder;
 
 beforeEach(function () {
     $this->userType = UserType::factory()->create(['name' => 'Admin', 'active_status' => true, 'is_delete' => false]);
@@ -100,4 +101,57 @@ test('service engineer can only view permitted settings and project setup module
     $this->get('/admin/customers')->assertForbidden();
     $this->get('/admin/projects')->assertForbidden();
     $this->post('/admin/stations', [])->assertForbidden();
+});
+
+test('UserTypePermissionSeeder grants operational roles add access on every active screen', function () {
+    $accountsTeam = UserType::factory()->create(['name' => 'Accounts Team', 'is_delete' => false]);
+    $screen = UserScreen::factory()->create(['folder_name' => 'departments', 'is_delete' => false, 'status' => true]);
+
+    (new UserTypePermissionSeeder)->run();
+
+    $permission = UserTypePermission::query()
+        ->where('user_type_id', $accountsTeam->id)
+        ->where('user_screen_id', $screen->id)
+        ->firstOrFail();
+
+    expect($permission->can_view)->toBeTrue()
+        ->and($permission->can_add)->toBeTrue()
+        ->and($permission->can_update)->toBeFalse()
+        ->and($permission->can_delete)->toBeFalse();
+
+    $user = User::factory()->create(['user_type_id' => $accountsTeam->id]);
+    $this->actingAs($user);
+
+    $response = $this->post('/admin/departments', ['name' => 'Accounts Dept', 'active_status' => '1']);
+
+    $response->assertRedirect('/admin/departments');
+});
+
+test('UserTypePermissionSeeder does not overwrite an already-configured permission row', function () {
+    $accountsTeam = UserType::factory()->create(['name' => 'Accounts Team', 'is_delete' => false]);
+    $screen = UserScreen::factory()->create(['folder_name' => 'departments', 'is_delete' => false, 'status' => true]);
+
+    UserTypePermission::factory()->create([
+        'user_type_id' => $accountsTeam->id,
+        'user_screen_id' => $screen->id,
+        'can_view' => true,
+        'can_add' => false,
+        'can_update' => false,
+        'can_delete' => false,
+    ]);
+
+    (new UserTypePermissionSeeder)->run();
+
+    $count = UserTypePermission::query()
+        ->where('user_type_id', $accountsTeam->id)
+        ->where('user_screen_id', $screen->id)
+        ->count();
+
+    $permission = UserTypePermission::query()
+        ->where('user_type_id', $accountsTeam->id)
+        ->where('user_screen_id', $screen->id)
+        ->firstOrFail();
+
+    expect($count)->toBe(1)
+        ->and($permission->can_add)->toBeFalse();
 });

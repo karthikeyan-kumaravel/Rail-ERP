@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import NumericInput from '@/lib/numeric-input';
 
 export type StationFormData = {
     zone_id: number | '';
@@ -303,9 +304,10 @@ export default function StationFormFields({
                 <label htmlFor="latitude" className={labelClass}>
                     Latitude
                 </label>
-                <input
+                <NumericInput
                     id="latitude"
-                    type="number"
+                    allowDecimal
+                    allowNegative
                     min="-90"
                     max="90"
                     step="any"
@@ -325,9 +327,10 @@ export default function StationFormFields({
                 <label htmlFor="longitude" className={labelClass}>
                     Longitude
                 </label>
-                <input
+                <NumericInput
                     id="longitude"
-                    type="number"
+                    allowDecimal
+                    allowNegative
                     min="-180"
                     max="180"
                     step="any"

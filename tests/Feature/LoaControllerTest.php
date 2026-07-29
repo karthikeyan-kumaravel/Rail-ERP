@@ -5,6 +5,7 @@ use App\Models\Division;
 use App\Models\Engineer;
 use App\Models\EngineerType;
 use App\Models\Loa;
+use App\Models\LoaFinancialSecurity;
 use App\Models\LoaItem;
 use App\Models\ScheduleName;
 use App\Models\ScheduleType;
@@ -656,6 +657,136 @@ test('an loa item without a rebate defaults the final bid amount to the bid amou
         ->and((float) $item->final_bid_amount)->toBe(900.0);
 });
 
+test('an loa item can be saved with an item category and specialization file', function () {
+    $division = Division::factory()->create();
+    $file = UploadedFile::fake()->create('spec.xyz', 50);
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'items' => [
+            [
+                'item_no' => '01',
+                'item_description' => 'Supply of signalling cable',
+                'item_category' => 'Supply & Installation',
+                'specialization_file' => $file,
+                'item_quantity' => 100,
+                'quantity_unit' => 'Mtr',
+                'unit_rate' => 10,
+                'advertised_value' => 1000,
+                'bid_rate' => 9,
+                'bid_amount' => 900,
+            ],
+        ],
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+    $response->assertSessionDoesntHaveErrors();
+
+    $loa = Loa::query()->where('loa_number', 'RAILWAY/ABC/2026/001')->firstOrFail();
+    $item = $loa->items()->firstOrFail();
+
+    expect($item->item_category)->toBe('Supply & Installation')
+        ->and($item->specialization_file_path)->not->toBeNull()
+        ->and($item->specialization_original_file_name)->toBe('spec.xyz');
+    Storage::disk('public')->assertExists($item->specialization_file_path);
+});
+
+test('an invalid item category is rejected', function () {
+    $division = Division::factory()->create();
+
+    $response = $this->post('/admin/loas', validLoaPayload($division->id, [
+        'items' => [
+            [
+                'item_no' => '01',
+                'item_description' => 'Supply of signalling cable',
+                'item_category' => 'Not A Real Category',
+                'item_quantity' => 100,
+                'quantity_unit' => 'Mtr',
+                'unit_rate' => 10,
+                'advertised_value' => 1000,
+                'bid_rate' => 9,
+                'bid_amount' => 900,
+            ],
+        ],
+    ]));
+
+    $response->assertSessionHasErrors('items.0.item_category');
+});
+
+test('resaving an loa item without a new specialization file keeps the existing one', function () {
+    $division = Division::factory()->create();
+    $loa = Loa::factory()->create(['division_id' => $division->id]);
+    $loa->items()->delete();
+    $loa->items()->create([
+        'order_no' => 0,
+        'item_no' => '01',
+        'item_description' => 'Supply of signalling cable',
+        'item_quantity' => 100,
+        'quantity_unit' => 'Mtr',
+        'unit_rate' => 10,
+        'advertised_value' => 1000,
+        'bid_rate' => 9,
+        'bid_amount' => 900,
+        'specialization_file_path' => 'loas/items/existing.pdf',
+        'specialization_original_file_name' => 'existing.pdf',
+    ]);
+    Storage::disk('public')->put('loas/items/existing.pdf', 'contents');
+
+    $response = $this->put("/admin/loas/{$loa->unique_id}", validLoaPayload($division->id, [
+        'loa_number' => $loa->loa_number,
+        'items' => [
+            [
+                'item_no' => '01',
+                'item_description' => 'Supply of signalling cable (updated)',
+                'item_quantity' => 100,
+                'quantity_unit' => 'Mtr',
+                'unit_rate' => 10,
+                'advertised_value' => 1000,
+                'bid_rate' => 9,
+                'bid_amount' => 900,
+            ],
+        ],
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+    $response->assertSessionDoesntHaveErrors();
+
+    $item = $loa->items()->firstOrFail();
+
+    expect($item->specialization_file_path)->toBe('loas/items/existing.pdf')
+        ->and($item->specialization_original_file_name)->toBe('existing.pdf');
+    Storage::disk('public')->assertExists('loas/items/existing.pdf');
+});
+
+test('removing an loa item deletes its specialization file from storage', function () {
+    $division = Division::factory()->create();
+    $loa = Loa::factory()->create(['division_id' => $division->id]);
+    $loa->items()->delete();
+    $loa->items()->create([
+        'order_no' => 0,
+        'item_no' => '01',
+        'item_description' => 'Supply of signalling cable',
+        'item_quantity' => 100,
+        'quantity_unit' => 'Mtr',
+        'unit_rate' => 10,
+        'advertised_value' => 1000,
+        'bid_rate' => 9,
+        'bid_amount' => 900,
+        'specialization_file_path' => 'loas/items/to-delete.pdf',
+        'specialization_original_file_name' => 'to-delete.pdf',
+    ]);
+    Storage::disk('public')->put('loas/items/to-delete.pdf', 'contents');
+
+    $response = $this->put("/admin/loas/{$loa->unique_id}", validLoaPayload($division->id, [
+        'loa_number' => $loa->loa_number,
+        'items' => [],
+    ]));
+
+    $response->assertRedirect('/admin/loas');
+
+    Storage::disk('public')->assertMissing('loas/items/to-delete.pdf');
+    $this->assertDatabaseCount('loa_items', 0);
+});
+
 test('a rebate percentage outside 0-100 is rejected', function () {
     $division = Division::factory()->create();
 
@@ -783,6 +914,45 @@ test('the pdf endpoint downloads a pdf containing the loa number and item detail
 
 test('the pdf endpoint returns a not found response for a tampered masked id', function () {
     $this->get('/admin/loas/not-a-valid-mask/pdf')->assertNotFound();
+});
+
+test('the excel endpoint downloads a workbook containing the loa header, items, financial security, team, and station sheets', function () {
+    $division = Division::factory()->create();
+    $bank = Bank::factory()->create(['name' => 'State Bank']);
+    $station = Station::factory()->create(['division_id' => $division->id, 'station_name' => 'Chennai Central']);
+    $loa = Loa::factory()->create([
+        'division_id' => $division->id,
+        'loa_number' => 'RAILWAY/XLS/2026/001',
+    ]);
+    LoaItem::factory()->create([
+        'loa_id' => $loa->id,
+        'order_no' => 0,
+        'item_no' => '01',
+        'item_description' => 'Supply of signalling cable',
+    ]);
+    $loa->financialSecurities()->create([
+        'security_type' => LoaFinancialSecurity::TYPE_EMD,
+        'amount' => 5.5,
+        'amount_unit' => 'L',
+        'validity_start_date' => '2026-01-01',
+        'validity_end_date' => '2027-01-01',
+        'claim_period' => 90,
+        'claim_period_unit' => 'Days',
+        'bank_id' => $bank->id,
+    ]);
+    $loa->teamMembers()->create(['name' => 'Alice', 'role' => 'Project Manager', 'order_no' => 0]);
+    $loa->stations()->create(['station_id' => $station->id, 'order_no' => 0]);
+
+    $response = $this->get("/admin/loas/{$loa->unique_id}/excel");
+
+    $response->assertOk();
+    expect($response->headers->get('content-type'))->toContain('spreadsheetml');
+    $response->assertHeader('content-disposition', 'attachment; filename=LOA_RAILWAY-XLS-2026-001.xlsx');
+    expect(strlen($response->streamedContent()))->toBeGreaterThan(100);
+});
+
+test('the excel endpoint returns a not found response for a tampered masked id', function () {
+    $this->get('/admin/loas/not-a-valid-mask/excel')->assertNotFound();
 });
 
 test('the details tab can be saved on its own via Save & Continue', function () {

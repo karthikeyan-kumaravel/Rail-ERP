@@ -32,6 +32,51 @@ export function bidRateUnitTextClass(unit: BidRateUnit | null): string {
 
 export type InspectionBy = 'RITES' | 'RDSO' | 'Consignee';
 
+export type ItemCategory = 'Supply' | 'Supply & Installation' | 'Commissioning';
+
+export const ITEM_CATEGORY_OPTIONS: ItemCategory[] = [
+    'Supply',
+    'Supply & Installation',
+    'Commissioning',
+];
+
+export type BidValueType = 'At Per' | 'Below %' | 'Above %';
+
+export const BID_VALUE_TYPE_OPTIONS: BidValueType[] = [
+    'At Per',
+    'Below %',
+    'Above %',
+];
+
+/** `bid_rate_unit`'s stored `null`/`'% Above'`/`'% Below'` shape, made editable as a 3-option dropdown. */
+export function bidValueTypeFromRateUnit(
+    unit: BidRateUnit | null,
+): BidValueType {
+    if (unit === '% Above') {
+        return 'Above %';
+    }
+
+    if (unit === '% Below') {
+        return 'Below %';
+    }
+
+    return 'At Per';
+}
+
+export function rateUnitFromBidValueType(
+    type: BidValueType,
+): BidRateUnit | null {
+    if (type === 'Above %') {
+        return '% Above';
+    }
+
+    if (type === 'Below %') {
+        return '% Below';
+    }
+
+    return null;
+}
+
 export type PaymentPercentage = '5%' | '20%' | '70%' | '90%';
 
 export const PAYMENT_PERCENTAGE_OPTIONS: PaymentPercentage[] = [
@@ -98,6 +143,11 @@ export type LoaItemFormData = {
     schedule_advertised_value: number | string | null;
     item_no: string;
     item_description: string;
+    item_category: ItemCategory | null;
+    specialization_file: File | null;
+    specialization_existing_file_url: string | null;
+    specialization_existing_file_name: string | null;
+    remove_specialization_file: boolean;
     item_code: string | null;
     item_quantity: number | string;
     quantity_unit: string;

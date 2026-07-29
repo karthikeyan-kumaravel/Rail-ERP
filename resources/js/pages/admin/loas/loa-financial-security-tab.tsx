@@ -1,4 +1,5 @@
 import FileUploadField from '@/lib/file-upload-field';
+import NumericInput from '@/lib/numeric-input';
 import SearchableSelect from '@/lib/searchable-select';
 import {
     errorClass,
@@ -62,9 +63,9 @@ function FinancialSecuritySection({
                         Amount
                     </label>
                     <div className="flex items-center gap-2.5">
-                        <input
+                        <NumericInput
                             id={`${prefix}.amount`}
-                            type="number"
+                            allowDecimal
                             min={0}
                             step="0.01"
                             value={section.amount}
@@ -157,9 +158,8 @@ function FinancialSecuritySection({
                         Claim Period
                     </label>
                     <div className="flex items-center gap-2.5">
-                        <input
+                        <NumericInput
                             id={`${prefix}.claim_period`}
-                            type="number"
                             min={1}
                             step="1"
                             value={section.claim_period}

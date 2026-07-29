@@ -45,6 +45,11 @@ class LoaItemFactory extends Factory
                 'Supply and installation of optical fibre cable complete with jointing, termination and testing.',
                 'Provision of station communication equipment including configuration, integration and commissioning.',
             ]),
+            'item_category' => fake()->optional()->randomElement([
+                'Supply',
+                'Supply & Installation',
+                'Commissioning',
+            ]),
             'item_code' => fake()->optional()->bothify('NS ##'),
             'item_quantity' => $quantity,
             'quantity_unit' => fake()->randomElement(['Numbers', 'Metres', 'Sets', 'Lots']),

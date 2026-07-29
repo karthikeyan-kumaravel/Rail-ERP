@@ -1,3 +1,4 @@
+import NumericInput from '@/lib/numeric-input';
 import SearchableSelect from '@/lib/searchable-select';
 import type { SearchableSelectOption } from '@/lib/searchable-select';
 
@@ -483,9 +484,9 @@ export function PurchaseOrderItemFields({
                 <label htmlFor="ordered_qty" className={labelClass}>
                     Ordered Qty <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="ordered_qty"
-                    type="number"
+                    allowDecimal
                     min="0.001"
                     step="0.001"
                     max={selectedLoaItem?.available_qty || undefined}
@@ -503,9 +504,9 @@ export function PurchaseOrderItemFields({
                 <label htmlFor="received_qty" className={labelClass}>
                     Received Qty <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="received_qty"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.001"
                     value={data.received_qty}
@@ -536,9 +537,9 @@ export function PurchaseOrderItemFields({
                     Unit Price (Incl. GST){' '}
                     <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="unit_price_incl_gst"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.01"
                     value={data.unit_price_incl_gst}
@@ -555,9 +556,9 @@ export function PurchaseOrderItemFields({
                     Unit Price (Excl. GST){' '}
                     <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="unit_price_excl_gst"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.01"
                     value={data.unit_price_excl_gst}
@@ -574,9 +575,9 @@ export function PurchaseOrderItemFields({
                     Agreed Rate (LOA Rate){' '}
                     <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="agreed_rate"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.01"
                     value={data.agreed_rate}
@@ -593,9 +594,9 @@ export function PurchaseOrderItemFields({
                     Total Price (Incl. GST){' '}
                     <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="total_price_incl_gst"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.01"
                     value={data.total_price_incl_gst}
@@ -612,9 +613,9 @@ export function PurchaseOrderItemFields({
                     Total Price (Excl. GST){' '}
                     <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="total_price_excl_gst"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.01"
                     value={data.total_price_excl_gst}
@@ -631,9 +632,9 @@ export function PurchaseOrderItemFields({
                     Incoming Price Capture (Vendor Quote){' '}
                     <span className="text-red-500">*</span>
                 </label>
-                <input
+                <NumericInput
                     id="vendor_quote_price"
-                    type="number"
+                    allowDecimal
                     min="0"
                     step="0.01"
                     value={data.vendor_quote_price}
