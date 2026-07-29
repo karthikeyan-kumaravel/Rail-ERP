@@ -6,7 +6,7 @@ import DetailsModal, {
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { DynamicIcon, EyeIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import { DynamicIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
 import {
@@ -14,7 +14,6 @@ import {
     destroy,
     edit,
     index,
-    show,
 } from '@/routes/admin/user-screens';
 
 type UserScreenRow = {

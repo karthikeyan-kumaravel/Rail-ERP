@@ -31,7 +31,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\CaptchaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\PreventAdminDelete;
-use App\Http\Controllers\DashboardController;
+// use App\Http\Controllers\DashboardController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;

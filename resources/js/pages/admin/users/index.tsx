@@ -9,7 +9,7 @@ import ExportToolbar from '@/lib/export-toolbar';
 import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index, show } from '@/routes/admin/users';
+import { create, destroy, edit, index } from '@/routes/admin/users';
 
 type UserRow = {
     unique_id: string;
@@ -59,7 +59,6 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'mobile_no', label: 'Mobile No' },
 ];
 
-<<<<<<< Updated upstream
 const READ_ONLY_ADD_ROLES = [
     'accounts team',
     'operation team',
