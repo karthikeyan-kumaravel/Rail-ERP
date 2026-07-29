@@ -2,24 +2,29 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasAuditSessionFields;
-use App\Models\Concerns\HasMaskedRouteKey;
 use Database\Factories\BankFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $unique_id
+ * @property string $branch_name
+ * @property string $ifsc_code
+ * @property string $account_number
+ * @property string $account_holder_name
+ * @property string $account_type
+ * @property string $bank_address
+ * @property string $pincode
+ * @property string $contact_number
+ * @property string|null $email
  * @property bool $active_status
  * @property bool $is_delete
- * @property string|null $unique_id
  * @property string|null $acc_year
- * @property string|null $session_id
  * @property int|null $sess_user_type
  * @property int|null $sess_user_id
  * @property int|null $sess_company_id
@@ -28,17 +33,36 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property-read Collection<int, LoaFinancialSecurity> $financialSecurities
  */
-#[Fillable(['name', 'active_status', 'is_delete'])]
 class Bank extends Model
 {
     /** @use HasFactory<BankFactory> */
-    use HasAuditSessionFields, HasFactory, HasMaskedRouteKey;
+    use HasFactory;
 
-    /**
-     * @return array<string, string>
-     */
+    protected $table = 'banks';
+
+    protected $fillable = [
+        'unique_id',
+        'name',
+        'branch_name',
+        'ifsc_code',
+        'account_number',
+        'account_holder_name',
+        'account_type',
+        'bank_address',
+        'pincode',
+        'contact_number',
+        'email',
+        'active_status',
+        'is_delete',
+        'unique_id',
+        'acc_year',
+        'sess_user_type',
+        'sess_user_id',
+        'sess_company_id',
+        'sess_branch_id',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -47,6 +71,42 @@ class Bank extends Model
             'created' => 'datetime',
             'updated' => 'datetime',
         ];
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function (Bank $bank) {
+            if (empty($bank->unique_id)) {
+                $bank->unique_id = (string) Str::uuid();
+            }
+
+            $bank->acc_year ??= static::currentAccYear();
+            $bank->created = Carbon::now();
+            $bank->updated = Carbon::now();
+            $bank->sess_user_id = auth()->id();
+            $bank->sess_user_type = auth()->user()?->user_type_id;
+        });
+
+        static::updating(function (Bank $bank) {
+            $bank->updated = Carbon::now();
+            $bank->sess_user_id = auth()->id();
+            $bank->sess_user_type = auth()->user()?->user_type_id;
+        });
+    }
+
+    protected static function currentAccYear(): string
+    {
+        $now = Carbon::now();
+        $startYear = $now->month >= 4 ? $now->year : $now->year - 1;
+
+        return "{$startYear}-".($startYear + 1);
+    }
+
+    public function getRouteKeyName()
+    {
+        return 'unique_id';
     }
 
     /**

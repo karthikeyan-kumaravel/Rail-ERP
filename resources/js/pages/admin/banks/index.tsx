@@ -1,12 +1,14 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import { show } from '@/actions/App/Http/Controllers/Admin/BankController';
 import AdminLayout from '@/layouts/admin-layout';
 import DetailsModal, {
     buildDetailsFromRecord,
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import { EyeIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
 import { create, destroy, edit, index } from '@/routes/admin/banks';
@@ -14,10 +16,17 @@ import { create, destroy, edit, index } from '@/routes/admin/banks';
 type BankRow = {
     unique_id: string;
     name: string;
+    branch_name: string;
+    ifsc_code: string;
+    account_number: string;
+    account_holder_name: string;
+    account_type: string;
+    bank_address: string;
+    pincode: string;
+    contact_number: string;
+    email: string;
     active_status: boolean;
-    created_at: string | null;
 };
-
 type PaginationLink = {
     url: string | null;
     label: string;
@@ -37,6 +46,8 @@ type Paginated<T> = {
 
 type Filters = {
     search: string;
+    bank_name: string;
+    holder_name: string;
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -44,15 +55,22 @@ type Filters = {
 
 type BanksIndexProps = {
     banks: Paginated<BankRow>;
+    bankNames: string[];
+    holderNames: string[];
     filters: Filters;
 };
 
-const sortableColumns: { key: string; label: string }[] = [
-    { key: 'name', label: 'Bank' },
-    { key: 'created_at', label: 'Created' },
+const sortableColumns = [
+    { key: 'name', label: 'Bank Name' },
+    { key: 'branch_name', label: 'Branch Name' },
 ];
 
-export default function BanksIndex({ banks, filters }: BanksIndexProps) {
+export default function BanksIndex({
+    banks,
+    bankNames,
+    holderNames,
+    filters,
+}: BanksIndexProps) {
     const { flash, auth } = usePage().props;
     const [selectedRecord, setSelectedRecord] = useState<
         Record<string, unknown> | null
@@ -100,6 +118,22 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
         );
     };
 
+    const applyBankName = (bankName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, bank_name: bankName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyHolderName = (holderName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, holder_name: holderName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
     const handleDelete = (bank: BankRow) => {
         if (
             window.confirm(`Delete ${bank.name}? This action cannot be undone.`)
@@ -108,13 +142,30 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
         }
     };
 
-    const exportHeaders = ['S.No', 'Bank', 'Status', 'Created'];
+    const exportHeaders = [
+        'S.No',
+        'Name',
+        'Branch',
+        'IFSC',
+        'Account Number',
+        'Account Holder',
+        'Account Type',
+        'Contact',
+        'Email',
+        'Status',
+    ];
 
     const exportRows = banks.data.map((bank, i) => [
         String((banks.from ?? 1) + i),
         bank.name,
+        bank.branch_name,
+        bank.ifsc_code,
+        bank.account_number,
+        bank.account_holder_name,
+        bank.account_type,
+        bank.contact_number,
+        bank.email,
         bank.active_status ? 'Active' : 'Inactive',
-        bank.created_at ?? '',
     ]);
 
     const sortIndicator = (column: string) => {
@@ -151,6 +202,54 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="bank-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Bank Name:
+                    </label>
+                    <select
+                        id="bank-name-filter"
+                        value={filters.bank_name}
+                        onChange={(event) => applyBankName(event.target.value)}
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Bank Names</option>
+                        {bankNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="holder-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Holder Name:
+                    </label>
+                    <select
+                        id="holder-name-filter"
+                        value={filters.holder_name}
+                        onChange={(event) =>
+                            applyHolderName(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Holder Names</option>
+                        {holderNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -182,6 +281,7 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                             onChange={(event) => setSearch(event.target.value)}
                             className="w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-2 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
                         />
+                        <SettingsImportActions module="banks" title="Bank" />
                     </div>
                 </div>
 
@@ -202,6 +302,15 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                                         </span>
                                     </th>
                                 ))}
+
+                                <th className="px-3 py-3">IFSC</th>
+                                {/* <th className="px-3 py-3">Account Number</th> */}
+                                <th className="px-3 py-3">Account Holder</th>
+                                {/* <th className="px-3 py-3">Account Type</th>
+                           <th className="px-3 py-3">Address</th> */}
+                                {/* <th className="px-3 py-3">Pincode</th>
+                           <th className="px-3 py-3">Contact</th>
+                           <th className="px-3 py-3">Email</th> */}
                                 <th className="px-3 py-3">Status</th>
                                 <th className="px-3 py-3 print:hidden">
                                     Actions
@@ -212,7 +321,7 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                             {banks.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={5}
+                                        colSpan={11}
                                         className="px-3 py-6 text-center text-[var(--color-ink)]/55"
                                     >
                                         No banks found.
@@ -224,13 +333,64 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                                     key={bank.unique_id}
                                     className="border-b border-[var(--color-border-softer)] text-[var(--color-ink)]/85 transition-colors hover:bg-[var(--color-bg-soft)]"
                                 >
+                                    {/* S.No */}
                                     <td className="px-3 py-3">
                                         {(banks.from ?? 1) + i}
                                     </td>
-                                    <td className="px-3 py-3">{bank.name}</td>
+
                                     <td className="px-3 py-3">
-                                        {bank.created_at}
+                                        <Link
+                                            href={`/admin/banks/${bank.unique_id}`}
+                                            className="font-semibold text-[var(--color-accent)] hover:underline"
+                                        >
+                                            {bank.name}
+                                        </Link>
                                     </td>
+
+                                    {/* Branch Name */}
+                                    <td className="px-3 py-3">
+                                        {bank.branch_name}
+                                    </td>
+
+                                    {/* IFSC */}
+                                    <td className="px-3 py-3">
+                                        {bank.ifsc_code}
+                                    </td>
+
+                                    {/* Account Number */}
+                                    {/* <td className="px-3 py-3">
+                                   {bank.account_number}
+                               </td> */}
+
+                                    {/* Account Holder */}
+                                    <td className="px-3 py-3">
+                                        {bank.account_holder_name}
+                                    </td>
+
+                                    {/* Account Type */}
+                                    {/* <td className="px-3 py-3">
+                                 {bank.account_type}
+                                      </td> */}
+
+                                    {/* <td className="px-3 py-3">
+                                {bank.bank_address}
+                                       </td>
+
+                                     <td className="px-3 py-3">
+                                      {bank.pincode}
+                                      </td>
+     */}
+                                    {/* Contact */}
+                                    {/* <td className="px-3 py-3">
+                                     {bank.contact_number}
+                                  </td> */}
+
+                                    {/* Email */}
+                                    {/* <td className="px-3 py-3">
+                                           {bank.email}
+                                   </td>
+  */}
+                                    {/* Status */}
                                     <td className="px-3 py-3">
                                         <span
                                             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -244,8 +404,10 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                                                 : 'Inactive'}
                                         </span>
                                     </td>
+
+                                    {/* Actions */}
                                     <td className="px-3 py-3 print:hidden">
-                                        <div className="flex items-center gap-3">
+                                        <div className="items- center flex gap-3">
                                             {auth.isSuperAdmin ? (
 
                                                 <Link
@@ -293,6 +455,19 @@ export default function BanksIndex({ banks, filters }: BanksIndexProps) {
                                                 >
                                                     <TrashIcon className="h-4 w-4" />
                                                 </button>
+                                            )}
+
+                                            {bank.unique_id && (
+                                                <Link
+                                                    href={show.url(
+                                                        bank.unique_id,
+                                                    )}
+                                                    title="View"
+                                                    aria-label={`View ${bank.name}`}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                                >
+                                                    <EyeIcon className="h-4 w-4" />
+                                                </Link>
                                             )}
                                         </div>
                                     </td>

@@ -23,6 +23,9 @@ class VendorController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $companyName = $request->string('company_name')->trim()->toString();
+        $name = $request->string('name')->trim()->toString();
+        $panNo = $request->string('pan_no')->trim()->toString();
         $sort = $request->string('sort', 'company_name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -40,6 +43,9 @@ class VendorController extends Controller
                     ->orWhere('contact_no', 'like', "%{$search}%")
                     ->orWhere('pan_no', 'like', "%{$search}%");
             })
+            ->when($companyName !== '', fn ($query) => $query->where('company_name', $companyName))
+            ->when($name !== '', fn ($query) => $query->where('name', $name))
+            ->when($panNo !== '', fn ($query) => $query->where('pan_no', 'like', "%{$panNo}%"))
             ->orderBy($sort, $direction);
 
         $vendors = $this->paginateQuery($query, $perPage);
@@ -59,8 +65,13 @@ class VendorController extends Controller
 
         return Inertia::render('admin/vendors/index', [
             'vendors' => $vendors,
+            'companyNames' => Vendor::query()->where('is_delete', false)->distinct()->orderBy('company_name')->pluck('company_name'),
+            'vendorNames' => Vendor::query()->where('is_delete', false)->distinct()->orderBy('name')->pluck('name'),
             'filters' => [
                 'search' => $search,
+                'company_name' => $companyName,
+                'name' => $name,
+                'pan_no' => $panNo,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -87,6 +98,41 @@ class VendorController extends Controller
         Vendor::query()->create($validated);
 
         return redirect()->route('admin.vendors.index')->with('success', 'Vendor created successfully.');
+    }
+
+    public function show(Vendor $vendor): Response
+    {
+        $vendor->load(['state:id,name', 'district:id,name']);
+
+        return Inertia::render('admin/vendors/show', [
+            'vendor' => [
+                ...$vendor->only([
+                    'unique_id',
+                    'company_name',
+                    'name',
+                    'contact_no',
+                    'alternate_contact_no',
+                    'email',
+                    'gst_no',
+                    'pan_no',
+                    'pincode',
+                    'zone_name',
+                    'bank_name',
+                    'branch_name',
+                    'account_no',
+                    'ifsc_code',
+                    'account_holder_name',
+                    'address',
+                    'username',
+                    'active_status',
+                ]),
+                'state' => $vendor->state?->name,
+                'district' => $vendor->district?->name,
+                'pan_proof_url' => $vendor->pan_proof_path ? Storage::disk('public')->url($vendor->pan_proof_path) : null,
+                'bank_proof_url' => $vendor->bank_proof_path ? Storage::disk('public')->url($vendor->bank_proof_path) : null,
+                'created_at' => $vendor->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(Vendor $vendor): Response

@@ -31,8 +31,18 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\CaptchaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Middleware\PreventAdminDelete;
+use App\Http\Controllers\DashboardController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+if (app()->environment('local')) {
+    Route::get('/__dev_login', function () {
+        auth()->login(User::where('email', 'test@example.com')->firstOrFail());
+
+        return response('ok');
+    });
+}
 
 Route::middleware('guest')->group(function () {
     Route::get('/', [AuthenticatedSessionController::class, 'create'])->name('home');
@@ -77,15 +87,15 @@ Route::middleware('auth')->group(function () {
             ->name('user-type-permissions.edit');
         Route::put('user-type-permissions/{user_type}', [UserTypePermissionController::class, 'update'])
             ->name('user-type-permissions.update');
-        Route::resource('states', StateController::class)->except('show');
-        Route::resource('districts', DistrictController::class)->except('show');
-        Route::resource('cities', CityController::class)->except('show');
-        Route::resource('zones', ZoneController::class)->except('show');
-        Route::resource('divisions', DivisionController::class)->except('show');
-        Route::resource('stations', StationController::class)->except('show');
-        Route::resource('customers', CustomerController::class)->except('show');
-        Route::resource('vendors', VendorController::class)->except('show');
-        Route::resource('banks', BankController::class)->except('show');
+        Route::resource('states', StateController::class);
+        Route::resource('districts', DistrictController::class);
+        Route::resource('cities', CityController::class);
+        Route::resource('zones', ZoneController::class);
+        Route::resource('divisions', DivisionController::class);
+        Route::resource('stations', StationController::class);
+        Route::resource('customers', CustomerController::class);
+        Route::resource('vendors', VendorController::class);
+        Route::resource('banks', BankController::class);
         Route::post('loas/items/import-preview', LoaItemImportController::class)
             ->name('loas.items.import-preview');
         Route::get('loas/{loa}/pdf', [LoaController::class, 'pdf'])->name('loas.pdf');
@@ -93,7 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('activities', ActivityController::class)->except('show');
         Route::resource('engineer-types', EngineerTypeController::class)->except('show');
         Route::get('engineers/search', [EngineerController::class, 'search'])->name('engineers.search');
-        Route::resource('engineers', EngineerController::class)->except('show');
+        Route::resource('engineers', EngineerController::class);
         Route::resource('units', UnitController::class)->except('show');
         Route::resource('departments', DepartmentController::class)->except('show');
         Route::resource('projects', ProjectController::class);

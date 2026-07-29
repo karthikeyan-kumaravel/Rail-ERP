@@ -73,6 +73,31 @@ class UserScreenController extends Controller
         return redirect()->route('admin.user-screens.index')->with('success', 'User screen created successfully.');
     }
 
+    public function show(UserScreen $userScreen): Response
+    {
+        $userScreen->load('mainScreen:id,screen_name');
+
+        return Inertia::render('admin/user-screens/show', [
+            'userScreen' => [
+                'unique_id' => $userScreen->unique_id,
+                'screen_name' => $userScreen->screen_name,
+                'main_screen' => $userScreen->mainScreen?->screen_name,
+                'folder_name' => $userScreen->folder_name,
+                'order_no' => $userScreen->order_no,
+                'icon' => $userScreen->icon,
+                'description' => $userScreen->description,
+                'status' => $userScreen->status,
+                'can_add' => $userScreen->can_add,
+                'can_update' => $userScreen->can_update,
+                'can_list' => $userScreen->can_list,
+                'can_delete' => $userScreen->can_delete,
+                'can_view' => $userScreen->can_view,
+                'can_cancel' => $userScreen->can_cancel,
+                'created_at' => $userScreen->created_at?->format('d M Y'),
+            ],
+        ]);
+    }
+
     public function edit(UserScreen $userScreen): Response
     {
         return Inertia::render('admin/user-screens/edit', [

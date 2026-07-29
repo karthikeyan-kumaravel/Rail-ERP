@@ -113,6 +113,27 @@ test('a vendor is soft deleted', function () {
     $this->assertDatabaseHas('vendors', ['id' => $vendor->id]);
 });
 
+test('the vendor show page renders its details', function () {
+    $state = State::factory()->create(['name' => 'Tamil Nadu']);
+    $district = District::factory()->create(['state_id' => $state->id, 'name' => 'Chennai']);
+    $vendor = Vendor::factory()->create([
+        'company_name' => 'Acme Traders Pvt Ltd',
+        'state_id' => $state->id,
+        'district_id' => $district->id,
+    ]);
+
+    $response = $this->get("/admin/vendors/{$vendor->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('vendor.company_name', 'Acme Traders Pvt Ltd')
+        ->where('vendor.state', 'Tamil Nadu')
+        ->where('vendor.district', 'Chennai')
+        ->has('vendor.pan_proof_url')
+        ->has('vendor.bank_proof_url')
+    );
+});
+
 test('a vendor can be updated without re-uploading proof files or a password', function () {
     $vendor = Vendor::factory()->create();
     $originalPanProofPath = $vendor->pan_proof_path;

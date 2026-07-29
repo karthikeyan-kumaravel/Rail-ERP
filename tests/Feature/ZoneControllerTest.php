@@ -53,6 +53,20 @@ test('a zone without divisions is soft deleted', function () {
     expect($zone->refresh()->is_delete)->toBeTrue();
 });
 
+test('the zone show page renders its details', function () {
+    $zone = Zone::factory()->create(['name' => 'Southern Railway', 'code' => 'SR']);
+    Division::factory()->count(2)->create(['zone_id' => $zone->id]);
+
+    $response = $this->get("/admin/zones/{$zone->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('zone.name', 'Southern Railway')
+        ->where('zone.code', 'SR')
+        ->where('zone.divisions_count', 2)
+    );
+});
+
 test('a zone keeps its own name when updated', function () {
     $zone = Zone::factory()->create(['name' => 'Eastern Railway', 'code' => 'ER']);
 

@@ -73,6 +73,21 @@ test('a district without cities is soft deleted', function () {
     expect($district->refresh()->is_delete)->toBeTrue();
 });
 
+test('the district show page renders its details', function () {
+    $state = State::factory()->create(['name' => 'Tamil Nadu']);
+    $district = District::factory()->create(['state_id' => $state->id, 'name' => 'Chennai']);
+    City::factory()->count(3)->create(['district_id' => $district->id]);
+
+    $response = $this->get("/admin/districts/{$district->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('district.name', 'Chennai')
+        ->where('district.state', 'Tamil Nadu')
+        ->where('district.cities_count', 3)
+    );
+});
+
 test('a district keeps its own name when updated', function () {
     $state = State::factory()->create();
     $district = District::factory()->create(['state_id' => $state->id, 'name' => 'Madurai']);

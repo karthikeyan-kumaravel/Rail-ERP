@@ -10,7 +10,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/cities';
+import { create, destroy, edit, index, show } from '@/routes/admin/cities';
 
 type CityRow = {
     unique_id: string;
@@ -41,8 +41,12 @@ type Paginated<T> = {
     links: PaginationLink[];
 };
 
+type DistrictOption = { id: number; name: string };
+
 type Filters = {
     search: string;
+    city_name: string;
+    district_id: number | '';
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -50,6 +54,8 @@ type Filters = {
 
 type CitiesIndexProps = {
     cities: Paginated<CityRow>;
+    cityNames: string[];
+    districts: DistrictOption[];
     filters: Filters;
 };
 
@@ -58,7 +64,12 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'created_at', label: 'Created' },
 ];
 
-export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
+export default function CitiesIndex({
+    cities,
+    cityNames = [],
+    districts = [],
+    filters,
+}: CitiesIndexProps) {
     const { flash, auth } = usePage().props;
     const [selectedRecord, setSelectedRecord] = useState<
         Record<string, unknown> | null
@@ -102,6 +113,22 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyCityName = (cityName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, city_name: cityName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyDistrict = (districtId: number | '') => {
+        router.get(
+            index.url(),
+            { ...filters, district_id: districtId, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -170,6 +197,58 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="city-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        City Name:
+                    </label>
+                    <select
+                        id="city-name-filter"
+                        value={filters.city_name}
+                        onChange={(event) => applyCityName(event.target.value)}
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All City Names</option>
+                        {cityNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="district-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        District:
+                    </label>
+                    <select
+                        id="district-filter"
+                        value={filters.district_id}
+                        onChange={(event) =>
+                            applyDistrict(
+                                event.target.value
+                                    ? Number(event.target.value)
+                                    : '',
+                            )
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Districts</option>
+                        {districts.map((district) => (
+                            <option key={district.id} value={district.id}>
+                                {district.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -206,6 +285,7 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                 </div>
 
                 <div className="overflow-x-auto">
+                
                     <table className="w-full min-w-[880px] text-left text-sm">
                         <thead>
                             <tr className="border-b border-[var(--color-border)] bg-[var(--color-accent)]/10 text-xs font-semibold tracking-wide text-[var(--color-accent)] uppercase">
@@ -330,6 +410,14 @@ export default function CitiesIndex({ cities, filters }: CitiesIndexProps) {
                                                     <TrashIcon />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(city.unique_id)}
+                                                title="View"
+                                                aria-label={`View ${city.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

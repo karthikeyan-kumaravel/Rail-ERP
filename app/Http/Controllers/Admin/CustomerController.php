@@ -21,6 +21,9 @@ class CustomerController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $customerName = $request->string('customer_name')->trim()->toString();
+        $contactName = $request->string('contact_name')->trim()->toString();
+        $stateId = $request->integer('state_id');
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -38,6 +41,9 @@ class CustomerController extends Controller
                     ->orWhere('contact_number', 'like', "%{$search}%")
                     ->orWhere('pin_code', 'like', "%{$search}%");
             })
+            ->when($customerName !== '', fn ($query) => $query->where('name', $customerName))
+            ->when($contactName !== '', fn ($query) => $query->where('contact_name', $contactName))
+            ->when($stateId !== 0, fn ($query) => $query->where('state_id', $stateId))
             ->orderBy($sort, $direction);
 
         $customers = $this->paginateQuery($query, $perPage);
@@ -58,8 +64,14 @@ class CustomerController extends Controller
 
         return Inertia::render('admin/customers/index', [
             'customers' => $customers,
+            'customerNames' => Customer::query()->where('is_delete', false)->distinct()->orderBy('name')->pluck('name'),
+            'contactNames' => Customer::query()->where('is_delete', false)->distinct()->orderBy('contact_name')->pluck('contact_name'),
+            'states' => $this->stateOptions(),
             'filters' => [
                 'search' => $search,
+                'customer_name' => $customerName,
+                'contact_name' => $contactName,
+                'state_id' => $stateId,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -80,6 +92,29 @@ class CustomerController extends Controller
         Customer::query()->create($request->validated());
 
         return redirect()->route('admin.customers.index')->with('success', 'Customer created successfully.');
+    }
+
+    public function show(Customer $customer): Response
+    {
+        $customer->load(['state:id,name', 'district:id,name']);
+
+        return Inertia::render('admin/customers/show', [
+            'customer' => [
+                'unique_id' => $customer->unique_id,
+                'name' => $customer->name,
+                'billing_address' => $customer->billing_address,
+                'pin_code' => $customer->pin_code,
+                'state' => $customer->state?->name,
+                'district' => $customer->district?->name,
+                'zone' => $customer->zone,
+                'contact_name' => $customer->contact_name,
+                'contact_number' => $customer->contact_number,
+                'contact_landline_number' => $customer->contact_landline_number,
+                'email' => $customer->email,
+                'active_status' => $customer->active_status,
+                'created_at' => $customer->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(Customer $customer): Response

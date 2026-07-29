@@ -13,7 +13,8 @@ type PageProps = {
 const firstError = (errors: FormErrors, field: string) => errors[field]?.[0];
 
 export default function Login() {
-    const { hcaptchaSiteKey = '', captchaImageUrl = '' } = usePage<PageProps>().props;
+    const { hcaptchaSiteKey = '', captchaImageUrl = '' } =
+        usePage<PageProps>().props;
     const [mode, setMode] = useState<Mode>('login');
     const [showPassword, setShowPassword] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -21,11 +22,7 @@ export default function Login() {
     const [errors, setErrors] = useState<FormErrors>({});
     const [captchaToken, setCaptchaToken] = useState('');
     const [captchaAnswer, setCaptchaAnswer] = useState('');
-    const [captchaSrc, setCaptchaSrc] = useState(
-        typeof window !== 'undefined' && captchaImageUrl
-            ? `${captchaImageUrl}${captchaImageUrl.includes('?') ? '&' : '?'}ts=${Date.now()}`
-            : '',
-    );
+    const [captchaSrc, setCaptchaSrc] = useState('');
     const [form, setForm] = useState({
         name: '',
         email: '',
@@ -100,9 +97,13 @@ export default function Login() {
         if (!captchaImageUrl) return;
         const base = captchaImageUrl.startsWith('http')
             ? captchaImageUrl
-            : window.location.origin + (captchaImageUrl.startsWith('/') ? '' : '/') + captchaImageUrl;
+            : window.location.origin +
+              (captchaImageUrl.startsWith('/') ? '' : '/') +
+              captchaImageUrl;
 
-        setCaptchaSrc(`${base}${base.includes('?') ? '&' : '?'}ts=${Date.now()}`);
+        setCaptchaSrc(
+            `${base}${base.includes('?') ? '&' : '?'}ts=${Date.now()}`,
+        );
         setCaptchaAnswer('');
     };
 
@@ -114,9 +115,13 @@ export default function Login() {
 
         const base = captchaImageUrl.startsWith('http')
             ? captchaImageUrl
-            : window.location.origin + (captchaImageUrl.startsWith('/') ? '' : '/') + captchaImageUrl;
+            : window.location.origin +
+              (captchaImageUrl.startsWith('/') ? '' : '/') +
+              captchaImageUrl;
 
-        setCaptchaSrc(`${base}${base.includes('?') ? '&' : '?'}ts=${Date.now()}`);
+        setCaptchaSrc(
+            `${base}${base.includes('?') ? '&' : '?'}ts=${Date.now()}`,
+        );
     }, [captchaImageUrl]);
 
     const submit: FormEventHandler = (event) => {
@@ -184,7 +189,7 @@ export default function Login() {
                 <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[2rem] border border-[var(--color-gold)]/25 bg-[var(--color-surface)]/85 shadow-[0_30px_90px_rgba(0,0,0,0.35)] backdrop-blur-2xl lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="relative flex flex-col justify-between bg-linear-to-br from-[var(--color-accent)]/20 via-[var(--color-surface)] to-[var(--color-surface-soft)]/90 p-8 lg:p-10">
                         <div className="space-y-6">
-                            <div className="inline-flex items-center rounded-full border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--color-gold)]">
+                            <div className="inline-flex items-center rounded-full border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/80 px-3 py-1.5 text-xs font-semibold tracking-[0.24em] text-[var(--color-gold)] uppercase">
                                 Rail ERP
                             </div>
                             <div className="space-y-3">
@@ -193,8 +198,9 @@ export default function Login() {
                                 </h1>
                                 <p className="max-w-xl text-sm leading-7 text-[var(--color-ink)]/75 sm:text-base">
                                     Manage train schedules, fleet status, crew
-                                    coordination, maintenance approvals, and incident
-                                    response from one operational control centre.
+                                    coordination, maintenance approvals, and
+                                    incident response from one operational
+                                    control centre.
                                 </p>
                             </div>
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -203,8 +209,8 @@ export default function Login() {
                                         Live network status
                                     </p>
                                     <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-                                        Monitor train movements, assets, and service
-                                        exceptions in real time
+                                        Monitor train movements, assets, and
+                                        service exceptions in real time
                                     </p>
                                 </div>
                                 <div className="rounded-2xl border border-[var(--color-gold)]/20 bg-[var(--color-surface-soft)]/70 p-4">
@@ -212,8 +218,8 @@ export default function Login() {
                                         Inspection-ready
                                     </p>
                                     <p className="mt-1 text-sm text-[var(--color-ink)]/70">
-                                        Maintain complete audit trails for inspections,
-                                        maintenance, and approvals
+                                        Maintain complete audit trails for
+                                        inspections, maintenance, and approvals
                                     </p>
                                 </div>
                             </div>
@@ -224,8 +230,9 @@ export default function Login() {
                                 Protected access to rail operations
                             </p>
                             <p className="mt-1">
-                                CAPTCHA verification helps protect operational data
-                                and restricts access to authorised railway personnel.
+                                CAPTCHA verification helps protect operational
+                                data and restricts access to authorised railway
+                                personnel.
                             </p>
                         </div>
                     </div>
@@ -243,12 +250,28 @@ export default function Login() {
                                     strokeLinejoin="round"
                                     className="h-7 w-7"
                                 >
-                                    <rect x="4" y="3" width="16" height="13" rx="2" />
+                                    <rect
+                                        x="4"
+                                        y="3"
+                                        width="16"
+                                        height="13"
+                                        rx="2"
+                                    />
                                     <path d="M4 11h16" />
                                     <path d="M8 16l-2 4" />
                                     <path d="M16 16l2 4" />
-                                    <circle cx="8" cy="13.5" r="0.5" fill="var(--color-ink)" />
-                                    <circle cx="16" cy="13.5" r="0.5" fill="var(--color-ink)" />
+                                    <circle
+                                        cx="8"
+                                        cy="13.5"
+                                        r="0.5"
+                                        fill="var(--color-ink)"
+                                    />
+                                    <circle
+                                        cx="16"
+                                        cy="13.5"
+                                        r="0.5"
+                                        fill="var(--color-ink)"
+                                    />
                                 </svg>
                             </div>
                             <h2 className="text-2xl font-semibold text-[var(--color-ink)]">
@@ -266,7 +289,7 @@ export default function Login() {
                                 <div>
                                     <label
                                         htmlFor="name"
-                                        className="mb-1.5 block text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-gold)]"
+                                        className="mb-1.5 block text-xs font-medium tracking-[0.2em] text-[var(--color-gold)] uppercase"
                                     >
                                         Name
                                     </label>
@@ -276,7 +299,10 @@ export default function Login() {
                                         autoComplete="name"
                                         value={form.name}
                                         onChange={(event) =>
-                                            updateField('name', event.target.value)
+                                            updateField(
+                                                'name',
+                                                event.target.value,
+                                            )
                                         }
                                         placeholder="Enter your name"
                                         className="w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/70 px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
@@ -292,9 +318,11 @@ export default function Login() {
                             <div>
                                 <label
                                     htmlFor="email"
-                                    className="mb-1.5 block text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-gold)]"
+                                    className="mb-1.5 block text-xs font-medium tracking-[0.2em] text-[var(--color-gold)] uppercase"
                                 >
-                                    {isRegistering ? 'Email' : 'Username or Email'}
+                                    {isRegistering
+                                        ? 'Email'
+                                        : 'Username or Email'}
                                 </label>
                                 <input
                                     id="email"
@@ -325,14 +353,16 @@ export default function Login() {
                             <div>
                                 <label
                                     htmlFor="password"
-                                    className="mb-1.5 block text-xs font-medium uppercase tracking-[0.2em] text-[var(--color-gold)]"
+                                    className="mb-1.5 block text-xs font-medium tracking-[0.2em] text-[var(--color-gold)] uppercase"
                                 >
                                     Password
                                 </label>
                                 <div className="relative">
                                     <input
                                         id="password"
-                                        type={showPassword ? 'text' : 'password'}
+                                        type={
+                                            showPassword ? 'text' : 'password'
+                                        }
                                         autoComplete={
                                             isRegistering
                                                 ? 'new-password'
@@ -340,7 +370,10 @@ export default function Login() {
                                         }
                                         value={form.password}
                                         onChange={(event) =>
-                                            updateField('password', event.target.value)
+                                            updateField(
+                                                'password',
+                                                event.target.value,
+                                            )
                                         }
                                         placeholder="Enter your password"
                                         className="w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/70 px-4 py-2.5 pr-11 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
@@ -393,7 +426,7 @@ export default function Login() {
 
                             {!isRegistering && (
                                 <div className="space-y-2 rounded-lg border border-[var(--color-gold)]/20 bg-[var(--color-surface-soft)]/70 p-2.5">
-                                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-gold)]">
+                                    <div className="text-[10px] font-semibold tracking-[0.14em] text-[var(--color-gold)] uppercase">
                                         Security check
                                     </div>
 
@@ -406,7 +439,9 @@ export default function Login() {
                                                 onError={() => {
                                                     // Hide the broken image and show the simple input fallback
                                                     setCaptchaSrc('');
-                                                    setMessage('Captcha image failed to load — please try Refresh or enter the characters manually.');
+                                                    setMessage(
+                                                        'Captcha image failed to load — please try Refresh or enter the characters manually.',
+                                                    );
                                                 }}
                                                 className="h-9 w-28 rounded-md border border-[var(--color-gold)]/15 bg-white/40 object-fill shadow-sm"
                                             />
@@ -414,8 +449,10 @@ export default function Login() {
                                                 <div className="mb-1 flex items-center gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={refreshLocalCaptcha}
-                                                        className="rounded-md bg-[var(--color-accent)]/10 px-2 py-1 text-[11px] font-medium text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/20 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/40"
+                                                        onClick={
+                                                            refreshLocalCaptcha
+                                                        }
+                                                        className="rounded-md bg-[var(--color-accent)]/10 px-2 py-1 text-[11px] font-medium text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/20 focus:ring-2 focus:ring-[var(--color-accent)]/40 focus:outline-none"
                                                     >
                                                         Refresh
                                                     </button>
@@ -426,14 +463,22 @@ export default function Login() {
                                                     inputMode="text"
                                                     value={captchaAnswer}
                                                     onChange={(event) =>
-                                                        setCaptchaAnswer(event.target.value)
+                                                        setCaptchaAnswer(
+                                                            event.target.value,
+                                                        )
                                                     }
                                                     placeholder="Enter the characters above"
                                                     className="w-full rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/70 px-2.5 py-1.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
                                                 />
-                                                {firstError(errors, 'captcha_answer') && (
+                                                {firstError(
+                                                    errors,
+                                                    'captcha_answer',
+                                                ) && (
                                                     <p className="mt-2 text-xs font-bold text-red-600">
-                                                        {firstError(errors, 'captcha_answer')}
+                                                        {firstError(
+                                                            errors,
+                                                            'captcha_answer',
+                                                        )}
                                                     </p>
                                                 )}
                                             </div>
@@ -448,14 +493,22 @@ export default function Login() {
                                                 type="text"
                                                 value={captchaAnswer}
                                                 onChange={(event) =>
-                                                    setCaptchaAnswer(event.target.value)
+                                                    setCaptchaAnswer(
+                                                        event.target.value,
+                                                    )
                                                 }
                                                 placeholder="Enter captcha"
-                                                className="w-full mt-2 rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/70 px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
+                                                className="mt-2 w-full rounded-lg border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)]/70 px-4 py-2.5 text-sm text-[var(--color-ink)] placeholder-[var(--color-ink)]/35 transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
                                             />
-                                            {firstError(errors, 'captcha_answer') && (
+                                            {firstError(
+                                                errors,
+                                                'captcha_answer',
+                                            ) && (
                                                 <p className="mt-2 text-xs font-bold text-red-600">
-                                                    {firstError(errors, 'captcha_answer')}
+                                                    {firstError(
+                                                        errors,
+                                                        'captcha_answer',
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
@@ -464,10 +517,19 @@ export default function Login() {
                                     {/* If external hCaptcha configured, render it below without status text */}
                                     {hcaptchaSiteKey && (
                                         <div className="mt-3">
-                                            <div id="login-captcha" className="flex justify-start" />
-                                            {firstError(errors, 'h_captcha_response') && (
+                                            <div
+                                                id="login-captcha"
+                                                className="flex justify-start"
+                                            />
+                                            {firstError(
+                                                errors,
+                                                'h_captcha_response',
+                                            ) && (
                                                 <p className="mt-2 text-xs font-bold text-red-600">
-                                                    {firstError(errors, 'h_captcha_response')}
+                                                    {firstError(
+                                                        errors,
+                                                        'h_captcha_response',
+                                                    )}
                                                 </p>
                                             )}
                                         </div>
