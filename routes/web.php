@@ -34,6 +34,7 @@ use App\Http\Middleware\PreventAdminDelete;
 // use App\Http\Controllers\DashboardController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 if (app()->environment('local')) {
     Route::get('/__dev_login', function () {
