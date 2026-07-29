@@ -100,6 +100,28 @@ test('a station is soft deleted', function () {
     $this->assertDatabaseHas('stations', ['id' => $station->id]);
 });
 
+test('the station show page renders its details', function () {
+    $zone = Zone::factory()->create(['name' => 'Southern Railway']);
+    $division = Division::factory()->create(['zone_id' => $zone->id, 'name' => 'Chennai Division']);
+
+    $station = Station::factory()->create(array_merge([
+        'zone_id' => $zone->id,
+        'division_id' => $division->id,
+        'station_code' => 'MAS',
+        'station_name' => 'Chennai Central',
+    ], ($this->stationLocationAttributes)()));
+
+    $response = $this->get("/admin/stations/{$station->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('station.station_name', 'Chennai Central')
+        ->where('station.zone', 'Southern Railway')
+        ->where('station.division', 'Chennai Division')
+        ->where('station.address', 'Station Road, Chennai')
+    );
+});
+
 test('a station keeps its own station code when updated', function () {
     $station = Station::factory()->create(['station_code' => 'MAS']);
 

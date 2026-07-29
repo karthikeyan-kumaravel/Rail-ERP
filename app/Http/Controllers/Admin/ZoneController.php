@@ -69,6 +69,22 @@ class ZoneController extends Controller
         return redirect()->route('admin.zones.index')->with('success', 'Zone created successfully.');
     }
 
+    public function show(Zone $zone): Response
+    {
+        $zone->loadCount('divisions');
+
+        return Inertia::render('admin/zones/show', [
+            'zone' => [
+                'unique_id' => $zone->unique_id,
+                'name' => $zone->name,
+                'code' => $zone->code,
+                'active_status' => $zone->active_status,
+                'divisions_count' => $zone->divisions_count,
+                'created_at' => $zone->created_at?->format('d M Y'),
+            ],
+        ]);
+    }
+
     public function edit(Zone $zone): Response
     {
         return Inertia::render('admin/zones/edit', [

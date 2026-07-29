@@ -10,7 +10,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/districts';
+import { create, destroy, edit, index, show } from '@/routes/admin/districts';
 
 type DistrictRow = {
     unique_id: string;
@@ -40,8 +40,12 @@ type Paginated<T> = {
     links: PaginationLink[];
 };
 
+type StateOption = { id: number; name: string };
+
 type Filters = {
     search: string;
+    district_name: string;
+    state_id: number | '';
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -49,6 +53,8 @@ type Filters = {
 
 type DistrictsIndexProps = {
     districts: Paginated<DistrictRow>;
+    districtNames: string[];
+    states: StateOption[];
     filters: Filters;
 };
 
@@ -59,6 +65,8 @@ const sortableColumns: { key: string; label: string }[] = [
 
 export default function DistrictsIndex({
     districts,
+    districtNames = [],
+    states = [],
     filters,
 }: DistrictsIndexProps) {
     const { flash, auth } = usePage().props;
@@ -104,6 +112,22 @@ export default function DistrictsIndex({
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyDistrictName = (districtName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, district_name: districtName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyState = (stateId: number | '') => {
+        router.get(
+            index.url(),
+            { ...filters, state_id: stateId, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -172,6 +196,60 @@ export default function DistrictsIndex({
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="district-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        District Name:
+                    </label>
+                    <select
+                        id="district-name-filter"
+                        value={filters.district_name}
+                        onChange={(event) =>
+                            applyDistrictName(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All District Names</option>
+                        {districtNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="state-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        State:
+                    </label>
+                    <select
+                        id="state-filter"
+                        value={filters.state_id}
+                        onChange={(event) =>
+                            applyState(
+                                event.target.value
+                                    ? Number(event.target.value)
+                                    : '',
+                            )
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All States</option>
+                        {states.map((state) => (
+                            <option key={state.id} value={state.id}>
+                                {state.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -329,6 +407,16 @@ export default function DistrictsIndex({
                                                     <TrashIcon />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(
+                                                    district.unique_id,
+                                                )}
+                                                title="View"
+                                                aria-label={`View ${district.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

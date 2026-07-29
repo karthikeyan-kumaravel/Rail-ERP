@@ -203,6 +203,28 @@ test('the sidebar navigation tree is ordered by order_no and reflects changes', 
         ->and($updatedTree[0]['children'][1]['folder_name'])->toBe('users');
 });
 
+test('the user screen show page renders its details', function () {
+    $mainScreen = UserScreen::factory()->create(['main_screen_id' => null, 'screen_name' => 'Admin']);
+    $userScreen = UserScreen::factory()->create([
+        'main_screen_id' => $mainScreen->id,
+        'screen_name' => 'Users',
+        'folder_name' => 'users',
+        'icon' => 'users',
+        'can_add' => true,
+        'can_delete' => false,
+    ]);
+
+    $response = $this->get("/admin/user-screens/{$userScreen->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('userScreen.screen_name', 'Users')
+        ->where('userScreen.main_screen', 'Admin')
+        ->where('userScreen.can_add', true)
+        ->where('userScreen.can_delete', false)
+    );
+});
+
 test('inactive and soft-deleted screens are excluded from the navigation tree', function () {
     UserScreen::factory()->create(['main_screen_id' => null, 'status' => false]);
     UserScreen::factory()->create(['main_screen_id' => null, 'is_delete' => true]);

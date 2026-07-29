@@ -21,6 +21,8 @@ class CityController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $cityName = $request->string('city_name')->trim()->toString();
+        $districtId = $request->integer('district_id');
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -35,6 +37,8 @@ class CityController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%");
             })
+            ->when($cityName !== '', fn ($query) => $query->where('name', $cityName))
+            ->when($districtId !== 0, fn ($query) => $query->where('district_id', $districtId))
             ->orderBy($sort, $direction);
 
         $cities = $this->paginateQuery($query, $perPage);
@@ -53,8 +57,12 @@ class CityController extends Controller
 
         return Inertia::render('admin/cities/index', [
             'cities' => $cities,
+            'cityNames' => City::query()->where('is_delete', false)->distinct()->orderBy('name')->pluck('name'),
+            'districts' => $this->districtOptions(),
             'filters' => [
                 'search' => $search,
+                'city_name' => $cityName,
+                'district_id' => $districtId,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -75,6 +83,24 @@ class CityController extends Controller
         City::query()->create($request->validated());
 
         return redirect()->route('admin.cities.index')->with('success', 'City created successfully.');
+    }
+
+    public function show(City $city): Response
+    {
+        $city->load(['district:id,name,state_id', 'district.state:id,name']);
+
+        return Inertia::render('admin/cities/show', [
+            'city' => [
+                'unique_id' => $city->unique_id,
+                'name' => $city->name,
+                'city_code' => $city->city_code,
+                'pincode' => $city->pincode,
+                'district' => $city->district?->name,
+                'state' => $city->district?->state?->name,
+                'active_status' => $city->active_status,
+                'created_at' => $city->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(City $city): Response

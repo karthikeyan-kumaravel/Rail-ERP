@@ -8,6 +8,15 @@ import type { BankFormData } from './bank-form-fields';
 export default function BanksCreate() {
     const { data, setData, post, processing, errors } = useForm<BankFormData>({
         name: '',
+        branch_name: '',
+        ifsc_code: '',
+        account_number: '',
+        account_holder_name: '',
+        account_type: 'Savings',
+        bank_address: '',
+        pincode: '',
+        contact_number: '',
+        email: '',
         active_status: '1',
     });
 
@@ -28,7 +37,9 @@ export default function BanksCreate() {
                     >
                         Admin / Settings / Bank
                     </Link>
+
                     <span className="mx-1.5 text-[var(--color-ink)]/40">/</span>
+
                     <span className="font-semibold text-[var(--color-ink)]">
                         Add New
                     </span>
@@ -49,6 +60,7 @@ export default function BanksCreate() {
                     >
                         {processing ? 'Saving...' : 'Save'}
                     </button>
+
                     <Link
                         href={index.url()}
                         className="rounded-lg border border-[var(--color-gold)]/25 px-5 py-2.5 text-sm font-semibold text-[var(--color-ink)]/80 transition hover:border-[var(--color-accent)]/50 hover:text-[var(--color-accent)]"

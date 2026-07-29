@@ -105,6 +105,27 @@ test('a customer is soft deleted', function () {
     $this->assertDatabaseHas('customers', ['id' => $customer->id]);
 });
 
+test('the customer show page renders its details', function () {
+    $state = State::factory()->create(['name' => 'Kerala']);
+    $district = District::factory()->create(['state_id' => $state->id, 'name' => 'Alappuzha']);
+    $customer = Customer::factory()->create([
+        'name' => 'Acme Traders',
+        'state_id' => $state->id,
+        'district_id' => $district->id,
+        'contact_name' => 'John Doe',
+    ]);
+
+    $response = $this->get("/admin/customers/{$customer->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('customer.name', 'Acme Traders')
+        ->where('customer.state', 'Kerala')
+        ->where('customer.district', 'Alappuzha')
+        ->where('customer.contact_name', 'John Doe')
+    );
+});
+
 test('a customer can be updated without a false validation conflict', function () {
     $customer = Customer::factory()->create();
 

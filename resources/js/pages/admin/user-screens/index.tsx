@@ -6,10 +6,16 @@ import DetailsModal, {
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { DynamicIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import { DynamicIcon, EyeIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/user-screens';
+import {
+    create,
+    destroy,
+    edit,
+    index,
+    show,
+} from '@/routes/admin/user-screens';
 
 type UserScreenRow = {
     unique_id: string;
@@ -346,6 +352,16 @@ export default function UserScreensIndex({
                                                     <TrashIcon />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(
+                                                    userScreen.unique_id,
+                                                )}
+                                                title="View"
+                                                aria-label={`View ${userScreen.screen_name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

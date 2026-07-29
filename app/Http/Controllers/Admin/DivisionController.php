@@ -20,6 +20,8 @@ class DivisionController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $divisionName = $request->string('division_name')->trim()->toString();
+        $zoneId = $request->integer('zone_id');
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -35,6 +37,8 @@ class DivisionController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%");
             })
+            ->when($divisionName !== '', fn ($query) => $query->where('name', $divisionName))
+            ->when($zoneId !== 0, fn ($query) => $query->where('zone_id', $zoneId))
             ->orderBy($sort, $direction);
 
         $divisions = $this->paginateQuery($query, $perPage);
@@ -52,8 +56,12 @@ class DivisionController extends Controller
 
         return Inertia::render('admin/divisions/index', [
             'divisions' => $divisions,
+            'divisionNames' => Division::query()->where('is_delete', false)->distinct()->orderBy('name')->pluck('name'),
+            'zones' => $this->zoneOptions(),
             'filters' => [
                 'search' => $search,
+                'division_name' => $divisionName,
+                'zone_id' => $zoneId,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -73,6 +81,23 @@ class DivisionController extends Controller
         Division::query()->create($request->validated());
 
         return redirect()->route('admin.divisions.index')->with('success', 'Division created successfully.');
+    }
+
+    public function show(Division $division): Response
+    {
+        $division->load('zone:id,name')->loadCount('stations');
+
+        return Inertia::render('admin/divisions/show', [
+            'division' => [
+                'unique_id' => $division->unique_id,
+                'name' => $division->name,
+                'code' => $division->code,
+                'zone' => $division->zone?->name,
+                'active_status' => $division->active_status,
+                'stations_count' => $division->stations_count,
+                'created_at' => $division->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(Division $division): Response

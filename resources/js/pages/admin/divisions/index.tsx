@@ -6,11 +6,11 @@ import DetailsModal, {
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import { EyeIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/divisions';
+import { create, destroy, edit, index, show } from '@/routes/admin/divisions';
 
 type DivisionRow = {
     unique_id: string;
@@ -40,8 +40,12 @@ type Paginated<T> = {
     links: PaginationLink[];
 };
 
+type ZoneOption = { id: number; name: string };
+
 type Filters = {
     search: string;
+    division_name: string;
+    zone_id: number | '';
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -49,6 +53,8 @@ type Filters = {
 
 type DivisionsIndexProps = {
     divisions: Paginated<DivisionRow>;
+    divisionNames: string[];
+    zones: ZoneOption[];
     filters: Filters;
 };
 
@@ -59,6 +65,8 @@ const sortableColumns: { key: string; label: string }[] = [
 
 export default function DivisionsIndex({
     divisions,
+    divisionNames = [],
+    zones = [],
     filters,
 }: DivisionsIndexProps) {
     const { flash, auth } = usePage().props;
@@ -104,6 +112,22 @@ export default function DivisionsIndex({
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyDivisionName = (divisionName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, division_name: divisionName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyZone = (zoneId: number | '') => {
+        router.get(
+            index.url(),
+            { ...filters, zone_id: zoneId, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -172,6 +196,60 @@ export default function DivisionsIndex({
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="division-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Division Name:
+                    </label>
+                    <select
+                        id="division-name-filter"
+                        value={filters.division_name}
+                        onChange={(event) =>
+                            applyDivisionName(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Division Names</option>
+                        {divisionNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="zone-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Zone:
+                    </label>
+                    <select
+                        id="zone-filter"
+                        value={filters.zone_id}
+                        onChange={(event) =>
+                            applyZone(
+                                event.target.value
+                                    ? Number(event.target.value)
+                                    : '',
+                            )
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Zones</option>
+                        {zones.map((zone) => (
+                            <option key={zone.id} value={zone.id}>
+                                {zone.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -329,6 +407,16 @@ export default function DivisionsIndex({
                                                     <TrashIcon />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(
+                                                    division.unique_id,
+                                                )}
+                                                title="View"
+                                                aria-label={`View ${division.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

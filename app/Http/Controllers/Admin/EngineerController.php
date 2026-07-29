@@ -58,6 +58,9 @@ class EngineerController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $employeeCode = $request->string('employee_code')->trim()->toString();
+        $fullName = $request->string('full_name')->trim()->toString();
+        $engineerTypeId = $request->integer('engineer_type_id');
         $sort = $request->string('sort', 'full_name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -75,6 +78,9 @@ class EngineerController extends Controller
                     ->orWhere('mobile_number', 'like', "%{$search}%")
                     ->orWhere('official_email', 'like', "%{$search}%");
             })
+            ->when($employeeCode !== '', fn ($query) => $query->where('employee_code', $employeeCode))
+            ->when($fullName !== '', fn ($query) => $query->where('full_name', $fullName))
+            ->when($engineerTypeId !== 0, fn ($query) => $query->where('engineer_type_id', $engineerTypeId))
             ->orderBy($sort, $direction);
 
         $engineers = $this->paginateQuery($query, $perPage);
@@ -93,8 +99,14 @@ class EngineerController extends Controller
 
         return Inertia::render('admin/engineers/index', [
             'engineers' => $engineers,
+            'employeeCodes' => Engineer::query()->where('is_delete', false)->distinct()->orderBy('employee_code')->pluck('employee_code'),
+            'fullNames' => Engineer::query()->where('is_delete', false)->distinct()->orderBy('full_name')->pluck('full_name'),
+            'engineerTypes' => $this->engineerTypeOptions(),
             'filters' => [
                 'search' => $search,
+                'employee_code' => $employeeCode,
+                'full_name' => $fullName,
+                'engineer_type_id' => $engineerTypeId,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -121,6 +133,46 @@ class EngineerController extends Controller
         }
 
         return redirect()->route('admin.engineers.index')->with('success', 'Engineer created successfully.');
+    }
+
+    public function show(Engineer $engineer): Response
+    {
+        $engineer->load(['city:id,name', 'state:id,name', 'engineerType:id,name']);
+
+        return Inertia::render('admin/engineers/show', [
+            'engineer' => [
+                'unique_id' => $engineer->unique_id,
+                'employee_code' => $engineer->employee_code,
+                'full_name' => $engineer->full_name,
+                'gender' => $engineer->gender,
+                'date_of_birth' => $engineer->date_of_birth?->format('d M Y'),
+                'blood_group' => $engineer->blood_group,
+                'nationality' => $engineer->nationality,
+                'marital_status' => $engineer->marital_status,
+                'mobile_number' => $engineer->mobile_number,
+                'alternate_mobile_number' => $engineer->alternate_mobile_number,
+                'official_email' => $engineer->official_email,
+                'personal_email' => $engineer->personal_email,
+                'current_address' => $engineer->current_address,
+                'permanent_address' => $engineer->permanent_address,
+                'city' => $engineer->city?->name,
+                'state' => $engineer->state?->name,
+                'postal_code' => $engineer->postal_code,
+                'aadhaar_number' => $engineer->aadhaar_number,
+                'pan_number' => $engineer->pan_number,
+                'date_of_joining' => $engineer->date_of_joining?->format('d M Y'),
+                'employee_status' => $engineer->employee_status,
+                'engineer_type' => $engineer->engineerType?->name,
+                'bank_name' => $engineer->bank_name,
+                'branch_name' => $engineer->branch_name,
+                'account_number' => $engineer->account_number,
+                'ifsc_code' => $engineer->ifsc_code,
+                'pf_account_number' => $engineer->pf_account_number,
+                'esi_account_number' => $engineer->esi_account_number,
+                'languages_known' => $engineer->languages_known,
+                'created_at' => $engineer->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(Request $request, Engineer $engineer): Response

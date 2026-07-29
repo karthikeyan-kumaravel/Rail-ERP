@@ -19,6 +19,8 @@ class BankController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $bankName = $request->string('bank_name')->trim()->toString();
+        $holderName = $request->string('holder_name')->trim()->toString();
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -26,11 +28,16 @@ class BankController extends Controller
         if (! in_array($sort, ['name', 'created_at'], true)) {
             $sort = 'name';
         }
-
         $query = Bank::query()
-            ->where('is_delete', false)
-            ->when($search !== '', function ($query) use ($search) {
+            ->where('is_delete', 0)
+            ->when($search, function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%");
+            })
+            ->when($bankName, function ($query) use ($bankName) {
+                $query->where('name', $bankName);
+            })
+            ->when($holderName, function ($query) use ($holderName) {
+                $query->where('account_holder_name', $holderName);
             })
             ->orderBy($sort, $direction);
 
@@ -39,14 +46,39 @@ class BankController extends Controller
         $banks->through(fn (Bank $bank) => [
             'unique_id' => $bank->unique_id,
             'name' => $bank->name,
+            'branch_name' => $bank->branch_name,
+            'ifsc_code' => $bank->ifsc_code,
+            'account_number' => $bank->account_number,
+            'account_holder_name' => $bank->account_holder_name,
+            'account_type' => $bank->account_type,
+            'bank_address' => $bank->bank_address,
+            'pincode' => $bank->pincode,
+            'contact_number' => $bank->contact_number,
+            'email' => $bank->email,
             'active_status' => $bank->active_status,
-            'created_at' => $bank->created_at?->format('d M Y'),
+            'created_at' => $bank->created->format('d M Y'),
         ]);
+
+        $bankNames = Bank::query()
+            ->where('is_delete', 0)
+            ->orderBy('name')
+            ->distinct()
+            ->pluck('name');
+
+        $holderNames = Bank::query()
+            ->where('is_delete', 0)
+            ->orderBy('account_holder_name')
+            ->distinct()
+            ->pluck('account_holder_name');
 
         return Inertia::render('admin/banks/index', [
             'banks' => $banks,
+            'bankNames' => $bankNames,
+            'holderNames' => $holderNames,
             'filters' => [
                 'search' => $search,
+                'bank_name' => $bankName,
+                'holder_name' => $holderName,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -61,15 +93,51 @@ class BankController extends Controller
 
     public function store(StoreBankRequest $request): RedirectResponse
     {
-        Bank::query()->create($request->validated());
+        Bank::create($request->validated());
 
-        return redirect()->route('admin.banks.index')->with('success', 'Bank created successfully.');
+        return redirect()
+            ->route('admin.banks.index')
+            ->with('success', 'Bank created successfully.');
+
+    }
+
+    public function show(Bank $bank): Response
+    {
+        return Inertia::render('admin/banks/show', [
+            'bank' => $bank->only([
+                'unique_id',
+                'name',
+                'branch_name',
+                'ifsc_code',
+                'account_number',
+                'account_holder_name',
+                'account_type',
+                'bank_address',
+                'pincode',
+                'contact_number',
+                'email',
+                'active_status',
+            ]),
+        ]);
     }
 
     public function edit(Bank $bank): Response
     {
         return Inertia::render('admin/banks/edit', [
-            'bank' => $bank->only(['unique_id', 'name', 'active_status']),
+            'bank' => $bank->only([
+                'unique_id',
+                'name',
+                'branch_name',
+                'ifsc_code',
+                'account_number',
+                'account_holder_name',
+                'account_type',
+                'bank_address',
+                'pincode',
+                'contact_number',
+                'email',
+                'active_status',
+            ]),
         ]);
     }
 
@@ -86,7 +154,7 @@ class BankController extends Controller
             abort(403, 'You are not authorized to delete records.');
         }
 
-        if ($bank->financialSecurities()->exists()) {
+        if ($bank->financialSecurities()->where('is_delete', false)->exists()) {
             return redirect()
                 ->route('admin.banks.index')
                 ->with('success', 'Bank cannot be deleted because it is assigned to an LOA financial security record.');

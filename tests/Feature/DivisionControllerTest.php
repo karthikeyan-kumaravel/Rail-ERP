@@ -73,6 +73,21 @@ test('a division without stations is soft deleted', function () {
     expect($division->refresh()->is_delete)->toBeTrue();
 });
 
+test('the division show page renders its details', function () {
+    $zone = Zone::factory()->create(['name' => 'Southern Railway']);
+    $division = Division::factory()->create(['zone_id' => $zone->id, 'name' => 'Chennai Division']);
+    Station::factory()->count(2)->create(['division_id' => $division->id]);
+
+    $response = $this->get("/admin/divisions/{$division->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('division.name', 'Chennai Division')
+        ->where('division.zone', 'Southern Railway')
+        ->where('division.stations_count', 2)
+    );
+});
+
 test('a division keeps its own name when updated', function () {
     $zone = Zone::factory()->create();
     $division = Division::factory()->create(['zone_id' => $zone->id, 'name' => 'Chennai Division']);

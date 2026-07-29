@@ -6,11 +6,11 @@ import DetailsModal, {
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import { EyeIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/stations';
+import { create, destroy, edit, index, show } from '@/routes/admin/stations';
 
 type StationRow = {
     unique_id: string;
@@ -41,8 +41,13 @@ type Paginated<T> = {
     links: PaginationLink[];
 };
 
+type DivisionOption = { id: number; name: string };
+
 type Filters = {
     search: string;
+    station_code: string;
+    station_name: string;
+    division_id: number | '';
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -50,6 +55,9 @@ type Filters = {
 
 type StationsIndexProps = {
     stations: Paginated<StationRow>;
+    stationCodes: string[];
+    stationNames: string[];
+    divisions: DivisionOption[];
     filters: Filters;
 };
 
@@ -61,6 +69,9 @@ const sortableColumns: { key: string; label: string }[] = [
 
 export default function StationsIndex({
     stations,
+    stationCodes = [],
+    stationNames = [],
+    divisions = [],
     filters,
 }: StationsIndexProps) {
     const { flash, auth } = usePage().props;
@@ -106,6 +117,30 @@ export default function StationsIndex({
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyStationCode = (stationCode: string) => {
+        router.get(
+            index.url(),
+            { ...filters, station_code: stationCode, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyStationName = (stationName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, station_name: stationName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyDivision = (divisionId: number | '') => {
+        router.get(
+            index.url(),
+            { ...filters, division_id: divisionId, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -174,6 +209,84 @@ export default function StationsIndex({
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="station-code-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Station Code:
+                    </label>
+                    <select
+                        id="station-code-filter"
+                        value={filters.station_code}
+                        onChange={(event) =>
+                            applyStationCode(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Station Codes</option>
+                        {stationCodes.map((code) => (
+                            <option key={code} value={code}>
+                                {code}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="station-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Station Name:
+                    </label>
+                    <select
+                        id="station-name-filter"
+                        value={filters.station_name}
+                        onChange={(event) =>
+                            applyStationName(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Station Names</option>
+                        {stationNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="division-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Division:
+                    </label>
+                    <select
+                        id="division-filter"
+                        value={filters.division_id}
+                        onChange={(event) =>
+                            applyDivision(
+                                event.target.value
+                                    ? Number(event.target.value)
+                                    : '',
+                            )
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Divisions</option>
+                        {divisions.map((division) => (
+                            <option key={division.id} value={division.id}>
+                                {division.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -334,6 +447,16 @@ export default function StationsIndex({
                                                     <TrashIcon className="h-4 w-4" />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(
+                                                    station.unique_id,
+                                                )}
+                                                title="View"
+                                                aria-label={`View ${station.station_name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

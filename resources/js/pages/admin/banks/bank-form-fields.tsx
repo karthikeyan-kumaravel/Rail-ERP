@@ -1,5 +1,14 @@
 export type BankFormData = {
     name: string;
+    branch_name: string;
+    ifsc_code: string;
+    account_number: string;
+    account_holder_name: string;
+    account_type: 'Savings' | 'Current';
+    bank_address: string;
+    pincode: string;
+    contact_number: string;
+    email: string;
     active_status: '1' | '0';
 };
 
@@ -24,39 +33,193 @@ export default function BankFormFields({
     errors,
 }: BankFormFieldsProps) {
     return (
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {/* Bank Name */}
             <div>
-                <label htmlFor="name" className={labelClass}>
-                    Bank Name
-                </label>
+                <label className={labelClass}>Name</label>
                 <input
-                    id="name"
                     type="text"
                     value={data.name}
-                    onChange={(event) => setData('name', event.target.value)}
-                    placeholder="e.g. State Bank of India"
+                    onChange={(e) => {
+                        console.log(e.target.value);
+                        setData('name', e.target.value);
+                    }}
                     className={inputClass}
+                    maxLength={100}
                 />
                 {errors.name && <p className={errorClass}>{errors.name}</p>}
             </div>
 
+            {/* Branch Name */}
             <div>
-                <label htmlFor="active_status" className={labelClass}>
-                    Active Status
-                </label>
+                <label className={labelClass}>Branch Name</label>
+                <input
+                    type="text"
+                    value={data.branch_name}
+                    onChange={(e) => setData('branch_name', e.target.value)}
+                    className={inputClass}
+                    maxLength={100}
+                />
+                {errors.branch_name && (
+                    <p className={errorClass}>{errors.branch_name}</p>
+                )}
+            </div>
+
+            {/* IFSC Code */}
+            <div>
+                <label className={labelClass}>IFSC Code</label>
+                <input
+                    type="text"
+                    value={data.ifsc_code}
+                    onChange={(e) =>
+                        setData('ifsc_code', e.target.value.toUpperCase())
+                    }
+                    className={inputClass}
+                    maxLength={11}
+                />
+                {errors.ifsc_code && (
+                    <p className={errorClass}>{errors.ifsc_code}</p>
+                )}
+            </div>
+
+            {/* Account Number */}
+            <div>
+                <label className={labelClass}>Account Number</label>
+                <input
+                    type="text"
+                    value={data.account_number}
+                    onChange={(e) =>
+                        setData(
+                            'account_number',
+                            e.target.value.replace(/\D/g, ''),
+                        )
+                    }
+                    className={inputClass}
+                    maxLength={18}
+                />
+                {errors.account_number && (
+                    <p className={errorClass}>{errors.account_number}</p>
+                )}
+            </div>
+
+            {/* Account Holder Name */}
+            <div>
+                <label className={labelClass}>Account Holder Name</label>
+                <input
+                    type="text"
+                    value={data.account_holder_name}
+                    onChange={(e) =>
+                        setData('account_holder_name', e.target.value)
+                    }
+                    className={inputClass}
+                    maxLength={100}
+                />
+                {errors.account_holder_name && (
+                    <p className={errorClass}>{errors.account_holder_name}</p>
+                )}
+            </div>
+
+            {/* Account Type */}
+            <div>
+                <label className={labelClass}>Account Type</label>
                 <select
-                    id="active_status"
+                    value={data.account_type}
+                    onChange={(e) =>
+                        setData(
+                            'account_type',
+                            e.target.value as 'Savings' | 'Current',
+                        )
+                    }
+                    className={inputClass}
+                >
+                    <option value="Savings">Savings</option>
+                    <option value="Current">Current</option>
+                </select>
+                {errors.account_type && (
+                    <p className={errorClass}>{errors.account_type}</p>
+                )}
+            </div>
+
+            {/* Bank Address */}
+            <div className="sm:col-span-2 lg:col-span-3">
+                <label className={labelClass}>Bank Address</label>
+                <textarea
+                    rows={3}
+                    value={data.bank_address}
+                    onChange={(e) => setData('bank_address', e.target.value)}
+                    className={inputClass}
+                    maxLength={255}
+                />
+                {errors.bank_address && (
+                    <p className={errorClass}>{errors.bank_address}</p>
+                )}
+            </div>
+
+            {/* Pincode */}
+            <div>
+                <label className={labelClass}>Pincode</label>
+                <input
+                    type="text"
+                    value={data.pincode}
+                    onChange={(e) =>
+                        setData('pincode', e.target.value.replace(/\D/g, ''))
+                    }
+                    className={inputClass}
+                    maxLength={6}
+                />
+                {errors.pincode && (
+                    <p className={errorClass}>{errors.pincode}</p>
+                )}
+            </div>
+
+            {/* Contact Number */}
+            <div>
+                <label className={labelClass}>Contact Number</label>
+                <input
+                    type="text"
+                    value={data.contact_number}
+                    onChange={(e) =>
+                        setData(
+                            'contact_number',
+                            e.target.value.replace(/\D/g, ''),
+                        )
+                    }
+                    className={inputClass}
+                    maxLength={10}
+                />
+                {errors.contact_number && (
+                    <p className={errorClass}>{errors.contact_number}</p>
+                )}
+            </div>
+
+            {/* Email */}
+            <div>
+                <label className={labelClass}>Email</label>
+                <input
+                    type="email"
+                    value={data.email}
+                    onChange={(e) => setData('email', e.target.value)}
+                    className={inputClass}
+                    maxLength={100}
+                />
+                {errors.email && <p className={errorClass}>{errors.email}</p>}
+            </div>
+
+            {/* Status */}
+            <div>
+                <label className={labelClass}>Status</label>
+                <select
                     value={data.active_status}
-                    onChange={(event) =>
+                    onChange={(e) =>
                         setData(
                             'active_status',
-                            event.target.value === '1' ? '1' : '0',
+                            e.target.value === '1' ? '1' : '0',
                         )
                     }
                     className={inputClass}
                 >
                     <option value="1">Active</option>
-                    <option value="0">In active</option>
+                    <option value="0">Inactive</option>
                 </select>
                 {errors.active_status && (
                     <p className={errorClass}>{errors.active_status}</p>

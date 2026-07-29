@@ -20,6 +20,8 @@ class DistrictController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $districtName = $request->string('district_name')->trim()->toString();
+        $stateId = $request->integer('state_id');
         $sort = $request->string('sort', 'name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -35,6 +37,8 @@ class DistrictController extends Controller
             ->when($search !== '', function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%");
             })
+            ->when($districtName !== '', fn ($query) => $query->where('name', $districtName))
+            ->when($stateId !== 0, fn ($query) => $query->where('state_id', $stateId))
             ->orderBy($sort, $direction);
 
         $districts = $this->paginateQuery($query, $perPage);
@@ -52,8 +56,12 @@ class DistrictController extends Controller
 
         return Inertia::render('admin/districts/index', [
             'districts' => $districts,
+            'districtNames' => District::query()->where('is_delete', false)->distinct()->orderBy('name')->pluck('name'),
+            'states' => $this->stateOptions(),
             'filters' => [
                 'search' => $search,
+                'district_name' => $districtName,
+                'state_id' => $stateId,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -73,6 +81,23 @@ class DistrictController extends Controller
         District::query()->create($request->validated());
 
         return redirect()->route('admin.districts.index')->with('success', 'District created successfully.');
+    }
+
+    public function show(District $district): Response
+    {
+        $district->load('state:id,name')->loadCount('cities');
+
+        return Inertia::render('admin/districts/show', [
+            'district' => [
+                'unique_id' => $district->unique_id,
+                'name' => $district->name,
+                'code' => $district->code,
+                'state' => $district->state?->name,
+                'active_status' => $district->active_status,
+                'cities_count' => $district->cities_count,
+                'created_at' => $district->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(District $district): Response

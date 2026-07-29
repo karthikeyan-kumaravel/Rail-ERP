@@ -10,7 +10,7 @@ import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
 import FlashToast from '@/lib/toast';
-import { create, destroy, edit, index } from '@/routes/admin/engineers';
+import { create, destroy, edit, index, show } from '@/routes/admin/engineers';
 
 type EngineerRow = {
     unique_id: string;
@@ -41,8 +41,13 @@ type Paginated<T> = {
     links: PaginationLink[];
 };
 
+type EngineerTypeOption = { id: number; name: string };
+
 type Filters = {
     search: string;
+    employee_code: string;
+    full_name: string;
+    engineer_type_id: number | '';
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -50,6 +55,9 @@ type Filters = {
 
 type EngineersIndexProps = {
     engineers: Paginated<EngineerRow>;
+    employeeCodes: string[];
+    fullNames: string[];
+    engineerTypes: EngineerTypeOption[];
     filters: Filters;
 };
 
@@ -68,6 +76,9 @@ const statusBadgeClass: Record<EngineerRow['employee_status'], string> = {
 
 export default function EngineersIndex({
     engineers,
+    employeeCodes = [],
+    fullNames = [],
+    engineerTypes = [],
     filters,
 }: EngineersIndexProps) {
     const { flash, auth } = usePage().props;
@@ -113,6 +124,30 @@ export default function EngineersIndex({
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyEmployeeCode = (employeeCode: string) => {
+        router.get(
+            index.url(),
+            { ...filters, employee_code: employeeCode, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyFullName = (fullName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, full_name: fullName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyEngineerType = (engineerTypeId: number | '') => {
+        router.get(
+            index.url(),
+            { ...filters, engineer_type_id: engineerTypeId, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -182,6 +217,85 @@ export default function EngineersIndex({
             }
         >
             <FlashToast />
+
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="employee-code-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Employee ID:
+                    </label>
+                    <select
+                        id="employee-code-filter"
+                        value={filters.employee_code}
+                        onChange={(event) =>
+                            applyEmployeeCode(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Employee IDs</option>
+                        {employeeCodes.map((code) => (
+                            <option key={code} value={code}>
+                                {code}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="full-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Name:
+                    </label>
+                    <select
+                        id="full-name-filter"
+                        value={filters.full_name}
+                        onChange={(event) => applyFullName(event.target.value)}
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Names</option>
+                        {fullNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="engineer-type-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Engineer Type:
+                    </label>
+                    <select
+                        id="engineer-type-filter"
+                        value={filters.engineer_type_id}
+                        onChange={(event) =>
+                            applyEngineerType(
+                                event.target.value
+                                    ? Number(event.target.value)
+                                    : '',
+                            )
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Engineer Types</option>
+                        {engineerTypes.map((engineerType) => (
+                            <option
+                                key={engineerType.id}
+                                value={engineerType.id}
+                            >
+                                {engineerType.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
 
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
@@ -297,54 +411,37 @@ export default function EngineersIndex({
                                     </td>
                                     <td className="px-3 py-3 print:hidden">
                                         <div className="flex items-center gap-3">
-                                            {auth.isSuperAdmin ? (
-
-                                                <Link
-
-                                                    href={edit.url(engineer.unique_id,)}
-
-                                                    title="Edit"
-
-                                                    aria-label={`Edit ${engineer.full_name}`}
-
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-
-                                                >
-
-                                                    <PencilIcon />
-
-                                                </Link>
-
-                                            ) : (
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setSelectedRecord(
-                                                            engineer as Record<string, unknown>,
-                                                        )
-                                                    }
-                                                    title="View"
-                                                    aria-label={`View ${engineer.full_name}`}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
-                                                >
-                                                    <EyeIcon />
-                                                </button>
-
-                                            )}
-                                            {auth.isSuperAdmin && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        handleDelete(engineer)
-                                                    }
-                                                    title="Delete"
-                                                    aria-label={`Delete ${engineer.full_name}`}
-                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
-                                                >
-                                                    <TrashIcon />
-                                                </button>
-                                            )}
+                                            <Link
+                                                href={edit.url(
+                                                    engineer.unique_id,
+                                                )}
+                                                title="Edit"
+                                                aria-label={`Edit ${engineer.full_name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-gold)]/80 transition hover:bg-[var(--color-gold)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <PencilIcon />
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    handleDelete(engineer)
+                                                }
+                                                title="Delete"
+                                                aria-label={`Delete ${engineer.full_name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-red-500/80 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/40 focus-visible:outline-none"
+                                            >
+                                                <TrashIcon />
+                                            </button>
+                                            <Link
+                                                href={show.url(
+                                                    engineer.unique_id,
+                                                )}
+                                                title="View"
+                                                aria-label={`View ${engineer.full_name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

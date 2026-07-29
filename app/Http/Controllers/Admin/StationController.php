@@ -24,6 +24,9 @@ class StationController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->string('search')->trim()->toString();
+        $stationCode = $request->string('station_code')->trim()->toString();
+        $stationName = $request->string('station_name')->trim()->toString();
+        $divisionId = $request->integer('division_id');
         $sort = $request->string('sort', 'station_name')->toString();
         $direction = $request->string('direction', 'asc')->toString() === 'desc' ? 'desc' : 'asc';
         $perPage = $this->resolvePerPage($request);
@@ -39,6 +42,9 @@ class StationController extends Controller
                 $query->where('station_name', 'like', "%{$search}%")
                     ->orWhere('station_code', 'like', "%{$search}%");
             })
+            ->when($stationCode !== '', fn ($query) => $query->where('station_code', $stationCode))
+            ->when($stationName !== '', fn ($query) => $query->where('station_name', $stationName))
+            ->when($divisionId !== 0, fn ($query) => $query->where('division_id', $divisionId))
             ->orderBy($sort, $direction);
 
         $stations = $this->paginateQuery($query, $perPage);
@@ -63,8 +69,14 @@ class StationController extends Controller
 
         return Inertia::render('admin/stations/index', [
             'stations' => $stations,
+            'stationCodes' => Station::query()->where('is_delete', false)->distinct()->orderBy('station_code')->pluck('station_code'),
+            'stationNames' => Station::query()->where('is_delete', false)->distinct()->orderBy('station_name')->pluck('station_name'),
+            'divisions' => $this->divisionOptions(),
             'filters' => [
                 'search' => $search,
+                'station_code' => $stationCode,
+                'station_name' => $stationName,
+                'division_id' => $divisionId,
                 'sort' => $sort,
                 'direction' => $direction,
                 'per_page' => $perPage,
@@ -88,6 +100,29 @@ class StationController extends Controller
         Station::query()->create($request->validated());
 
         return redirect()->route('admin.stations.index')->with('success', 'Station created successfully.');
+    }
+
+    public function show(Station $station): Response
+    {
+        $station->load(['zone:id,name', 'division:id,name', 'state:id,name', 'district:id,name', 'city:id,name']);
+
+        return Inertia::render('admin/stations/show', [
+            'station' => [
+                'unique_id' => $station->unique_id,
+                'station_code' => $station->station_code,
+                'station_name' => $station->station_name,
+                'zone' => $station->zone?->name,
+                'division' => $station->division?->name,
+                'state' => $station->state?->name,
+                'district' => $station->district?->name,
+                'city' => $station->city?->name,
+                'address' => $station->address,
+                'latitude' => $station->latitude,
+                'longitude' => $station->longitude,
+                'active_status' => $station->active_status,
+                'created_at' => $station->created_at?->format('d M Y'),
+            ],
+        ]);
     }
 
     public function edit(Station $station): Response

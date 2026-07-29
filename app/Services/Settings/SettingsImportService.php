@@ -6,6 +6,7 @@ use App\Imports\Settings\RawSettingsRowsImport;
 use App\Imports\Settings\SettingsImportDefinition;
 use App\Imports\Settings\SettingsImportDefinitionRegistry;
 use App\Models\Activity;
+use App\Models\Bank;
 use App\Models\City;
 use App\Models\Customer;
 use App\Models\Department;
@@ -351,6 +352,7 @@ class SettingsImportService
             'schedule-names' => $this->validateScheduleName($values, $seen),
             'schedule-types' => $this->validateScheduleType($values, $seen),
             'projects' => $this->validateProject($values, $seen),
+            'banks' => $this->validateBank($values, $seen),
             default => ['status' => 'invalid', 'errors' => ['Unsupported import module.'], 'attributes' => []],
         };
     }
@@ -709,6 +711,72 @@ class SettingsImportService
             'account_holder_name' => $accountHolderName,
             'address' => $address,
             'username' => $username,
+            'active_status' => $status,
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $values
+     * @param  array<string, bool>  $seen
+     * @return array{status: string, errors: array<int, string>, attributes: array<string, mixed>}
+     */
+    private function validateBank(array $values, array &$seen): array
+    {
+        $errors = [];
+        $name = $this->requireText($values['name'], 'Bank Name', $errors, 100);
+        $branchName = $this->requireText($values['branch_name'], 'Branch Name', $errors, 100);
+        $ifscCode = $this->requireText($values['ifsc_code'], 'IFSC Code', $errors, 11);
+        $ifscCode = $ifscCode !== null ? strtoupper($ifscCode) : null;
+        $accountNumber = $this->requireText($values['account_number'], 'Account Number', $errors, 18);
+        $accountHolderName = $this->requireText($values['account_holder_name'], 'Account Holder Name', $errors, 100);
+        $accountType = $this->requireText($values['account_type'], 'Account Type', $errors);
+        $bankAddress = $this->requireText($values['bank_address'], 'Bank Address', $errors);
+        $pincode = $this->requireText($values['pincode'], 'Pincode', $errors, 6);
+        $contactNumber = $this->requireText($values['contact_number'], 'Contact Number', $errors, 10);
+        $email = $this->optionalText($values['email'], 'Email', $errors, 100);
+        $status = $this->parseStatus($values['status'], false, $errors);
+        $duplicate = false;
+
+        if ($ifscCode !== null && ! preg_match('/^[A-Z]{4}0[A-Z0-9]{6}$/', $ifscCode)) {
+            $errors[] = 'IFSC Code must be a valid IFSC code (e.g. SBIN0001234).';
+        }
+
+        if ($accountNumber !== null && (mb_strlen($accountNumber) < 9 || mb_strlen($accountNumber) > 18)) {
+            $errors[] = 'Account Number must be between 9 and 18 characters.';
+        }
+
+        if ($accountType !== null && ! in_array($accountType, ['Savings', 'Current'], true)) {
+            $errors[] = 'Account Type must be Savings or Current.';
+        }
+
+        if ($pincode !== null && ! preg_match('/^[0-9]{6}$/', $pincode)) {
+            $errors[] = 'Pincode must be exactly 6 digits.';
+        }
+
+        if ($contactNumber !== null && ! preg_match('/^[0-9]{10}$/', $contactNumber)) {
+            $errors[] = 'Contact Number must be exactly 10 digits.';
+        }
+
+        if ($email !== null && ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Email must be a valid email address.';
+        }
+
+        if ($accountNumber !== null) {
+            $duplicate = $this->markDuplicate($seen, 'banks:account:'.$this->key($accountNumber))
+                || $this->repository->exists(Bank::class, ['account_number' => $accountNumber]);
+        }
+
+        return $this->rowResult($errors, $duplicate, [
+            'name' => $name,
+            'branch_name' => $branchName,
+            'ifsc_code' => $ifscCode,
+            'account_number' => $accountNumber,
+            'account_holder_name' => $accountHolderName,
+            'account_type' => $accountType,
+            'bank_address' => $bankAddress,
+            'pincode' => $pincode,
+            'contact_number' => $contactNumber,
+            'email' => $email,
             'active_status' => $status,
         ]);
     }

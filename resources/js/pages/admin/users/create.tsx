@@ -6,12 +6,19 @@ import UserFormFields from './user-form-fields';
 import type { UserFormData } from './user-form-fields';
 
 type UserType = { id: number; name: string };
+type ExistingUser = {
+    id: number;
+    name: string;
+    username: string;
+    mobile_no: string;
+};
 
 type CreateProps = {
     userTypes: UserType[];
+    existingUsers: ExistingUser[];
 };
 
-export default function UsersCreate({ userTypes }: CreateProps) {
+export default function UsersCreate({ userTypes, existingUsers }: CreateProps) {
     const { data, setData, post, processing, errors } = useForm<UserFormData>({
         name: '',
         username: '',
@@ -55,6 +62,7 @@ export default function UsersCreate({ userTypes }: CreateProps) {
                     setData={setData}
                     errors={errors}
                     userTypes={userTypes}
+                    existingUsers={existingUsers}
                     passwordRequired
                 />
 

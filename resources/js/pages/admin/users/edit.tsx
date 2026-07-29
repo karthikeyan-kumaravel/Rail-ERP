@@ -6,6 +6,12 @@ import UserFormFields from './user-form-fields';
 import type { UserFormData } from './user-form-fields';
 
 type UserType = { id: number; name: string };
+type ExistingUser = {
+    id: number;
+    name: string;
+    username: string;
+    mobile_no: string;
+};
 
 type EditUser = {
     unique_id: string;
@@ -19,9 +25,14 @@ type EditUser = {
 type EditProps = {
     user: EditUser;
     userTypes: UserType[];
+    existingUsers: ExistingUser[];
 };
 
-export default function UsersEdit({ user, userTypes }: EditProps) {
+export default function UsersEdit({
+    user,
+    userTypes,
+    existingUsers,
+}: EditProps) {
     const { data, setData, put, processing, errors } = useForm<UserFormData>({
         name: user.name,
         username: user.username ?? '',
@@ -65,6 +76,7 @@ export default function UsersEdit({ user, userTypes }: EditProps) {
                     setData={setData}
                     errors={errors}
                     userTypes={userTypes}
+                    existingUsers={existingUsers}
                     passwordRequired={false}
                 />
 

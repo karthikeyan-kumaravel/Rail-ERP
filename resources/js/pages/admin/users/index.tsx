@@ -9,7 +9,7 @@ import ExportToolbar from '@/lib/export-toolbar';
 import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/users';
+import { create, destroy, edit, index, show } from '@/routes/admin/users';
 
 type UserRow = {
     unique_id: string;
@@ -38,6 +38,9 @@ type Paginated<T> = {
 
 type Filters = {
     search: string;
+    staff_name: string;
+    user_name: string;
+    mobile_no: string;
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -45,6 +48,8 @@ type Filters = {
 
 type UsersIndexProps = {
     users: Paginated<UserRow>;
+    staffNames: string[];
+    userNames: string[];
     filters: Filters;
 };
 
@@ -54,6 +59,7 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'mobile_no', label: 'Mobile No' },
 ];
 
+<<<<<<< Updated upstream
 const READ_ONLY_ADD_ROLES = [
     'accounts team',
     'operation team',
@@ -61,7 +67,12 @@ const READ_ONLY_ADD_ROLES = [
     'stores team',
 ];
 
-export default function UsersIndex({ users, filters }: UsersIndexProps) {
+export default function UsersIndex({
+    users,
+    staffNames = [],
+    userNames = [],
+    filters,
+}: UsersIndexProps) {
     const { flash, auth } = usePage().props;
     const authRole = String(auth.role ?? '').trim().toLowerCase();
     const showAddButton =
@@ -70,7 +81,9 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
         Record<string, unknown> | null
     >(null);
     const [search, setSearch] = useState(filters.search);
+    const [mobileNo, setMobileNo] = useState(filters.mobile_no);
     const isFirstRender = useRef(true);
+    const isFirstMobileNoRender = useRef(true);
 
     useEffect(() => {
         if (isFirstRender.current) {
@@ -91,6 +104,25 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
+    useEffect(() => {
+        if (isFirstMobileNoRender.current) {
+            isFirstMobileNoRender.current = false;
+
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            router.get(
+                index.url(),
+                { ...filters, mobile_no: mobileNo, page: 1 },
+                { preserveState: true, replace: true },
+            );
+        }, 300);
+
+        return () => clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [mobileNo]);
+
     const applySort = (column: string) => {
         const direction =
             filters.sort === column && filters.direction === 'asc'
@@ -108,6 +140,22 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyStaffName = (staffName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, staff_name: staffName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyUserName = (userName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, user_name: userName, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -172,6 +220,76 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="staff-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Staff Name:
+                    </label>
+                    <select
+                        id="staff-name-filter"
+                        value={filters.staff_name}
+                        onChange={(event) => applyStaffName(event.target.value)}
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Staff Names</option>
+                        {staffNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="user-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        User Name:
+                    </label>
+                    <select
+                        id="user-name-filter"
+                        value={filters.user_name}
+                        onChange={(event) => applyUserName(event.target.value)}
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All User Names</option>
+                        {userNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="mobile-no-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Mobile No:
+                    </label>
+                    <input
+                        id="mobile-no-filter"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={mobileNo}
+                        onChange={(event) =>
+                            setMobileNo(
+                                event.target.value
+                                    .replace(/\D/g, '')
+                                    .slice(0, 10),
+                            )
+                        }
+                        className="w-40 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
+                    />
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -308,6 +426,14 @@ export default function UsersIndex({ users, filters }: UsersIndexProps) {
                                                     <TrashIcon />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(user.unique_id)}
+                                                title="View"
+                                                aria-label={`View ${user.name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

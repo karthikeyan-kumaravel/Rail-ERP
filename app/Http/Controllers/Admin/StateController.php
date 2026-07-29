@@ -69,6 +69,22 @@ class StateController extends Controller
         return redirect()->route('admin.states.index')->with('success', 'State created successfully.');
     }
 
+    public function show(State $state): Response
+    {
+        $state->loadCount('districts');
+
+        return Inertia::render('admin/states/show', [
+            'state' => [
+                'unique_id' => $state->unique_id,
+                'name' => $state->name,
+                'code' => $state->code,
+                'active_status' => $state->active_status,
+                'districts_count' => $state->districts_count,
+                'created_at' => $state->created_at?->format('d M Y'),
+            ],
+        ]);
+    }
+
     public function edit(State $state): Response
     {
         return Inertia::render('admin/states/edit', [

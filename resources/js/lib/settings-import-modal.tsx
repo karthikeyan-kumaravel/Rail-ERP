@@ -20,7 +20,8 @@ export type SettingsImportModule =
     | 'departments'
     | 'schedule-names'
     | 'schedule-types'
-    | 'projects';
+    | 'projects'
+    | 'banks';
 
 type ImportColumn = {
     key: string;

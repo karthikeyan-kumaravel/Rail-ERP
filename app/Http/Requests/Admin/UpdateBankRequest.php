@@ -9,17 +9,12 @@ use Illuminate\Validation\Rule;
 
 class UpdateBankRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -36,6 +31,15 @@ class UpdateBankRequest extends FormRequest
                     ->where(fn ($query) => $query->where('is_delete', false))
                     ->ignore($bankId),
             ],
+            'branch_name' => ['nullable', 'string', 'max:255'],
+            'ifsc_code' => ['nullable', 'string', 'max:20'],
+            'account_number' => ['nullable', 'string', 'max:50'],
+            'account_holder_name' => ['nullable', 'string', 'max:255'],
+            'account_type' => ['nullable', 'in:Savings,Current'],
+            'bank_address' => ['nullable', 'string'],
+            'pincode' => ['nullable', 'string', 'max:10'],
+            'contact_number' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:255'],
             'active_status' => ['required', 'in:0,1'],
         ];
     }

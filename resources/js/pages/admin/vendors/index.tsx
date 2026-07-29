@@ -6,11 +6,11 @@ import DetailsModal, {
     resolveRecordTitle,
 } from '@/lib/details-modal';
 import ExportToolbar from '@/lib/export-toolbar';
-import { EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
+import { EyeIcon, EyeIcon, PencilIcon, TrashIcon } from '@/lib/icons';
 import SettingsImportActions from '@/lib/settings-import-actions';
 import { PaginationFooter, PerPageSelect } from '@/lib/table-pagination';
 import type { PerPageValue } from '@/lib/table-pagination';
-import { create, destroy, edit, index } from '@/routes/admin/vendors';
+import { create, destroy, edit, index, show } from '@/routes/admin/vendors';
 
 type VendorRow = {
     unique_id: string;
@@ -44,6 +44,9 @@ type Paginated<T> = {
 
 type Filters = {
     search: string;
+    company_name: string;
+    name: string;
+    pan_no: string;
     sort: string;
     direction: 'asc' | 'desc';
     per_page: PerPageValue;
@@ -51,6 +54,8 @@ type Filters = {
 
 type VendorsIndexProps = {
     vendors: Paginated<VendorRow>;
+    companyNames: string[];
+    vendorNames: string[];
     filters: Filters;
 };
 
@@ -61,13 +66,20 @@ const sortableColumns: { key: string; label: string }[] = [
     { key: 'created_at', label: 'Created' },
 ];
 
-export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
+export default function VendorsIndex({
+    vendors,
+    companyNames = [],
+    vendorNames = [],
+    filters,
+}: VendorsIndexProps) {
     const { flash, auth } = usePage().props;
     const [selectedRecord, setSelectedRecord] = useState<
         Record<string, unknown> | null
     >(null);
     const [search, setSearch] = useState(filters.search);
+    const [panNo, setPanNo] = useState(filters.pan_no);
     const isFirstRender = useRef(true);
+    const isFirstPanNoRender = useRef(true);
 
     useEffect(() => {
         if (isFirstRender.current) {
@@ -88,6 +100,25 @@ export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
+    useEffect(() => {
+        if (isFirstPanNoRender.current) {
+            isFirstPanNoRender.current = false;
+
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            router.get(
+                index.url(),
+                { ...filters, pan_no: panNo, page: 1 },
+                { preserveState: true, replace: true },
+            );
+        }, 300);
+
+        return () => clearTimeout(timeout);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [panNo]);
+
     const applySort = (column: string) => {
         const direction =
             filters.sort === column && filters.direction === 'asc'
@@ -105,6 +136,22 @@ export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
         router.get(
             index.url(),
             { ...filters, per_page: perPage, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyCompanyName = (companyName: string) => {
+        router.get(
+            index.url(),
+            { ...filters, company_name: companyName, page: 1 },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const applyVendorName = (name: string) => {
+        router.get(
+            index.url(),
+            { ...filters, name, page: 1 },
             { preserveState: true, replace: true },
         );
     };
@@ -177,6 +224,72 @@ export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
                 </div>
             }
         >
+            <div className="mb-4 flex flex-wrap items-center justify-start gap-4 print:hidden">
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="company-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Company Name:
+                    </label>
+                    <select
+                        id="company-name-filter"
+                        value={filters.company_name}
+                        onChange={(event) =>
+                            applyCompanyName(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Company Names</option>
+                        {companyNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="vendor-name-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        Name:
+                    </label>
+                    <select
+                        id="vendor-name-filter"
+                        value={filters.name}
+                        onChange={(event) =>
+                            applyVendorName(event.target.value)
+                        }
+                        className="rounded-md border border-[var(--color-gold)]/25 bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]"
+                    >
+                        <option value="">All Names</option>
+                        {vendorNames.map((name) => (
+                            <option key={name} value={name}>
+                                {name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <label
+                        htmlFor="pan-no-filter"
+                        className="text-sm text-[var(--color-ink)]/70"
+                    >
+                        PAN No:
+                    </label>
+                    <input
+                        id="pan-no-filter"
+                        type="text"
+                        value={panNo}
+                        onChange={(event) => setPanNo(event.target.value)}
+                        className="w-40 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-soft)] px-3 py-1.5 text-sm text-[var(--color-ink)] transition outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
+                    />
+                </div>
+            </div>
+
             <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm sm:p-6">
                 {flash.success && (
                     <div className="mb-4 rounded-lg border border-[var(--color-accent-2)]/30 bg-[var(--color-accent-2)]/10 px-4 py-2 text-sm text-[var(--color-ink)]">
@@ -342,6 +455,16 @@ export default function VendorsIndex({ vendors, filters }: VendorsIndexProps) {
                                                     <TrashIcon />
                                                 </button>
                                             )}
+                                            <Link
+                                                href={show.url(
+                                                    vendor.unique_id,
+                                                )}
+                                                title="View"
+                                                aria-label={`View ${vendor.company_name}`}
+                                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-accent)]/80 transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:outline-none"
+                                            >
+                                                <EyeIcon className="h-4 w-4" />
+                                            </Link>
                                         </div>
                                     </td>
                                 </tr>

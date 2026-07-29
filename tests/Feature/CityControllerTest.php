@@ -98,6 +98,27 @@ test('a city is soft deleted', function () {
     ]);
 });
 
+test('the city show page renders its details', function () {
+    $state = State::factory()->create(['name' => 'Tamil Nadu']);
+    $district = District::factory()->create(['state_id' => $state->id, 'name' => 'Coimbatore']);
+    $city = City::factory()->create([
+        'state_id' => $state->id,
+        'district_id' => $district->id,
+        'name' => 'Coimbatore',
+        'pincode' => '641001',
+    ]);
+
+    $response = $this->get("/admin/cities/{$city->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('city.name', 'Coimbatore')
+        ->where('city.district', 'Coimbatore')
+        ->where('city.state', 'Tamil Nadu')
+        ->where('city.pincode', '641001')
+    );
+});
+
 test('a city keeps its own name when updated', function () {
     $state = State::factory()->create();
     $district = District::factory()->create(['state_id' => $state->id]);

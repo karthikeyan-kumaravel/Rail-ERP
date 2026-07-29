@@ -3,6 +3,7 @@
 namespace App\Imports\Settings;
 
 use App\Models\Activity;
+use App\Models\Bank;
 use App\Models\City;
 use App\Models\Customer;
 use App\Models\Department;
@@ -431,6 +432,59 @@ class SettingsImportDefinitionRegistry
                     'Zone must already exist and Division must belong to that zone.',
                     'LOA Number must already exist in LOA settings.',
                     'Contract Value is required and must be a positive number.',
+                    'Status accepts Active or Inactive. Blank status defaults to Active.',
+                ],
+            ),
+            'banks' => new SettingsImportDefinition(
+                module: 'banks',
+                label: 'Bank',
+                modelClass: Bank::class,
+                sheetTitle: 'Banks',
+                columns: [
+                    ['key' => 'name', 'heading' => 'Bank Name *', 'required' => true],
+                    ['key' => 'branch_name', 'heading' => 'Branch Name *', 'required' => true],
+                    ['key' => 'ifsc_code', 'heading' => 'IFSC Code *', 'required' => true, 'format' => 'text'],
+                    ['key' => 'account_number', 'heading' => 'Account Number *', 'required' => true, 'format' => 'text'],
+                    ['key' => 'account_holder_name', 'heading' => 'Account Holder Name *', 'required' => true],
+                    ['key' => 'account_type', 'heading' => 'Account Type *', 'required' => true],
+                    ['key' => 'bank_address', 'heading' => 'Bank Address *', 'required' => true],
+                    ['key' => 'pincode', 'heading' => 'Pincode *', 'required' => true, 'format' => 'text'],
+                    ['key' => 'contact_number', 'heading' => 'Contact Number *', 'required' => true, 'format' => 'text'],
+                    ['key' => 'email', 'heading' => 'Email'],
+                    ['key' => 'status', 'heading' => 'Status'],
+                ],
+                sampleRows: [
+                    [
+                        'name' => 'Canara Bank',
+                        'branch_name' => 'Marine Drive',
+                        'ifsc_code' => 'CNRB0001234',
+                        'account_number' => '200300400500',
+                        'account_holder_name' => 'Suresh Nair',
+                        'account_type' => 'Savings',
+                        'bank_address' => '22 Beach Road, Kochi - 682011',
+                        'pincode' => '682011',
+                        'contact_number' => '9845012345',
+                        'email' => 'canarabank@example.com',
+                        'status' => 'Active',
+                    ],
+                    [
+                        'name' => 'ICICI Bank',
+                        'branch_name' => 'Nungambakkam',
+                        'ifsc_code' => 'ICIC0005678',
+                        'account_number' => '600700800900',
+                        'account_holder_name' => 'Priya Raman',
+                        'account_type' => 'Current',
+                        'bank_address' => '45 Nungambakkam High Road, Chennai - 600034',
+                        'pincode' => '600034',
+                        'contact_number' => '9840098765',
+                        'email' => '',
+                        'status' => 'Active',
+                    ],
+                ],
+                instructions: [
+                    'Bank Name, Branch Name, IFSC Code, Account Number, Account Holder Name, Account Type, Bank Address, Pincode, and Contact Number are required.',
+                    'IFSC Code must be a valid 11-character code (e.g. SBIN0001234). Account Number must be between 9 and 18 characters and unique.',
+                    'Account Type accepts Savings or Current. Pincode must be exactly 6 digits. Contact Number must be exactly 10 digits.',
                     'Status accepts Active or Inactive. Blank status defaults to Active.',
                 ],
             ),

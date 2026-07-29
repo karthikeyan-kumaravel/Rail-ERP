@@ -211,6 +211,28 @@ test('the search endpoint matches by employee code or full name and excludes del
         ->assertJsonPath('engineers.0.id', $match->id);
 });
 
+test('the engineer show page renders its details', function () {
+    $state = State::factory()->create(['name' => 'Tamil Nadu']);
+    $city = City::factory()->create(['state_id' => $state->id, 'name' => 'Chennai']);
+    $engineerType = EngineerType::factory()->create(['name' => 'Site Engineer']);
+    $engineer = Engineer::factory()->create([
+        'full_name' => 'Priya Sharma',
+        'state_id' => $state->id,
+        'city_id' => $city->id,
+        'engineer_type_id' => $engineerType->id,
+    ]);
+
+    $response = $this->get("/admin/engineers/{$engineer->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('engineer.full_name', 'Priya Sharma')
+        ->where('engineer.state', 'Tamil Nadu')
+        ->where('engineer.city', 'Chennai')
+        ->where('engineer.engineer_type', 'Site Engineer')
+    );
+});
+
 test('an engineer can be updated without a false validation conflict', function () {
     $engineer = Engineer::factory()->create();
 

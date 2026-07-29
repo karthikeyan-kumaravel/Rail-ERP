@@ -67,6 +67,20 @@ test('a state without districts is soft deleted', function () {
     expect(State::query()->whereKey($state->id)->exists())->toBeTrue();
 });
 
+test('the state show page renders its details', function () {
+    $state = State::factory()->create(['name' => 'Tamil Nadu', 'code' => 'TN']);
+    District::factory()->count(2)->create(['state_id' => $state->id]);
+
+    $response = $this->get("/admin/states/{$state->unique_id}");
+
+    $response->assertOk();
+    $response->assertInertia(fn ($page) => $page
+        ->where('state.name', 'Tamil Nadu')
+        ->where('state.code', 'TN')
+        ->where('state.districts_count', 2)
+    );
+});
+
 test('a state keeps its own name when updated', function () {
     $state = State::factory()->create(['name' => 'Telangana', 'code' => 'TG']);
 
